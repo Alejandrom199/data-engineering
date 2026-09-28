@@ -1,0 +1,28 @@
+{
+  "$schema": "../../../schemas/unit.schema.json",
+  "id": "streaming-tiempo-real",
+  "title": "Streaming y Procesamiento en Tiempo Real",
+  "officialTitle": "Real-Time Streaming, Kafka & Kappa Architecture",
+  "summary": "El pico de complejidad de la disciplina. Domina el procesamiento ininterrumpido y la convergencia de analítica en vivo: arquitectura de mensajería orientada a logs inmutables distribuidos con Apache Kafka (Brokers, particiones, offsets, Consumer Groups y semánticas At-least-once frente a Exactly-once); matemáticas del tiempo continuo en Stream Processing (Apache Flink / Spark Structured Streaming, Event-time vs Processing-time, ventanas Tumbling/Sliding y Watermarks para reconciliación de datos tardíos); e integración no invasiva con Change Data Capture (CDC con Debezium y PostgreSQL WAL) bajo el paradigma de Arquitectura Kappa.",
+  "icon": "bolt",
+  "color": "#fb923c",
+  "objectives": [
+    "Comprender la arquitectura de logs distribuidos de Apache Kafka, particiones y el protocolo de Rebalance de Consumer Groups.",
+    "Dominar las garantías y semánticas de entrega de mensajes: At-most-once, At-least-once y Exactly-once transaccional.",
+    "Diferenciar matemáticamente entre Event-Time y Processing-Time y aplicar Watermarks para absorber datos desordenados y tardíos.",
+    "Construir agregaciones continuas sobre ventanas de tiempo deslizantes (Sliding Windows) y fijas (Tumbling Windows).",
+    "Implementar Change Data Capture (CDC) con Debezium leyendo el Write-Ahead Log (WAL) de PostgreSQL hacia Kafka y materializar una Arquitectura Kappa de extremo a extremo."
+  ],
+  "lessons": [
+    "motores-mensajeria-kafka",
+    "stream-processing-ventanas",
+    "arquitecturas-cdc-kappa"
+  ],
+  "labs": [
+    "kafka-broker-rebalance-fault-tolerance",
+    "streaming-watermarks-late-data",
+    "cdc-debezium-wal-postgres-kafka"
+  ],
+  "quizPassRatio": 0.7,
+  "quizQuestionCount": 10
+}

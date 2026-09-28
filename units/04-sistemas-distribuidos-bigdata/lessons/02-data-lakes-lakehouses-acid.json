@@ -1,0 +1,174 @@
+{
+  "$schema": "../../../../../schemas/lesson.schema.json",
+  "id": "data-lakes-lakehouses-acid",
+  "title": "Data Lakes, Lakehouses y Transaccionalidad ACID (Delta / Iceberg)",
+  "estimatedMinutes": 30,
+  "domainIds": ["distributed-systems-bigdata"],
+  "topics": ["data-lake-vs-warehouse", "lakehouse-architecture", "delta-lake", "apache-iceberg", "time-travel-acid"],
+  "hook": "Un job de Spark que escribía 500GB en un Data Lake de S3 falla al 99% por un timeout de red. El resultado: la mitad de los archivos quedaron escritos en el bucket y las consultas analíticas leen datos duplicados e incompletos. ¿Por qué el Data Lake clásico falló y cómo la arquitectura Lakehouse trajo las garantías ACID a los archivos?",
+  "concept": {
+    "blocks": [
+      {
+        "type": "heading",
+        "text": "1. La Evolución: Del Data Swamp al Lakehouse"
+      },
+      {
+        "type": "paragraph",
+        "text": "Históricamente, las organizaciones enfrentaban un dilema: los Data Warehouses tradicionales ofrecían transacciones ACID y alto rendimiento pero eran extremadamente caros y rígidos. Los **Data Lakes** (Hadoop / S3) ofrecían almacenamiento casi ilimitado y económico para cualquier formato, pero sufrían de:"
+      },
+      {
+        "type": "list",
+        "style": "bullet",
+        "items": [
+          "**Falta de Atomicidad:** Si una escritura fallaba a la mitad, los archivos parciales quedaban expuestos a los lectores (datos 'fantasmas' o corruptos).",
+          "**Imposibilidad de hacer UPDATE / DELETE:** Modificar una sola fila requería reescribir particiones de terabytes enteras.",
+          "**El 'Data Swamp':** Millones de archivos desordenados sin control de esquemas ni auditoría de linaje."
+        ]
+      },
+      {
+        "type": "heading",
+        "text": "2. La Arquitectura Lakehouse: ACID sobre Almacenamiento de Objetos"
+      },
+      {
+        "type": "paragraph",
+        "text": "Un **Data Lakehouse** combina la flexibilidad y bajo costo del almacenamiento en objetos (S3, GCS, ADLS, MinIO) con la confiabilidad y transaccionalidad ACID de un Data Warehouse tradicional. Los dos estándares líderes del mercado son **Delta Lake** (Linux Foundation) y **Apache Iceberg**."
+      },
+      {
+        "type": "heading",
+        "text": "3. El Transaction Log y Time Travel"
+      },
+      {
+        "type": "paragraph",
+        "text": "¿Cómo logran atomicidad sin bloquear el almacenamiento? Mediante un **Log de Transacciones Inmutable (Delta Log / Iceberg Metadata Tree)**:"
+      },
+      {
+        "type": "list",
+        "style": "bullet",
+        "items": [
+          "**Control de Concurrencia Optimista (OCC):** Los escritores asumen que no habrá colisión; al finalizar, intentan un commit atómico en el log.",
+          "**Inmutabilidad de Parquet:** Los datos nunca se editan in-place. Un UPDATE genera nuevos archivos Parquet y registra en el log que los archivos antiguos quedan obsoletos.",
+          "**Time Travel:** Dado que los archivos previos no se eliminan inmediatamente, puedes consultar la tabla exactamente como estaba en cualquier timestamp o versión pasada (`SELECT * FROM table VERSION AS OF 4`)."
+        ]
+      }
+    ]
+  },
+  "keyPoints": [
+    "Un Data Lake clásico sin capa de metadatos no tiene garantías ACID; las fallas dejan datos corruptos en el almacenamiento.",
+    "La arquitectura Lakehouse (Delta Lake / Apache Iceberg) implementa transacciones ACID completas sobre archivos Parquet en S3/MinIO.",
+    "El Transaction Log mantiene el estado canónico de qué archivos pertenecen a cada versión de la tabla.",
+    "Time Travel permite auditoría forense, reproducibilidad de modelos de Machine Learning y reversión instantánea ante desastres operativos."
+  ],
+  "terms": [
+    {
+      "term": "Lakehouse",
+      "translation": "Data Lakehouse",
+      "definition": "Arquitectura de gestión de datos que implementa estructuras y capacidades transaccionales ACID directamente sobre almacenamiento masivo en objetos."
+    },
+    {
+      "term": "Time Travel",
+      "translation": "Viaje en el Tiempo",
+      "definition": "Capacidad de consultar o revertir el estado de una tabla analítica a una versión o marca temporal específica del pasado."
+    },
+    {
+      "term": "OCC (Optimistic Concurrency Control)",
+      "translation": "Control de Concurrencia Optimista",
+      "definition": "Mecanismo transaccional que permite múltiples escrituras concurrentes validando al momento del commit que no existan conflictos de esquema o partición."
+    }
+  ],
+  "diagram": {
+    "type": "flow",
+    "nodes": [
+      {
+        "icon": "terminal",
+        "label": "Operación de Escritura / MERGE",
+        "sub": "Job de Spark",
+        "detail": "Genera nuevos archivos Parquet con los datos actualizados."
+      },
+      {
+        "icon": "shield",
+        "label": "Commit Atómico en Transaction Log",
+        "sub": "_delta_log/000003.json",
+        "detail": "Registra atómicamente la adición de nuevos archivos y el retiro de antiguos."
+      },
+      {
+        "icon": "server",
+        "label": "Almacenamiento S3 / MinIO",
+        "sub": "Archivos Parquet Inmutables",
+        "detail": "Los archivos antiguos se preservan para Time Travel hasta ejecutar VACUUM."
+      },
+      {
+        "icon": "check",
+        "label": "Lectores Concurrentes",
+        "sub": "Consistencia Snapshot",
+        "detail": "Solo ven los datos confirmados; cero lectura de estados a medio escribir.",
+        "kind": "end"
+      }
+    ]
+  },
+  "activity": {
+    "type": "order",
+    "prompt": "Ordena el ciclo de vida de un UPDATE transaccional en Delta Lake:",
+    "hint": "Los archivos Parquet son inmutables y nunca se sobrescriben directamente.",
+    "items": [
+      "El motor identifica qué archivos Parquet contienen las filas a modificar",
+      "Se leen los archivos originales y se reescriben los datos modificados en nuevos archivos Parquet",
+      "Se intenta escribir atómicamente un nuevo archivo de commit en el Transaction Log (_delta_log)",
+      "Si no hay conflicto de concurrencia, el commit se confirma incrementando la versión de la tabla",
+      "Las consultas posteriores leen los nuevos archivos; los antiguos quedan disponibles para Time Travel"
+    ]
+  },
+  "checkQuestionId": "q-dist-lakehouse-acid",
+  "traps": [
+    {
+      "pitfall": "Ejecutar VACUUM agresivamente con retención de 0 horas en producción.",
+      "reality": "Esto borra todos los archivos previos del log de transacciones, rompiendo consultas largas en vuelo que dependían de snapshots anteriores e impidiendo el Time Travel."
+    },
+    {
+      "pitfall": "Escribir directamente archivos Parquet con herramientas no compatibles con Delta en la carpeta de la tabla.",
+      "reality": "La tabla Lakehouse solo reconoce archivos referenciados en el Transaction Log; cualquier archivo añadido 'a mano' será ignorado por completo o corromperá el metastore."
+    }
+  ],
+  "trapSummary": "Tratar un Lakehouse como un simple sistema de archivos borra sus garantías; el Transaction Log es la única fuente de verdad canónica para lecturas consistentes y Time Travel.",
+  "flashcards": [
+    {
+      "id": "fc-lakehouse-merge",
+      "front": "¿Qué permite la sentencia MERGE (Upsert) en Delta Lake o Iceberg?",
+      "back": "Actualizar filas existentes que coincidan con una condición e insertar nuevas filas no coincidentes en una única transacción atómica."
+    },
+    {
+      "id": "fc-vacuum-purpose",
+      "front": "¿Cuál es la función del comando VACUUM en un Lakehouse?",
+      "back": "Eliminar físicamente del disco o bucket los archivos Parquet antiguos que ya no son referenciados por ninguna versión dentro del periodo de retención."
+    },
+    {
+      "id": "fc-snapshot-isolation",
+      "front": "¿Qué es la Consistencia Snapshot en un Data Lakehouse?",
+      "back": "Garantiza que una consulta lectora vea una fotografía completamente consistente y estática del dataset en el instante exacto en que comenzó a ejecutarse."
+    }
+  ],
+  "quickFacts": [
+    {
+      "statement": "En Delta Lake, una operación de UPDATE reescribe directamente los bytes dentro del archivo Parquet original.",
+      "answer": false
+    },
+    {
+      "statement": "Time Travel permite consultar una tabla Delta exactamente como existía en una fecha u hora pasada.",
+      "answer": true
+    },
+    {
+      "statement": "Apache Iceberg y Delta Lake permiten que múltiples lectores lean la tabla concurrentemente mientras un escritor realiza un commit.",
+      "answer": true
+    }
+  ],
+  "labId": "delta-lakehouse-time-travel",
+  "sources": [
+    {
+      "title": "Delta Lake: The Definitive Guide (Armbrust et al.)",
+      "url": "https://www.oreilly.com/library/view/delta-lake-the/9781098151249/"
+    },
+    {
+      "title": "Apache Iceberg Official Specification",
+      "url": "https://iceberg.apache.org/spec/"
+    }
+  ]
+}

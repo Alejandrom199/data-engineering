@@ -1,0 +1,30 @@
+{
+  "$schema": "../../../../schemas/lab.schema.json",
+  "id": "spark-skew-salting-optimization",
+  "title": "Optimización en Apache Spark: Mitigación de Data Skew con Salting",
+  "goal": "Simular un escenario de Data Skew severo en PySpark donde una clave acapara la gran mayoría de registros, diagnosticar el desbalance de particiones y aplicar la técnica de Salting para distribuir uniformemente el cómputo entre todas las particiones del clúster.",
+  "level": "advanced",
+  "estimatedMinutes": 50,
+  "icon": "flame",
+  "domainId": "distributed-systems-bigdata",
+  "lessonId": "computo-distribuido-spark",
+  "file": "spark_salting_skew.py",
+  "steps": [
+    "Crear una sesión de Spark local configurada con 4 hilos simulados.",
+    "Generar un DataFrame grande sesgado donde el 90% de las filas tienen la misma clave ('SKEWED_KEY') y el 10% restante claves variadas.",
+    "Crear un DataFrame de dimensión secundario con atributos descriptivos de cada clave.",
+    "Analizar la distribución de registros por partición mediante spark_partition_id() antes de la optimización, evidenciando el desbalance masivo.",
+    "Aplicar Salting: concatenar un sufijo pseudoaleatorio [0..3] a la clave sesgada del DataFrame grande, explotar la tabla pequeña con un array [0,1,2,3] y realizar el join sobre la clave salada.",
+    "Comprobar que tras el Salting los registros se reparten equitativamente entre las 4 particiones."
+  ],
+  "code": "from pyspark.sql import SparkSession\nfrom pyspark.sql import functions as F\n\nspark = SparkSession.builder \\\n    .appName(\"DataSkewSaltingLab\") \\\n    .master(\"local[4]\") \\\n    .config(\"spark.sql.shuffle.partitions\", \"4\") \\\n    .getOrCreate()\n\n# 1. Crear dataset con Data Skew extremo (90,000 filas con la misma clave, 10,000 repartidas)\nskewed_data = [(\"SKEWED_KEY\", i) for i in range(90000)] + [(f\"NORMAL_KEY_{i%100}\", i) for i in range(10000)]\ndf_skewed = spark.createDataFrame(skewed_data, [\"key\", \"value\"])\n\nprint(\"--- DISTRIBUCION DE REGISTROS POR PARTICION (ANTES DE SALTING) ---\")\ndf_skewed.groupBy(\"key\").count() \\\n    .withColumn(\"partition_id\", F.spark_partition_id()) \\\n    .groupBy(\"partition_id\").sum(\"count\").show()\n\n# 2. Aplicar Salting con Factor N=4\nSALT_FACTOR = 4\n\n# A la tabla grande le agregamos una 'sal' aleatoria entre 0 y N-1\ndf_skewed_salted = df_skewed.withColumn(\n    \"salted_key\", \n    F.concat(F.col(\"key\"), F.lit(\"_\"), F.floor(F.rand() * SALT_FACTOR))\n)\n\n# Tabla de dimension pequena\ndim_data = [(\"SKEWED_KEY\", \"Info Sesgada\")] + [(f\"NORMAL_KEY_{i}\", f\"Info {i}\") for i in range(100)]\ndf_dim = spark.createDataFrame(dim_data, [\"key\", \"dim_info\"])\n\n# Explotamos la tabla pequena para que coincida con cualquier sal generada\ndf_dim_exploded = df_dim.withColumn(\"salt\", F.explode(F.array([F.lit(i) for i in range(SALT_FACTOR)]))) \\\n    .withColumn(\"salted_key\", F.concat(F.col(\"key\"), F.lit(\"_\"), F.col(\"salt\")))\n\n# 3. Join sobre la clave salada\ndf_joined = df_skewed_salted.join(df_dim_exploded, on=\"salted_key\", how=\"inner\")\n\nprint(\"--- DISTRIBUCION DE PARTICIONES DESPUES DE SALTING ---\")\ndf_joined.withColumn(\"partition_id\", F.spark_partition_id()) \\\n    .groupBy(\"partition_id\").count() \\\n    .orderBy(\"partition_id\").show()\n\nspark.stop()\n",
+  "codeLanguage": "python",
+  "expectedOutput": "--- DISTRIBUCION DE REGISTROS POR PARTICION (ANTES DE SALTING) ---\n+------------+----------+\n|partition_id|sum(count)|\n+------------+----------+\n|           1|     90000| <-- Tarea estrangulada (Straggler task)\n|           0|      3333|\n|           2|      3333|\n|           3|      3334|\n+------------+----------+\n\n--- DISTRIBUCION DE PARTICIONES DESPUES DE SALTING ---\n+------------+-----+\n|partition_id|count|\n+------------+-----+\n|           0|24980|\n|           1|25010|\n|           2|25005|\n|           3|25005|\n+------------+-----+ <-- Carga perfectamente balanceada entre ejecutores",
+  "verify": "La técnica de Salting descompone la partición sesgada en N subparticiones balanceadas, permitiendo que los 4 ejecutores procesen aproximadamente 25,000 filas cada uno en lugar de sobrecargar a uno solo con 90,000 filas.",
+  "successCriteria": [
+    "Se evidencia el desbalance de particiones inicial en Spark.",
+    "El DataFrame de lookup se expande usando F.explode() con el rango de sales.",
+    "El Join se efectúa sobre la clave compuesta 'salted_key'.",
+    "La distribución final de registros por partición presenta una varianza inferior al 5% entre ejecutores."
+  ]
+}

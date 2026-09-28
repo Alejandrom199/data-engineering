@@ -1,0 +1,29 @@
+{
+  "$schema": "../../../../schemas/lab.schema.json",
+  "id": "json-streaming-generator-parser",
+  "title": "Parser Resiliente en Streaming con Generadores y Tipado",
+  "goal": "Construir un parser en Python que use generadores (yield) para procesar un flujo masivo de registros JSON registro a registro, validando el esquema estricto con dataclasses y tipado estático, y gestionando excepciones controladas ante líneas corruptas.",
+  "level": "intermediate",
+  "estimatedMinutes": 35,
+  "icon": "braces",
+  "domainId": "robust-programming-ingestion",
+  "lessonId": "python-avanzado-memoria",
+  "file": "streaming_json_parser.py",
+  "steps": [
+    "Definir una dataclass tipada TransactionRecord con campos id: str, amount: float, timestamp: str, status: str.",
+    "Crear una función generadora parse_json_stream(file_obj) que itere línea por línea usando yield sin cargar el archivo completo en memoria.",
+    "Manejar excepciones de parsing (json.JSONDecodeError) y validación de tipos, registrando advertencias controladas sin abortar el flujo entero.",
+    "Filtrar transacciones con estado 'COMPLETED' y calcular el monto acumulado en memoria O(1).",
+    "Verificar que la ejecución procesa registros válidos y aisla los corruptos con éxito."
+  ],
+  "code": "import json\nfrom dataclasses import dataclass\nfrom typing import Iterator, Optional, Dict, Any\nimport io\n\n@dataclass(frozen=True)\nclass TransactionRecord:\n    id: str\n    amount: float\n    timestamp: str\n    status: str\n\ndef parse_record(raw_line: str) -> Optional[TransactionRecord]:\n    try:\n        data = json.loads(raw_line.strip())\n        # Validacion de tipos estricta\n        return TransactionRecord(\n            id=str(data[\"id\"]),\n            amount=float(data[\"amount\"]),\n            timestamp=str(data[\"timestamp\"]),\n            status=str(data[\"status\"])\n        )\n    except (json.JSONDecodeError, KeyError, ValueError) as err:\n        # Excepcion controlada: no colapsar el pipeline por un registro danado\n        return None\n\ndef stream_transactions(stream: io.StringIO) -> Iterator[TransactionRecord]:\n    for line_num, line in enumerate(stream, start=1):\n        if not line.strip():\n            continue\n        record = parse_record(line)\n        if record is not None:\n            yield record\n\n# Simulacion de archivo JSONL con registros validos y corruptos\nsimulated_file = io.StringIO(\"\"\"\n{\"id\": \"tx_101\", \"amount\": 150.50, \"timestamp\": \"2026-09-28T10:00:00Z\", \"status\": \"COMPLETED\"}\n{\"id\": \"tx_102\", \"amount\": 299.99, \"timestamp\": \"2026-09-28T10:05:00Z\", \"status\": \"PENDING\"}\n{\"MALFORMED_JSON_LINE\": corrupt_data\n{\"id\": \"tx_103\", \"amount\": \"not_a_number\", \"timestamp\": \"invalid\", \"status\": \"FAILED\"}\n{\"id\": \"tx_104\", \"amount\": 450.00, \"timestamp\": \"2026-09-28T10:15:00Z\", \"status\": \"COMPLETED\"}\n\"\"\")\n\ntotal_completed = 0.0\nvalid_count = 0\n\nfor tx in stream_transactions(simulated_file):\n    valid_count += 1\n    if tx.status == \"COMPLETED\":\n        total_completed += tx.amount\n    print(f\"Procesado con exito: {tx.id} - Monto: ${tx.amount:.2f} ({tx.status})\")\n\nprint(f\"\\nTotal registros validos parseados: {valid_count}\")\nprint(f\"Monto total completado: ${total_completed:.2f}\")\n",
+  "codeLanguage": "python",
+  "expectedOutput": "Procesado con exito: tx_101 - Monto: $150.50 (COMPLETED)\nProcesado con exito: tx_102 - Monto: $299.99 (PENDING)\nProcesado con exito: tx_104 - Monto: $450.00 (COMPLETED)\n\nTotal registros validos parseados: 3\nMonto total completado: $600.50",
+  "verify": "El generador produce tuplas validadas bajo demanda, ignora líneas malformadas de forma controlada y calcula las métricas manteniendo la memoria constante.",
+  "successCriteria": [
+    "Las líneas con JSON malformado o tipos no convertibles no provocan una excepción fatal no controlada.",
+    "La función parse_record valida campos con tipado estricto.",
+    "El procesamiento utiliza yield para garantizar una huella de memoria O(1).",
+    "El total acumulado de transacciones completadas es exactamente $600.50."
+  ]
+}

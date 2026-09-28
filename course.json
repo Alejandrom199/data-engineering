@@ -1,0 +1,259 @@
+{
+  "$schema": "../../schemas/course.schema.json",
+  "id": "data-engineering",
+  "version": "1.0.0",
+  "locale": "es",
+  "status": "active",
+  "title": "Mentor de Ingeniería de Datos (Nivel 0 → Experto)",
+  "shortTitle": "Data Engineering",
+  "provider": "OpenLearn Community · Data Engineering Mentor",
+  "description": "Roadmap integral y de élite en Ingeniería de Datos desde nivel 0: fundamentos de ciencias de la computación, sistemas operativos, programación robusta, SQL/OLTP/OLAP, sistemas distribuidos con Spark y Lakehouses, DataOps con Airflow y streaming en tiempo real con Kafka y CDC.",
+  "level": "beginner",
+  "estimatedHours": 240,
+  "icon": "server",
+  "color": "#0284c7",
+  "domains": [
+    {
+      "id": "cs-fundamentals-os",
+      "code": "D1",
+      "name": "Fundamentos de CC y Sistemas Operativos",
+      "officialName": "Computer Science Foundations & Operating Systems",
+      "weight": 15,
+      "icon": "terminal",
+      "color": "#38bdf8",
+      "summary": "Fundamentos matemáticos (lógica booleana, conjuntos, grafos dirigidos acíclicos), arquitectura de computadores, jerarquía de memoria (RAM/Caché/SSD) y línea de comandos Linux headless.",
+      "skills": [
+        { "name": "Lógica Formal, Conjuntos y Grafos", "weight": 5 },
+        { "name": "Arquitectura de Computadores e I/O Bound vs CPU Bound", "weight": 5 },
+        { "name": "Algoritmos, Notación Big-O y External Merge Sort", "weight": 5 }
+      ]
+    },
+    {
+      "id": "robust-programming-ingestion",
+      "code": "D2",
+      "name": "Programación Robusta y Adquisición",
+      "officialName": "Robust Programming & Data Ingestion",
+      "weight": 15,
+      "icon": "braces",
+      "color": "#34d399",
+      "summary": "Ingeniería de software aplicada a datos: Python avanzado, generadores para optimización de memoria, tipado estático, pruebas unitarias, redes HTTP/TCP y tolerancia a fallos.",
+      "skills": [
+        { "name": "Python Avanzado y Generadores", "weight": 5 },
+        { "name": "Tipado Estático y Pruebas con Pytest", "weight": 4 },
+        { "name": "Protocolos de Red, Backoff y Circuit Breakers", "weight": 6 }
+      ]
+    },
+    {
+      "id": "relational-modeling-olap",
+      "code": "D3",
+      "name": "Modelado Relacional, OLTP y OLAP",
+      "officialName": "Relational Modeling, OLTP and OLAP",
+      "weight": 20,
+      "icon": "layers",
+      "color": "#fbbf24",
+      "summary": "Diseño y motores de bases de datos relacionales, normalización transaccional, planes de ejecución, SQL analítico avanzado con funciones de ventana y modelado dimensional (Star Schema y SCD Tipo 2).",
+      "skills": [
+        { "name": "Diseño OLTP, Normalización y Planes de Ejecución", "weight": 7 },
+        { "name": "SQL Analítico Avanzado, CTEs y Ventanas", "weight": 7 },
+        { "name": "Data Warehousing y Modelado Dimensional SCD2", "weight": 6 }
+      ]
+    },
+    {
+      "id": "distributed-systems-bigdata",
+      "code": "D4",
+      "name": "Sistemas Distribuidos y Big Data",
+      "officialName": "Distributed Systems & Big Data Processing",
+      "weight": 20,
+      "icon": "server",
+      "color": "#818cf8",
+      "summary": "Teoría de sistemas distribuidos, Teorema CAP, formatos columnares (Parquet), almacenamiento masivo en objetos (S3/MinIO), arquitecturas Lakehouse ACID y cómputo distribuido con Apache Spark.",
+      "skills": [
+        { "name": "Teorema CAP y Formatos de Almacenamiento Columnares", "weight": 6 },
+        { "name": "Data Lakes y Lakehouses ACID (Delta Lake / Iceberg)", "weight": 7 },
+        { "name": "Procesamiento Distribuido con Apache Spark y Mitigación de Skew", "weight": 7 }
+      ]
+    },
+    {
+      "id": "orchestration-quality-dataops",
+      "code": "D5",
+      "name": "Orquestación, Calidad y DataOps",
+      "officialName": "Orchestration, Data Quality and DataOps",
+      "weight": 15,
+      "icon": "route",
+      "color": "#f472b6",
+      "summary": "Automatización e industrialización de pipelines: orquestación con Apache Airflow (DAGs, sensores, idempotencia), contratos de datos con Great Expectations, Docker, Terraform y CI/CD.",
+      "skills": [
+        { "name": "Orquestación de Pipelines con Apache Airflow", "weight": 6 },
+        { "name": "Contratos de Datos y Circuit Breakers de Calidad", "weight": 5 },
+        { "name": "Infraestructura como Código (IaC) y CI/CD de Datos", "weight": 4 }
+      ]
+    },
+    {
+      "id": "streaming-real-time",
+      "code": "D6",
+      "name": "Streaming y Procesamiento en Tiempo Real",
+      "officialName": "Streaming & Real-Time Processing",
+      "weight": 15,
+      "icon": "bolt",
+      "color": "#fb923c",
+      "summary": "Arquitectura de eventos basada en logs distribuidos (Apache Kafka), procesamiento de flujos continuos (Apache Flink / Spark Streaming), gestión del tiempo (Event-time, Watermarks) y Change Data Capture (CDC).",
+      "skills": [
+        { "name": "Mensajería Basada en Logs con Apache Kafka", "weight": 5 },
+        { "name": "Stream Processing con Watermarks y Ventanas Temporales", "weight": 5 },
+        { "name": "Change Data Capture (CDC Debezium) y Arquitectura Kappa", "weight": 5 }
+      ]
+    }
+  ],
+  "units": [
+    "fundamentos-cs-so",
+    "programacion-adquisicion",
+    "modelado-oltp-olap",
+    "sistemas-distribuidos-bigdata",
+    "orquestacion-calidad-dataops",
+    "streaming-tiempo-real"
+  ],
+  "exams": [
+    "diagnostic",
+    "midterm-systems-sql",
+    "final-distributed-streaming"
+  ],
+  "glossary": {
+    "langs": ["es"]
+  },
+  "sources": [
+    {
+      "title": "Designing Data-Intensive Applications (Martin Kleppmann)",
+      "url": "https://dataintensive.net/"
+    },
+    {
+      "title": "The Data Warehouse Toolkit (Ralph Kimball & Margy Ross)",
+      "url": "https://www.kimballgroup.com/data-warehouse-business-intelligence-resources/books/data-warehouse-toolkit/"
+    },
+    {
+      "title": "Database Internals: A Deep Dive into Distributed Systems (Alex Petrov)",
+      "url": "https://www.databass.dev/"
+    },
+    {
+      "title": "Fundamentals of Data Engineering (Joe Reis & Matt Housley)",
+      "url": "https://www.oreilly.com/library/view/fundamentals-of-data/9781098108298/"
+    },
+    {
+      "title": "Learning Spark, 2nd Edition (Jules S. Damji et al.)",
+      "url": "https://www.oreilly.com/library/view/learning-spark-2nd/9781492050032/"
+    },
+    {
+      "title": "Kafka: The Definitive Guide, 2nd Edition (Gwen Shapira et al.)",
+      "url": "https://www.confluent.io/resources/kafka-the-definitive-guide-v2/"
+    }
+  ],
+  "achievements": [
+    {
+      "id": "first-lesson-de",
+      "name": "Primeros Bits",
+      "description": "Completa tu primera lección teórica del curso de Ingeniería de Datos.",
+      "icon": "book",
+      "color": "#38bdf8",
+      "rewardGems": 15,
+      "condition": { "type": "lessons-completed", "count": 1 }
+    },
+    {
+      "id": "first-lab-de",
+      "name": "Terminal Conquistada",
+      "description": "Ejecuta y verifica con éxito tu primer laboratorio práctico guiado.",
+      "icon": "terminal",
+      "color": "#34d399",
+      "rewardGems": 20,
+      "condition": { "type": "labs-completed", "count": 1 }
+    },
+    {
+      "id": "unit-1-cs-so",
+      "name": "Bases de Acero",
+      "description": "Completa la Unidad 1 de Fundamentos de Ciencias de la Computación y Sistemas Operativos.",
+      "icon": "check",
+      "color": "#38bdf8",
+      "rewardGems": 60,
+      "condition": { "type": "unit-completed", "unitId": "fundamentos-cs-so" }
+    },
+    {
+      "id": "unit-2-programming",
+      "name": "Ingeniero de Software",
+      "description": "Completa la Unidad 2 de Programación Robusta y Adquisición de Datos.",
+      "icon": "braces",
+      "color": "#34d399",
+      "rewardGems": 70,
+      "condition": { "type": "unit-completed", "unitId": "programacion-adquisicion" }
+    },
+    {
+      "id": "unit-3-modeling",
+      "name": "Maestro del Esquema",
+      "description": "Completa la Unidad 3 de Modelado Relacional, OLTP, SQL Avanzado y Data Warehousing.",
+      "icon": "layers",
+      "color": "#fbbf24",
+      "rewardGems": 80,
+      "condition": { "type": "unit-completed", "unitId": "modelado-oltp-olap" }
+    },
+    {
+      "id": "unit-4-distributed",
+      "name": "Arquitecto de Big Data",
+      "description": "Completa la Unidad 4 de Sistemas Distribuidos, Lakehouses ACID y Apache Spark.",
+      "icon": "server",
+      "color": "#818cf8",
+      "rewardGems": 90,
+      "condition": { "type": "unit-completed", "unitId": "sistemas-distribuidos-bigdata" }
+    },
+    {
+      "id": "unit-5-dataops",
+      "name": "Operador Industrial",
+      "description": "Completa la Unidad 5 de Orquestación con Airflow, Calidad con Data Contracts y CI/CD.",
+      "icon": "route",
+      "color": "#f472b6",
+      "rewardGems": 90,
+      "condition": { "type": "unit-completed", "unitId": "orquestacion-calidad-dataops" }
+    },
+    {
+      "id": "unit-6-streaming",
+      "name": "Pico en Tiempo Real",
+      "description": "Completa la Unidad 6 de Streaming continuo, Apache Kafka y Change Data Capture.",
+      "icon": "bolt",
+      "color": "#fb923c",
+      "rewardGems": 100,
+      "condition": { "type": "unit-completed", "unitId": "streaming-tiempo-real" }
+    },
+    {
+      "id": "domain-sql-mastery",
+      "name": "Dominio Relacional y Analítico",
+      "description": "Alcanza al menos el 80% de dominio en Modelado Relacional, OLTP y OLAP.",
+      "icon": "star",
+      "color": "#fbbf24",
+      "rewardGems": 110,
+      "condition": { "type": "domain-mastery", "domainId": "relational-modeling-olap", "percent": 80 }
+    },
+    {
+      "id": "domain-spark-mastery",
+      "name": "Dominio Distribuido y Spark",
+      "description": "Alcanza al menos el 80% de dominio en Sistemas Distribuidos y Big Data.",
+      "icon": "flame",
+      "color": "#818cf8",
+      "rewardGems": 110,
+      "condition": { "type": "domain-mastery", "domainId": "distributed-systems-bigdata", "percent": 80 }
+    },
+    {
+      "id": "midterm-exam-passed",
+      "name": "Certificación Intermedia",
+      "description": "Aprueba el examen de evaluación intermedia (Bloques 1 al 3) con una nota sobresaliente.",
+      "icon": "exam",
+      "color": "#38bdf8",
+      "rewardGems": 150,
+      "condition": { "type": "mock-passed", "examId": "midterm-systems-sql" }
+    },
+    {
+      "id": "course-completed-de",
+      "name": "Data Engineer de Élite",
+      "description": "Completa todas las unidades, laboratorios y proyectos del curso de Ingeniería de Datos.",
+      "icon": "trophy",
+      "color": "#0284c7",
+      "rewardGems": 300,
+      "condition": { "type": "course-completed" }
+    }
+  ]
+}

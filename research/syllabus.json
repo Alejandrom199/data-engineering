@@ -1,0 +1,148 @@
+{
+  "courseId": "data-engineering",
+  "version": "1.0.0",
+  "title": "Mentor de Ingeniería de Datos (Nivel 0 → Experto)",
+  "totalWeeks": 48,
+  "targetWeeklyHours": 18,
+  "blocks": [
+    {
+      "number": 1,
+      "id": "fundamentos-cs-so",
+      "title": "Fundamentos de Ciencias de la Computación y Sistemas Operativos",
+      "durationWeeks": 8,
+      "phases": [
+        {
+          "number": 1,
+          "name": "Lógica Formal, Conjuntos y Grafos",
+          "topics": ["Teoría de conjuntos", "Álgebra relacional", "Grafos Dirigidos Acíclicos (DAGs)", "Lógica booleana"]
+        },
+        {
+          "number": 2,
+          "name": "Arquitectura de Computadores y Línea de Comandos (Linux)",
+          "topics": ["Jerarquía de memoria", "I/O bound vs CPU bound", "Bash scripting", "Pipelines y flujos estándar", "grep", "awk"]
+        },
+        {
+          "number": 3,
+          "name": "Algoritmos y Complejidad (Big-O)",
+          "topics": ["Notación Big-O", "Tablas Hash", "Árboles B/B+", "External Merge Sort"]
+        }
+      ],
+      "project": "Procesador de Logs de Bajo Nivel (<50MB RAM)"
+    },
+    {
+      "number": 2,
+      "id": "programacion-adquisicion",
+      "title": "Programación Robusta y Adquisición de Datos",
+      "durationWeeks": 8,
+      "phases": [
+        {
+          "number": 1,
+          "name": "Python Avanzado y Gestión de Memoria",
+          "topics": ["Iteradores y generadores", "Manejo estricto de excepciones", "Tipado estático con typing", "pytest", "Principios SOLID"]
+        },
+        {
+          "number": 2,
+          "name": "Redes, API y Tolerancia a Fallos",
+          "topics": ["Modelo Cliente-Servidor", "HTTP/TCP", "Paginación por cursores", "Rate limiting", "Backoff exponencial", "Circuit Breaker"]
+        }
+      ],
+      "project": "Extractor Resiliente de Alta Concurrencia (80%+ Coverage)"
+    },
+    {
+      "number": 3,
+      "id": "modelado-oltp-olap",
+      "title": "Modelado Relacional, OLTP y OLAP",
+      "durationWeeks": 8,
+      "phases": [
+        {
+          "number": 1,
+          "name": "OLTP y Motores Transaccionales",
+          "topics": ["Normalización 1NF a 3NF", "Propiedades ACID", "Bloqueos y aislamiento", "Índices B-Tree vs Hash", "EXPLAIN ANALYZE"]
+        },
+        {
+          "number": 2,
+          "name": "SQL Analítico y CTEs",
+          "topics": ["Common Table Expressions (CTEs)", "Funciones de Ventana", "Agregaciones analíticas"]
+        },
+        {
+          "number": 3,
+          "name": "Modelado Dimensional (Data Warehouse)",
+          "topics": ["OLAP vs OLTP", "Esquema en Estrella", "Fact Tables", "Dimension Tables", "SCD Tipo 2"]
+        }
+      ],
+      "project": "Pipeline ETL Hacia Data Warehouse Local (Idempotente)"
+    },
+    {
+      "number": 4,
+      "id": "sistemas-distribuidos-bigdata",
+      "title": "Sistemas Distribuidos y Big Data",
+      "durationWeeks": 8,
+      "phases": [
+        {
+          "number": 1,
+          "name": "Teoría de Sistemas Distribuidos y Formatos de Almacenamiento",
+          "topics": ["Teorema CAP", "Formatos columnares (Parquet, ORC)", "Compresión", "Object Storage S3/MinIO", "Serialización"]
+        },
+        {
+          "number": 2,
+          "name": "Data Lakes y Data Lakehouses",
+          "topics": ["Data Lake vs Lakehouse", "Particionado en disco", "Delta Lake / Apache Iceberg", "Time Travel"]
+        },
+        {
+          "number": 3,
+          "name": "Procesamiento Distribuido (Apache Spark)",
+          "topics": ["Driver y Executers", "RDDs vs DataFrames", "Lazy Evaluation", "DAG de Spark", "Shuffles", "Data Skew", "Salting", "Broadcast Joins"]
+        }
+      ],
+      "project": "Pipeline Distribuido de Alto Rendimiento en Spark y Lakehouse"
+    },
+    {
+      "number": 5,
+      "id": "orquestacion-calidad-dataops",
+      "title": "Orquestación, Calidad y DataOps",
+      "durationWeeks": 8,
+      "phases": [
+        {
+          "number": 1,
+          "name": "Orquestación Basada en Grafos (Apache Airflow)",
+          "topics": ["Airflow DAGs", "Contexto de ejecución (logical_date)", "Sensores", "Backfilling e idempotencia"]
+        },
+        {
+          "number": 2,
+          "name": "Calidad de Datos (Data Contracts) y Observabilidad",
+          "topics": ["Pruebas unitarias de datos (Great Expectations)", "Detección de anomalías", "Circuit Breakers de datos", "Linaje"]
+        },
+        {
+          "number": 3,
+          "name": "Infraestructura como Código (IaC) y CI/CD",
+          "topics": ["Docker", "Terraform", "GitHub Actions CI/CD", "Linters de código y SQL (sqlfluff)"]
+        }
+      ],
+      "project": "Plataforma DataOps Automatizada y Contenerizada"
+    },
+    {
+      "number": 6,
+      "id": "streaming-tiempo-real",
+      "title": "Streaming y Procesamiento en Tiempo Real",
+      "durationWeeks": 8,
+      "phases": [
+        {
+          "number": 1,
+          "name": "Motores de Mensajería y Semánticas de Entrega",
+          "topics": ["Apache Kafka", "Brokers", "Tópicos", "Particiones", "Offsets", "Consumer Groups", "At-most-once", "At-least-once", "Exactly-once"]
+        },
+        {
+          "number": 2,
+          "name": "Procesamiento de Flujos Continuos (Stream Processing)",
+          "topics": ["Flink / Spark Structured Streaming", "Event-time vs Processing-time", "Ventanas (Tumbling/Sliding)", "Watermarks", "Late Data"]
+        },
+        {
+          "number": 3,
+          "name": "Arquitecturas Modernas (CDC y Kappa)",
+          "topics": ["Change Data Capture (CDC / Debezium)", "Write-Ahead Logging (WAL)", "Arquitectura Kappa vs Lambda"]
+        }
+      ],
+      "project": "Arquitectura Kappa de Detección de Fraude en Tiempo Real"
+    }
+  ]
+}

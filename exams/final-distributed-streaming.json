@@ -1,0 +1,18 @@
+{
+  "$schema": "../../../schemas/exam.schema.json",
+  "id": "final-distributed-streaming",
+  "title": "Examen Final: Big Data, DataOps y Streaming en Tiempo Real",
+  "subtitle": "Examen de maestría para los Bloques 4, 5 y 6 (Sistemas distribuidos, Spark, Airflow y Kafka)",
+  "badge": "FIN",
+  "durationMinutes": 120,
+  "langs": ["es"],
+  "selection": {
+    "mode": "pool",
+    "domainIds": [
+      "distributed-systems-bigdata",
+      "orchestration-quality-dataops",
+      "streaming-real-time"
+    ],
+    "count": 30
+  }
+}

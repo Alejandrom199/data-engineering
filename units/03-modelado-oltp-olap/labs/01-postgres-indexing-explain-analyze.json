@@ -1,0 +1,29 @@
+{
+  "$schema": "../../../../schemas/lab.schema.json",
+  "id": "postgres-indexing-explain-analyze",
+  "title": "Optimización con Índices B-Tree y EXPLAIN ANALYZE",
+  "goal": "Diseñar un esquema transaccional en PostgreSQL, generar datos masivos para forzar una consulta lenta con Seq Scan, diagnosticar el plan de ejecución con EXPLAIN ANALYZE y crear un índice compuesto B-Tree para reducir la latencia en órdenes de magnitud.",
+  "level": "intermediate",
+  "estimatedMinutes": 35,
+  "icon": "layers",
+  "domainId": "relational-modeling-olap",
+  "lessonId": "oltp-motores-transaccionales",
+  "file": "optimize_query.sql",
+  "steps": [
+    "Crear la tabla transaccional trips con columnas id, driver_id, passenger_id, status, created_at, fare.",
+    "Poblar la tabla con 500,000 registros sintéticos simulando estados ('COMPLETED', 'CANCELLED') en diversas fechas.",
+    "Ejecutar una consulta de filtro sobre driver_id y status con EXPLAIN ANALYZE y registrar el tiempo de ejecución y el tipo de escaneo (Seq Scan).",
+    "Crear un índice compuesto B-Tree optimizado: CREATE INDEX idx_trips_driver_status ON trips (driver_id, status).",
+    "Re-ejecutar EXPLAIN ANALYZE y verificar la transición a Index Scan / Bitmap Index Scan y la reducción drástica de tiempo."
+  ],
+  "code": "-- 1. Creacion de tabla transaccional\nDROP TABLE IF EXISTS trips;\nCREATE TABLE trips (\n    id BIGSERIAL PRIMARY KEY,\n    driver_id INT NOT NULL,\n    passenger_id INT NOT NULL,\n    status VARCHAR(20) NOT NULL,\n    created_at TIMESTAMP NOT NULL DEFAULT NOW(),\n    fare NUMERIC(10,2) NOT NULL\n);\n\n-- 2. Insercion masiva sintetica de 500,000 viajes\nINSERT INTO trips (driver_id, passenger_id, status, created_at, fare)\nSELECT \n    (random() * 10000)::INT AS driver_id,\n    (random() * 50000)::INT AS passenger_id,\n    CASE WHEN random() < 0.85 THEN 'COMPLETED' ELSE 'CANCELLED' END AS status,\n    NOW() - (random() * interval '90 days') AS created_at,\n    (10.0 + random() * 150.0)::NUMERIC(10,2) AS fare\nFROM generate_series(1, 500000);\n\n-- 3. Consulta sin indice (Provoca Seq Scan lento)\nEXPLAIN ANALYZE\nSELECT count(*), sum(fare) \nFROM trips \nWHERE driver_id = 4520 AND status = 'COMPLETED';\n\n-- 4. Creacion del indice B-Tree compuesto\nCREATE INDEX idx_trips_driver_status ON trips (driver_id, status);\n\n-- 5. Consulta con indice optimizado\nEXPLAIN ANALYZE\nSELECT count(*), sum(fare) \nFROM trips \nWHERE driver_id = 4520 AND status = 'COMPLETED';\n",
+  "codeLanguage": "sql",
+  "expectedOutput": "ANTES DEL INDICE:\nSeq Scan on trips (cost=0.00..12850.00 rows=42 actual time=4.50..85.20 ms)\n\nDESPUES DEL INDICE:\nBitmap Index Scan on idx_trips_driver_status (cost=0.00..4.45 rows=42 actual time=0.045..0.048 ms)\nExecution Time: 0.12 ms",
+  "verify": "El plan de ejecución muestra una reducción en el costo estimado y tiempo real de ~85ms a < 1ms gracias al índice B-Tree compuesto.",
+  "successCriteria": [
+    "La primera ejecución con EXPLAIN ANALYZE muestra explícitamente un 'Seq Scan' sobre la tabla trips.",
+    "El índice compuesto idx_trips_driver_status se crea exitosamente.",
+    "La segunda ejecución con EXPLAIN ANALYZE utiliza el índice compuesto ('Index Scan' o 'Bitmap Index Scan').",
+    "El tiempo de ejecución cae más del 95%."
+  ]
+}

@@ -1,0 +1,29 @@
+{
+  "$schema": "../../../../schemas/lab.schema.json",
+  "id": "streaming-watermarks-late-data",
+  "title": "Stream Processing: Ventanas Temporales y Watermarks",
+  "goal": "Construir un motor de agregación de streaming que calcule métricas en ventanas fijas de 5 minutos sobre Event-Time, configurando un Watermark de 10 minutos para absorber, reconciliar y procesar eventos que llegan tarde por intermitencia de red sin corromper el cálculo analítico.",
+  "level": "advanced",
+  "estimatedMinutes": 45,
+  "icon": "clock",
+  "domainId": "streaming-real-time",
+  "lessonId": "stream-processing-ventanas",
+  "file": "streaming_watermark_engine.py",
+  "steps": [
+    "Definir una secuencia de eventos de streaming con timestamp de evento y monto transaccional.",
+    "Configurar el Watermark con una cota de retraso de 10 minutos (watermark = max_event_time - 10 min).",
+    "Agrupar eventos en ventanas fijas (Tumbling Windows) de 5 minutos: [10:00 - 10:05), [10:05 - 10:10), [10:10 - 10:15).",
+    "Inyectar un evento en tiempo presente (10:18), un evento legítimamente demorado que entra dentro del Watermark (evento de las 10:09 llegando a las 10:18) y un evento excesivamente tarde que queda fuera del Watermark (evento de las 10:02).",
+    "Comprobar que el motor absorbe el evento dentro del Watermark recalculando la ventana [10:05 - 10:10) y descarta el evento fuera del Watermark liberando el estado de memoria."
+  ],
+  "code": "from datetime import datetime, timedelta\nfrom typing import List, Dict, Any\n\nclass StreamWatermarkEngine:\n    def __init__(self, watermark_delay_minutes: int = 10, window_size_minutes: int = 5):\n        self.delay = timedelta(minutes=watermark_delay_minutes)\n        self.window_size = timedelta(minutes=window_size_minutes)\n        self.max_event_time = None\n        self.watermark = None\n        self.windows: Dict[str, Dict[str, Any]] = {} # window_key -> {sum, count, closed}\n\n    def process_event(self, event_time: datetime, amount: float):\n        # 1. Actualizar el tiempo maximo de evento visto y el Watermark monotono\n        if self.max_event_time is None or event_time > self.max_event_time:\n            self.max_event_time = event_time\n            self.watermark = self.max_event_time - self.delay\n            \n        # 2. Comprobar si el evento esta detras del Watermark (Late Data)\n        if self.watermark is not None and event_time < self.watermark:\n            print(f\"  [DROPPED] Evento tardio {event_time.strftime('%H:%M:%S')} ($ {amount}) DESCARTADO (Watermark: {self.watermark.strftime('%H:%M:%S')})\")\n            return\n            \n        # 3. Asignar evento a su ventana de 5 minutos\n        # Redondear hacia abajo al inicio de la ventana de 5 minutos\n        minute_bucket = (event_time.minute // 5) * 5\n        window_start = event_time.replace(minute=minute_bucket, second=0, microsecond=0)\n        window_end = window_start + self.window_size\n        window_key = f\"[{window_start.strftime('%H:%M')}-{window_end.strftime('%H:%M')}]\"\n        \n        if window_key not in self.windows:\n            self.windows[window_key] = {\"total\": 0.0, \"count\": 0}\n            \n        self.windows[window_key][\"total\"] += amount\n        self.windows[window_key][\"count\"] += 1\n        print(f\"  [ACCEPTED] Evento {event_time.strftime('%H:%M:%S')} ($ {amount}) asignado a ventana {window_key}\")\n\n# Simulacion de eventos con llegadas tardias\nengine = StreamWatermarkEngine(watermark_delay_minutes=10, window_size_minutes=5)\nevents = [\n    (datetime(2026, 9, 28, 10, 2, 0), 100.0),  # Ventana 10:00-10:05\n    (datetime(2026, 9, 28, 10, 6, 0), 200.0),  # Ventana 10:05-10:10\n    (datetime(2026, 9, 28, 10, 18, 0), 50.0),  # Adelanta Watermark a 10:08 (10:18 - 10 min)\n    (datetime(2026, 9, 28, 10, 9, 0), 300.0),  # Llega tarde (10:09) pero > Watermark (10:08) -> ACEPTADO\n    (datetime(2026, 9, 28, 10, 1, 0), 999.0),  # Llega muy tarde (10:01) < Watermark (10:08) -> DESCARTADO\n]\n\nprint(\"Iniciando procesamiento de flujo con Watermark (Tolerancia: 10 min)...\")\nfor ts, val in events:\n    engine.process_event(ts, val)\n\nprint(\"\\n--- ESTADO FINAL DE LAS VENTANAS DE STREAMING ---\")\nfor w, stats in sorted(engine.windows.items()):\n    print(f\"Ventana {w}: Total = ${stats['total']:.2f} (Eventos: {stats['count']})\")\n",
+  "codeLanguage": "python",
+  "expectedOutput": "Iniciando procesamiento de flujo con Watermark (Tolerancia: 10 min)...\n  [ACCEPTED] Evento 10:02:00 ($ 100.0) asignado a ventana [10:00-10:05]\n  [ACCEPTED] Evento 10:06:00 ($ 200.0) asignado a ventana [10:05-10:10]\n  [ACCEPTED] Evento 10:18:00 ($ 50.0) asignado a ventana [10:15-10:20]\n  [ACCEPTED] Evento 10:09:00 ($ 300.0) asignado a ventana [10:05-10:10]\n  [DROPPED] Evento tardio 10:01:00 ($ 999.0) DESCARTADO (Watermark: 10:08:00)\n\n--- ESTADO FINAL DE LAS VENTANAS DE STREAMING ---\nVentana [10:00-10:05]: Total = $100.00 (Eventos: 1)\nVentana [10:05-10:10]: Total = $500.00 (Eventos: 2)\nVentana [10:15-10:20]: Total = $50.00 (Eventos: 1)",
+  "verify": "El motor de streaming demuestra que el evento de las 10:09 que llega tarde es absorbido correctamente sumando $500.00 a la ventana [10:05-10:10], mientras que el evento de las 10:01 se descarta al quedar por detrás del Watermark de las 10:08.",
+  "successCriteria": [
+    "El Watermark avanza monótonamente en función del tiempo de evento máximo visto.",
+    "Los eventos con timestamp dentro de la ventana de tolerancia son reconciliados.",
+    "Los eventos que superan el límite del Watermark se descartan ordenadamente para liberar el estado de memoria.",
+    "El total acumulado de la ventana [10:05-10:10] refleja la suma exacta de los dos eventos combinados ($500.00)."
+  ]
+}

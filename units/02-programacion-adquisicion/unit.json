@@ -1,0 +1,26 @@
+{
+  "$schema": "../../../schemas/unit.schema.json",
+  "id": "programacion-adquisicion",
+  "title": "Programación Robusta y Adquisición de Datos",
+  "officialTitle": "Robust Python Programming & Ingestion",
+  "summary": "Ingeniería de software aplicada a datos. Convierte la teoría en código de producción de élite: protocolos de iteración y generadores (`yield`) para procesar datasets masivos con huella de memoria constante O(1), tipado estático estricto (`typing`), pruebas unitarias con `pytest`, manejo de redes HTTP/TCP, rate-limiting, reintentos con backoff exponencial, paginación por cursores y arquitectura Circuit Breaker.",
+  "icon": "braces",
+  "color": "#34d399",
+  "objectives": [
+    "Construir pipelines en Python utilizando generadores y corrutinas para procesar archivos multi-gigabyte sin incurrir en fugas de memoria o errores OOM.",
+    "Aplicar tipado estático estricto, dataclasses y contratos de esquemas validados con pruebas automatizadas en pytest.",
+    "Diseñar clientes HTTP resilientes que manejen caídas de red y rate limits mediante backoff exponencial con jitter.",
+    "Implementar paginación segura por cursores inmutables evitando duplicación y pérdida de datos durante la ingesta.",
+    "Desarrollar el patrón Circuit Breaker para aislar servicios caídos y proteger la integridad del sistema downstream."
+  ],
+  "lessons": [
+    "python-avanzado-memoria",
+    "redes-apis-resiliencia"
+  ],
+  "labs": [
+    "json-streaming-generator-parser",
+    "http-backoff-cursor-extractor"
+  ],
+  "quizPassRatio": 0.7,
+  "quizQuestionCount": 10
+}

@@ -1,0 +1,24 @@
+{
+  "$schema": "../../../schemas/case-studies.schema.json",
+  "caseStudies": [
+    {
+      "id": "production-oltp-analytics-crash",
+      "title": "Caída del Core Bancario por Ejecutar Reportes Analíticos en Base OLTP",
+      "prompt": "Un equipo de Data Analytics conectó una herramienta de BI (PowerBI / Tableau) directamente a la base de datos PostgreSQL de producción transaccional de un banco. A las 11:00 AM, un analista lanzó un reporte con 12 JOINs y funciones de ventana sobre 50 millones de movimientos. Los bloqueos de lectura compartida y el consumo masivo de CPU impidieron que los cajeros y la app móvil procesaran transferencias durante 45 minutos. ¿Por qué ocurrió esto y cuál es la solución estructural?",
+      "modelAnswer": "El incidente ocurrió por violar el principio de separación entre cargas **OLTP (Online Transaction Processing)** y **OLAP (Online Analytical Processing)**. Los motores OLTP están optimizados para miles de transacciones concurrentes muy breves con búsquedas por clave primaria y aislamiento ACID. Una consulta analítica pesada consume memoria de trabajo (work_mem), satura el buffer pool y compite por bloqueos de recursos físicos con las transacciones vivas.\n\nLa solución definitiva consiste en desacoplar el entorno: replicar los datos hacia una réplica de solo lectura o, mejor aún, extraer los datos de forma incremental mediante un pipeline ETL hacia un **Data Warehouse** columnar (OLAP) optimizado para agregaciones masivas sin impactar el sistema operativo.",
+      "sources": [
+        "Database Internals (Alex Petrov)",
+        "Designing Data-Intensive Applications (Martin Kleppmann)"
+      ]
+    },
+    {
+      "id": "scd2-history-corruption",
+      "title": "Pérdida de Atribución de Ventas por Actualización Destructiva (SCD Tipo 1)",
+      "prompt": "Un cliente importante de una empresa de software se mudó de Bogotá a Madrid en junio. En la tabla de usuarios se ejecutó un simple `UPDATE users SET country = 'España' WHERE id = 42`. Al finalizar el año, el reporte financiero recalculó las ventas históricas de enero a mayo y atribuyó retroactivamente todos sus ingresos de Bogotá a la filial de España, descuadrando los impuestos contables. ¿Cómo se resuelve esto con SCD Tipo 2?",
+      "modelAnswer": "El problema ocurrió por usar **SCD Tipo 1 (Sobrescritura destructiva)**: al sobreescribir el valor del atributo, se destruye la verdad histórica del momento en que ocurrieron los hechos pasados.\n\nCon **SCD Tipo 2 (Preservación de Historia)**, nunca se sobreescribe. Se crea una clave subrogada (`user_sk = 101` para Bogotá, válida de enero a junio, y `user_sk = 102` para Madrid, válida desde junio en adelante). Las compras efectuadas en febrero quedan asociadas a `user_sk = 101`, preservando exactamente la atribución regional histórica original.",
+      "sources": [
+        "The Data Warehouse Toolkit (Ralph Kimball & Margy Ross)"
+      ]
+    }
+  ]
+}

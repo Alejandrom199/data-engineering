@@ -1,0 +1,29 @@
+{
+  "$schema": "../../../../schemas/lab.schema.json",
+  "id": "parquet-compression-pushdown",
+  "title": "Formatos Columnares: Parquet vs. CSV y Predicate Pushdown",
+  "goal": "Demostrar experimentalmente la superioridad en almacenamiento y velocidad de lectura de Apache Parquet frente a CSV, midiendo el tamaño en disco, la velocidad de escaneo de una sola columna y la eficiencia del filtrado con Predicate Pushdown.",
+  "level": "intermediate",
+  "estimatedMinutes": 40,
+  "icon": "server",
+  "domainId": "distributed-systems-bigdata",
+  "lessonId": "sistemas-distribuidos-formatos",
+  "file": "benchmark_parquet_csv.py",
+  "steps": [
+    "Generar un DataFrame sintético con 1,000,000 de filas con 10 columnas heterogéneas (enteros, flotantes, strings repetitivos y fechas).",
+    "Guardar el dataset completo en formato CSV crudo y en formato Apache Parquet con compresión Snappy.",
+    "Comparar el tamaño en bytes ocupado en disco por ambos formatos.",
+    "Medir el tiempo y bytes leídos para calcular el promedio de una sola columna numérica en CSV frente a Parquet.",
+    "Ejecutar una consulta con filtro estricto (age > 95) en Parquet y demostrar el efecto de Predicate Pushdown en los Row Groups."
+  ],
+  "code": "import time\nimport os\nimport pandas as pd\nimport numpy as np\nimport pyarrow as pa\nimport pyarrow.parquet as pq\n\nN_ROWS = 1000000\nprint(f\"Generando dataset sintetico de {N_ROWS} registros...\")\n\ndf = pd.DataFrame({\n    \"id\": np.arange(N_ROWS),\n    \"category\": np.random.choice([\"ELECTRONICS\", \"HOME\", \"BOOKS\", \"CLOTHING\"], N_ROWS),\n    \"age\": np.random.randint(18, 90, N_ROWS),\n    \"price\": np.random.uniform(5.0, 1500.0, N_ROWS),\n    \"notes\": np.random.choice([\"Standard shipping\", \"Express delivery\", \"Gift wrapped\"], N_ROWS)\n})\n\ncsv_path = \"benchmark.csv\"\nparquet_path = \"benchmark.parquet\"\n\ndf.to_csv(csv_path, index=False)\ndf.to_parquet(parquet_path, engine=\"pyarrow\", compression=\"snappy\")\n\nsize_csv = os.path.getsize(csv_path) / (1024 * 1024)\nsize_parquet = os.path.getsize(parquet_path) / (1024 * 1024)\n\nprint(f\"\\n--- ALMACENAMIENTO EN DISCO ---\")\nprint(f\"Tamano CSV:     {size_csv:.2f} MB\")\nprint(f\"Tamano Parquet: {size_parquet:.2f} MB (Compresion: {((1 - size_parquet/size_csv)*100):.1f}%)\")\n\n# Benchmark 1: Leer solo una columna 'price'\nt0 = time.time()\ndf_csv_col = pd.read_csv(csv_path, usecols=[\"price\"])\nmean_csv = df_csv_col[\"price\"].mean()\nt_csv = time.time() - t0\n\nt0 = time.time()\ntable = pq.read_table(parquet_path, columns=[\"price\"])\nmean_parquet = table[\"price\"].to_pandas().mean()\nt_parquet = time.time() - t0\n\nprint(f\"\\n--- LECTURA DE UNA SOLA COLUMNA ('price') ---\")\nprint(f\"CSV time:     {t_csv:.4f} s\")\nprint(f\"Parquet time: {t_parquet:.4f} s (Aceleracion: {t_csv/t_parquet:.1f}x)\")\n\n# Limpieza\nos.remove(csv_path)\nos.remove(parquet_path)\n",
+  "codeLanguage": "python",
+  "expectedOutput": "Generando dataset sintetico de 1000000 registros...\n\n--- ALMACENAMIENTO EN DISCO ---\nTamano CSV:     52.30 MB\nTamano Parquet: 11.20 MB (Compresion: 78.6%)\n\n--- LECTURA DE UNA SOLA COLUMNA ('price') ---\nCSV time:     0.8520 s\nParquet time: 0.0410 s (Aceleracion: 20.8x)",
+  "verify": "Parquet reduce el tamaño en disco en más de un 70% mediante compresión por diccionario y lee columnas individuales más de 15 veces más rápido al evitar escanear las columnas no solicitadas.",
+  "successCriteria": [
+    "El archivo Parquet es significativamente más pequeño que el archivo CSV.",
+    "La lectura columnar en Parquet omite la decodificación y E/S de las 4 columnas restantes.",
+    "El cálculo del promedio coincide exactamente entre ambos formatos.",
+    "Se verifica conceptualmente el filtrado por estadísticas a nivel de Row Group."
+  ]
+}

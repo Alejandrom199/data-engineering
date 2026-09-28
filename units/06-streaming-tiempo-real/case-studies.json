@@ -1,0 +1,24 @@
+{
+  "$schema": "../../../schemas/case-studies.schema.json",
+  "caseStudies": [
+    {
+      "id": "kafka-rebalance-storm",
+      "title": "Incidente Crítico: Tormenta de Rebalances en Kafka por Garbage Collection",
+      "prompt": "Un consumidor de Kafka en Java procesaba eventos analíticos. Ocasionalmente, la JVM pausaba la ejecución durante 45 segundos para ejecutar un ciclo de Garbage Collection (Stop-The-World). El broker de Kafka consideró que el consumidor había muerto al no recibir heartbeats, expulsó al nodo del Consumer Group y desató un Rebalance masivo que detuvo el procesamiento de 50 particiones. Al despertar el consumidor, se unió de nuevo, provocando otro rebalance inmediatamente. ¿Cómo se resuelve este ciclo destructivo de tormenta de rebalances?",
+      "modelAnswer": "El incidente ocurrió por una mala calibración de los tiempos de espera del consumidor frente al comportamiento de la JVM. Cuando el tiempo de pausa por GC (`Stop-the-world`) supera el parámetro `session.timeout.ms` o el procesamiento de un lote excede `max.poll.interval.ms`, el broker asume que el consumidor colapsó y reasigna sus particiones a los demás miembros del grupo.\n\nPara solucionarlo:\n1. **Ajustar la configuración del consumidor:** Incrementar `max.poll.interval.ms` (ej. a 5 minutos) y reducir `max.poll.records` (ej. a 500) para garantizar que el hilo principal retorne dentro del límite permitido.\n2. **Tuning de la JVM:** Migrar al recolector de basura ZGC o Shenandoah de baja latencia (pausas sub-milisegundo) para erradicar las pausas largas por GC.\n3. **Protocolo Cooperative Sticky Assignor:** Habilitar `cooperative-sticky` en lugar del asignador eager tradicional, permitiendo que solo las particiones afectadas se reasignen sin detener el tráfico de los demás consumidores sanos.",
+      "sources": [
+        "Kafka: The Definitive Guide (Gwen Shapira et al.)",
+        "Confluent Blog: Cooperative Sticky Assignor in Apache Kafka"
+      ]
+    },
+    {
+      "id": "out-of-order-late-data-loss",
+      "title": "Pérdida de Transacciones de Apps Móviles por Confundir Processing-Time con Event-Time",
+      "prompt": "Una aplicación de delivery procesaba las métricas de pedidos en tiempo real agrupando por ventanas de tiempo de 10 minutos basándose en el reloj del servidor del data center (`Processing-Time`). Los repartidores en zonas rurales o túneles perdían conectividad temporalmente; sus dispositivos acumulaban 15 pedidos y los sincronizaban de golpe 20 minutos después al recuperar cobertura. Todos esos pedidos se imputaron erróneamente a la ventana actual en lugar de la hora real en que se hicieron. ¿Cómo se diseña correctamente el sistema de streaming?",
+      "modelAnswer": "El error consistió en usar **Processing-Time (el momento en que el byte llega a la máquina)** en lugar de **Event-Time (el momento en que el usuario realizó la acción física en su teléfono)**.\n\nEn un motor de streaming moderno (como Apache Flink o Spark Structured Streaming), el procesamiento debe configurarse estrictamente por `Event-Time` acompañado de un **Watermark (Marca de Agua)** de tolerancia al retraso (ej. `withWatermark('event_time', '30 minutes')`). El Watermark define cuánto tiempo el motor mantendrá abierta la ventana de agregación en el estado de memoria antes de cerrarla definitivamente, permitiendo absorber, ordenar y consolidar los eventos que llegan con retraso legítimo por intermitencia de red sin alterar la contabilidad histórica.",
+      "sources": [
+        "Streaming Systems: The What, Where, When, and How of Large-Scale Data Processing (Tyler Akidau et al.)"
+      ]
+    }
+  ]
+}

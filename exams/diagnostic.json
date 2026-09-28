@@ -1,0 +1,13 @@
+{
+  "$schema": "../../../schemas/exam.schema.json",
+  "id": "diagnostic",
+  "title": "Diagnóstico Inicial de Nivelación",
+  "subtitle": "Evaluación diagnóstica inicial para medir conocimientos previos de computación, lógica y datos",
+  "badge": "D",
+  "durationMinutes": 45,
+  "langs": ["es"],
+  "selection": {
+    "mode": "pool",
+    "count": 15
+  }
+}

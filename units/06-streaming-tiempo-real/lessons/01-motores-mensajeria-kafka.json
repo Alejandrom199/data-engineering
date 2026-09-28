@@ -1,0 +1,181 @@
+{
+  "$schema": "../../../../../schemas/lesson.schema.json",
+  "id": "motores-mensajeria-kafka",
+  "title": "Motores de Mensajería y Semánticas de Entrega con Apache Kafka",
+  "estimatedMinutes": 30,
+  "domainIds": ["streaming-real-time"],
+  "topics": ["apache-kafka-core", "logs-distribuidos", "consumer-groups", "offsets-rebalance", "semanticas-de-entrega"],
+  "hook": "Cien microservicios consultan una base de datos PostgreSQL cada 500 milisegundos para detectar qué pedidos cambiaron de estado. La base de datos colapsa por exceso de conexiones concurrentes y bloqueos de fila. ¿Cómo Apache Kafka transforma una arquitectura monolítica saturada en un sistema distribuido impulsado por eventos?",
+  "concept": {
+    "blocks": [
+      {
+        "type": "heading",
+        "text": "1. El Log Distribuido Inmutable frente a las Colas Tradicionales"
+      },
+      {
+        "type": "paragraph",
+        "text": "Apache Kafka no es una cola de mensajería tradicional (como RabbitMQ o ActiveMQ), donde los mensajes se destruyen una vez leídos. Kafka es un **Log de Confirmación Distribuido e Inmutable (Append-only Distributed Commit Log)**:"
+      },
+      {
+        "type": "list",
+        "style": "bullet",
+        "items": [
+          "**Tópicos y Particiones:** Un tópico es una categoría lógica de eventos; se divide en **particiones** físicas distribuidas entre los brokers del clúster para permitir escalabilidad horizontal de lectura y escritura.",
+          "**Inmutabilidad y Retención:** Los mensajes se escriben secuencialmente en el disco y nunca se modifican; se retienen durante un periodo configurable (días, meses o indefinidamente), permitiendo que múltiples consumidores independientes lean al mismo tiempo a su propio ritmo.",
+          "**Zero-Copy y PageCache:** Kafka no almacena mensajes en la memoria heap de la JVM; escribe directamente en el PageCache del kernel de Linux y transfiere bytes a los sockets de red mediante la llamada del sistema `sendfile()`, eliminando copias de memoria en espacio de usuario."
+        ]
+      },
+      {
+        "type": "heading",
+        "text": "2. Grupos de Consumidores (Consumer Groups) y Paralelismo"
+      },
+      {
+        "type": "paragraph",
+        "text": "El escalamiento horizontal en Kafka se fundamenta en los **Consumer Groups**:"
+      },
+      {
+        "type": "list",
+        "style": "bullet",
+        "items": [
+          "Cada partición de un tópico es asignada a **un único consumidor** dentro de un grupo.",
+          "Si tienes 10 particiones y 10 consumidores, cada uno lee una partición en paralelo máximo.",
+          "Si un consumidor colapsa, el **Group Coordinator** de Kafka detecta la falta de heartbeats y dispara un **Rebalance**, reasignando las particiones huérfanas a los consumidores supervivientes.",
+          "Cada consumidor registra periódicamente el **offset** (el puntero secuencial) del último mensaje procesado en el tópico interno `__consumer_offsets`."
+        ]
+      },
+      {
+        "type": "heading",
+        "text": "3. Semánticas de Entrega: At-most-once vs At-least-once vs Exactly-once"
+      },
+      {
+        "type": "table",
+        "headers": ["Semántica", "Cómo se Logra", "Riesgo / Costo"],
+        "rows": [
+          ["At-most-once (A lo sumo una vez)", "Confirmar el offset ANTES de procesar el mensaje.", "Si el worker colapsa procesando, el mensaje se pierde para siempre."],
+          ["At-least-once (Al menos una vez)", "Confirmar el offset DESPUÉS de persistir el mensaje.", "Si el worker cae tras persistir pero antes de confirmar el offset, el mensaje se reprocesará (duplicado)."],
+          ["Exactly-once (Exactamente una vez)", "Productores idempotentes (`enable.idempotence=true`) y transacciones entre Kafka y el almacenamiento.", "Garantía estricta matemática sin duplicados ni pérdidas a cambio de mayor latencia de commit."]
+        ],
+        "caption": "Las tres semánticas de entrega en arquitecturas orientadas a eventos."
+      }
+    ]
+  },
+  "keyPoints": [
+    "Kafka es un log inmutable de confirmación distribuido; los mensajes persisten en disco y se pueden re-leer a voluntad.",
+    "El número de particiones de un tópico define el límite superior de paralelismo de un Consumer Group.",
+    "El protocolo de Rebalance garantiza tolerancia a fallos redistribuyendo particiones cuando un consumidor cae.",
+    "La semántica Exactly-once exige productores idempotentes y transacciones coordinadas entre tópicos y consumidores."
+  ],
+  "terms": [
+    {
+      "term": "Kafka Broker",
+      "translation": "Servidor Broker de Kafka",
+      "definition": "Nodo del clúster de Kafka responsable de almacenar particiones en disco y servir solicitudes de productores y consumidores."
+    },
+    {
+      "term": "Consumer Group",
+      "translation": "Grupo de Consumidores",
+      "definition": "Conjunto de procesos consumidores coordinados que se reparten mutuamente las particiones de un tópico para procesar en paralelo."
+    },
+    {
+      "term": "Offset",
+      "translation": "Desplazamiento / Puntero de Posición",
+      "definition": "Identificador entero secuencial monotónico que identifica de forma única a cada mensaje dentro de una partición específica."
+    }
+  ],
+  "diagram": {
+    "type": "flow",
+    "nodes": [
+      {
+        "icon": "bolt",
+        "label": "Productor Concurrente",
+        "sub": "Hash(Key) -> Partición",
+        "detail": "Envía eventos con clave user_id garantizando ordenamiento por usuario."
+      },
+      {
+        "icon": "server",
+        "label": "Kafka Broker (Partición 2)",
+        "sub": "Log inmutable en disco",
+        "detail": "Almacena los mensajes secuencialmente en el PageCache de Linux."
+      },
+      {
+        "icon": "user",
+        "label": "Consumidor B (Grupo Fraud)",
+        "sub": "Lectura y Procesamiento",
+        "detail": "Lee el mensaje y ejecuta la lógica analítica de detección de fraude."
+      },
+      {
+        "icon": "check",
+        "label": "Commit Offset (At-least-once)",
+        "sub": "__consumer_offsets",
+        "detail": "Confirma que el mensaje N fue procesado exitosamente.",
+        "kind": "end"
+      }
+    ]
+  },
+  "activity": {
+    "type": "order",
+    "prompt": "Ordena la secuencia de eventos de un Rebalance en Kafka ante la caída de un consumidor:",
+    "hint": "El Group Coordinator detecta la pérdida de heartbeats antes de reasignar.",
+    "items": [
+      "El consumidor activo experimenta una falla fatal (Crash o Stop-the-world GC prolongado)",
+      "El Group Coordinator deja de recibir heartbeats y expira el temporizador session.timeout.ms",
+      "El Coordinator marca el grupo en estado REBALANCE y revoca las particiones asignadas",
+      "Los consumidores sobrevivientes se unen nuevamente y el Leader calcula la nueva asignación",
+      "Los consumidores reciben sus nuevas particiones y retoman desde el último offset confirmado"
+    ]
+  },
+  "checkQuestionId": "q-stream-kafka-partitions-concurrency",
+  "traps": [
+    {
+      "pitfall": "Crear más instancias de consumidores que particiones en el tópico esperando mayor velocidad.",
+      "reality": "Las instancias sobrantes quedarán completamente ociosas sin consumir datos; el paralelismo de consumo está físicamente acotado por el número de particiones del tópico."
+    },
+    {
+      "pitfall": "Hacer commit de offset antes de guardar los datos en la base de datos de destino.",
+      "reality": "Si el proceso colapsa durante la escritura a la base de datos, el offset ya avanzó y el mensaje se pierde de forma irrecuperable (At-most-once no deseado)."
+    }
+  ],
+  "trapSummary": "Tratar a Kafka como una cola efímera o descuidar la relación partición-consumidor causa cuellos de botella; dominar los offsets, los logs inmutables y el PageCache es el corazón del streaming.",
+  "flashcards": [
+    {
+      "id": "fc-kafka-pagecache",
+      "front": "¿Por qué Kafka escribe y lee desde el PageCache de Linux en lugar de mantener una caché propia en la RAM de la JVM?",
+      "back": "Para evitar la sobrecarga y pausas de recolección de basura (GC) de Java y permitir la técnica Zero-Copy (`sendfile`), enviando datos directamente del disco a la tarjeta de red."
+    },
+    {
+      "id": "fc-key-ordering",
+      "front": "¿En qué condición garantiza Apache Kafka el orden estricto de mensajes?",
+      "back": "Kafka garantiza orden estricto **únicamente dentro de una misma partición**. Todos los mensajes con la misma clave (ej. mismo user_id) van a la misma partición y se procesan en estricto orden cronológico."
+    },
+    {
+      "id": "fc-enable-idempotence",
+      "front": "¿Qué garantiza la configuración `enable.idempotence=true` en el productor de Kafka?",
+      "back": "Evita que un reintento por falla de red genere mensajes duplicados en el broker, asignando un Producer ID y números de secuencia incrementales a cada mensaje."
+    }
+  ],
+  "quickFacts": [
+    {
+      "statement": "Una partición de Kafka puede ser leída simultáneamente por dos consumidores del mismo grupo de consumo.",
+      "answer": false
+    },
+    {
+      "statement": "Los mensajes de Kafka se eliminan automáticamente del disco en el instante exacto en que un consumidor los lee.",
+      "answer": false
+    },
+    {
+      "statement": "La semántica At-least-once garantiza que ningún mensaje se perderá, aunque pueden ocurrir duplicados ante caídas imprevistas.",
+      "answer": true
+    }
+  ],
+  "labId": "kafka-broker-rebalance-fault-tolerance",
+  "sources": [
+    {
+      "title": "Kafka: The Definitive Guide, 2nd Edition (Gwen Shapira et al.)",
+      "url": "https://www.confluent.io/resources/kafka-the-definitive-guide-v2/"
+    },
+    {
+      "title": "Apache Kafka Official Design Documentation",
+      "url": "https://kafka.apache.org/documentation/#design"
+    }
+  ]
+}

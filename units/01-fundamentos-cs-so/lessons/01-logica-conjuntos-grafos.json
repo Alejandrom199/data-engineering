@@ -1,0 +1,188 @@
+{
+  "$schema": "../../../../../schemas/lesson.schema.json",
+  "id": "logica-conjuntos-grafos",
+  "title": "Lógica Formal, Conjuntos y Grafos (DAGs)",
+  "estimatedMinutes": 20,
+  "domainIds": ["cs-fundamentals-os"],
+  "topics": ["logica-formal", "teoria-conjuntos", "algebra-relacional", "grafos-dag"],
+  "hook": "¿Por qué un JOIN en SQL devuelve millones de filas duplicadas y un pipeline programado en cron se bloquea aleatoriamente? Ambas catástrofes ocurren cuando el ingeniero desconoce el álgebra relacional y la teoría de grafos.",
+  "concept": {
+    "blocks": [
+      {
+        "type": "heading",
+        "text": "1. La Raíz Matemática de las Bases de Datos: Teoría de Conjuntos"
+      },
+      {
+        "type": "paragraph",
+        "text": "Una base de datos relacional no es una hoja de cálculo gigante: es la materialización en software de la **teoría de conjuntos** y la **lógica de predicados de primer orden** formulada por Edgar F. Codd en 1970. Una tabla es una relación (un subconjunto del producto cartesiano de dominios), cada fila es una tupla y cada columna es un atributo."
+      },
+      {
+        "type": "list",
+        "style": "bullet",
+        "items": [
+          "**Unión (A ∪ B):** Conjunto de elementos que pertenecen a A, a B o a ambos. En SQL equivale a `UNION` (elimina duplicados con costo computacional de ordenación o hashing) vs `UNION ALL` (concatena directamente sin deduplicar).",
+          "**Intersección (A ∩ B):** Elementos que pertenecen simultáneamente a A y a B. Base fundamental del operador `INNER JOIN`.",
+          "**Diferencia (A − B):** Elementos que están en A pero no están en B. Base del `LEFT JOIN ... WHERE B.id IS NULL` o `EXCEPT`."
+        ]
+      },
+      {
+        "type": "callout",
+        "tone": "warning",
+        "title": "La trampa del Producto Cartesiano",
+        "text": "Si unes un conjunto A de 1,000,000 de filas con un conjunto B de 1,000,000 de filas sin una condición de predicado precisa en la selección, el resultado es el producto cartesiano A × B: ¡1,000,000,000,000 (un billón) de registros! Esto destruirá instantáneamente el almacenamiento o la memoria de cualquier servidor."
+      },
+      {
+        "type": "heading",
+        "text": "2. Álgebra Relacional: Las Operaciones Fundamentales"
+      },
+      {
+        "type": "paragraph",
+        "text": "Toda consulta SQL que escribes es compilada por el motor de la base de datos en un árbol de operadores de álgebra relacional antes de ejecutarse:"
+      },
+      {
+        "type": "table",
+        "headers": ["Operador Formal", "Nombre", "Equivalente SQL", "Impacto en Rendimiento"],
+        "rows": [
+          ["σ (sigma)", "Selección", "WHERE", "Filtra filas. Puede aprovechar índices B-Tree para saltar lecturas de disco."],
+          ["π (pi)", "Proyección", "SELECT columnas", "Filtra columnas. En motores columnares (Parquet) reduce E/S drásticamente."],
+          ["⨝ (bowtie)", "Join Natural / Theta", "INNER JOIN ON ...", "Combina tuplas que satisfacen un predicado; sensible a la cardinalidad."],
+          ["ρ (rho)", "Renombramiento", "AS alias", "Operación puramente lógica de metadatos, costo casi nulo."]
+        ],
+        "caption": "Mapeo de operadores de álgebra relacional a primitivas SQL."
+      },
+      {
+        "type": "heading",
+        "text": "3. Grafos Dirigidos Acíclicos (DAGs) y Orquestación"
+      },
+      {
+        "type": "paragraph",
+        "text": "En ingeniería de datos moderna, los flujos de trabajo (*pipelines*) no se programan como scripts lineales monolíticos. Se estructuran como **Grafos Dirigidos Acíclicos (DAGs)**, donde cada vértice es una tarea atómica e idempotente y cada arista dirigida representa una dependencia estricta de precedencia."
+      },
+      {
+        "type": "callout",
+        "tone": "info",
+        "title": "Condición de Aciclicidad y Ordenamiento Topológico",
+        "text": "Para que un orquestador (como Apache Airflow o Dagster) pueda ejecutar un pipeline, debe existir un **Ordenamiento Topológico**: una secuencia lineal de vértices tal que para cada arista dirigida (u -> v), la tarea u aparezca estrictamente antes que v. Si existe un ciclo (A -> B -> A), el grado de entrada jamás llega a cero y el sistema entra en bloqueo fatal."
+      }
+    ]
+  },
+  "keyPoints": [
+    "Las tablas relacionales son conjuntos matemáticos; los JOINs son productos cartesianos con filtros de selección.",
+    "El operador UNION elimina duplicados ordenando en memoria/disco; UNION ALL es mucho más rápido al omitir la deduplicación.",
+    "Los pipelines de datos deben ser Grafos Dirigidos Acíclicos (DAGs) para garantizar ordenamiento topológico ejecutable.",
+    "La ruta crítica de un DAG determina el tiempo mínimo absoluto en que puede finalizar un pipeline completo."
+  ],
+  "terms": [
+    {
+      "term": "DAG",
+      "translation": "Grafo Dirigido Acíclico",
+      "definition": "Estructura matemática compuesta por nodos y aristas dirigidas sin ciclos cerrados, usada para orquestar dependencias en flujos de datos."
+    },
+    {
+      "term": "Topological Sort",
+      "translation": "Ordenamiento Topológico",
+      "definition": "Algoritmo lineal para ordenar los vértices de un DAG respetando todas las restricciones de precedencia."
+    },
+    {
+      "term": "Cardinality",
+      "translation": "Cardinalidad",
+      "definition": "Número de elementos únicos contenidos en un conjunto o relación de datos."
+    }
+  ],
+  "diagram": {
+    "type": "flow",
+    "nodes": [
+      {
+        "icon": "file",
+        "label": "T1: Extracción",
+        "sub": "In-degree: 0",
+        "detail": "Extrae datos crudos de la fuente sin dependencias previas."
+      },
+      {
+        "icon": "sliders",
+        "label": "T2: Validación",
+        "sub": "In-degree: 1",
+        "detail": "Valida tipos y contratos de esquema esperando a T1."
+      },
+      {
+        "icon": "layers",
+        "label": "T3: Transformación",
+        "sub": "In-degree: 1",
+        "detail": "Aplica álgebra relacional y joins con datos dimensionales."
+      },
+      {
+        "icon": "server",
+        "label": "T4: Carga DWH",
+        "sub": "In-degree: 1",
+        "detail": "Inserta los datos procesados en la capa analítica final.",
+        "kind": "end"
+      }
+    ]
+  },
+  "activity": {
+    "type": "order",
+    "prompt": "Ordena cronológicamente las fases de resolución de dependencias que ejecuta un orquestador para un DAG:",
+    "hint": "Primero se valida que no existan ciclos antes de calcular el orden de ejecución.",
+    "items": [
+      "Verificación de aciclicidad (Detección de ciclos)",
+      "Cálculo del ordenamiento topológico",
+      "Identificación de tareas con In-Degree = 0",
+      "Ejecución concurrente de tareas independientes",
+      "Actualización del estado y reducción del In-Degree de tareas hijas"
+    ]
+  },
+  "checkQuestionId": "q-cs-dag-properties",
+  "traps": [
+    {
+      "pitfall": "Pensar que un pipeline lineal programado con sleep o cron equivale a un DAG.",
+      "reality": "Un script con sleep no maneja fallas intermedias; si una etapa falla, las etapas posteriores procesan datos incompletos o corruptos."
+    },
+    {
+      "pitfall": "Usar UNION en SQL de forma indiscriminada en lugar de UNION ALL.",
+      "reality": "UNION ejecuta internamente un sort o hash set para deducir duplicados, consumiendo CPU y memoria masiva de forma innecesaria cuando se sabe que los conjuntos son disjuntos."
+    }
+  ],
+  "trapSummary": "No diseñar pipelines sobre bases formales de grafos produce deadlocks silenciosos y scripts frágiles; abusar de operaciones conjuntistas sin filtrar cardinalidad destruye el hardware.",
+  "flashcards": [
+    {
+      "id": "fc-dag-definition",
+      "front": "¿Qué significa que un grafo sea Acíclico en ingeniería de datos?",
+      "back": "Que no existe ninguna ruta dirigida que empiece y termine en el mismo nodo, evitando bucles infinitos de ejecución."
+    },
+    {
+      "id": "fc-union-vs-all",
+      "front": "¿Cuál es la diferencia computacional entre UNION y UNION ALL en SQL?",
+      "back": "UNION deduplica los resultados mediante un ordenamiento o hash table (costoso); UNION ALL simplemente concatena los resultados (muy rápido)."
+    },
+    {
+      "id": "fc-critical-path",
+      "front": "¿Qué es la 'Ruta Crítica' en un DAG de datos?",
+      "back": "La secuencia de tareas dependientes cuya suma de tiempos de ejecución es la más larga; define la duración mínima teórica del pipeline."
+    }
+  ],
+  "quickFacts": [
+    {
+      "statement": "Un grafo con ciclos dirigidos puede resolverse con un ordenamiento topológico estándar.",
+      "answer": false
+    },
+    {
+      "statement": "Un INNER JOIN en álgebra relacional equivale matemáticamente a un producto cartesiano seguido de una selección.",
+      "answer": true
+    },
+    {
+      "statement": "El In-Degree de una tarea representa el número de dependencias pendientes que deben finalizar antes de que pueda iniciar.",
+      "answer": true
+    }
+  ],
+  "labId": "dag-algebra-relacional",
+  "sources": [
+    {
+      "title": "Introduction to Algorithms (Cormen et al.)",
+      "url": "https://mitpress.mit.edu/9780262046305/introduction-to-algorithms/"
+    },
+    {
+      "title": "Relational Model for Database Management (E. F. Codd)",
+      "url": "https://amturing.acm.org/p377-codd.pdf"
+    }
+  ]
+}

@@ -1,0 +1,28 @@
+{
+  "$schema": "../../../schemas/unit.schema.json",
+  "id": "fundamentos-cs-so",
+  "title": "Fundamentos de Ciencias de la Computación y Sistemas Operativos",
+  "officialTitle": "CS & OS Foundations for Data Engineers",
+  "summary": "El cimiento innegociable de la ingeniería de datos. Antes de mover o procesar petabytes, debes entender cómo la computadora procesa, almacena y transfiere información a nivel lógico y físico: teoría de conjuntos, álgebra relacional, grafos dirigidos acíclicos (DAGs), jerarquía de memoria física (RAM vs Disco), flujos estándar de Linux y algoritmos de ordenamiento externo con complejidad Big-O.",
+  "icon": "terminal",
+  "color": "#38bdf8",
+  "objectives": [
+    "Dominar la teoría de conjuntos y las operaciones de álgebra relacional que fundamentan los JOINs y transformaciones en bases de datos.",
+    "Modelar dependencias de tareas sin ciclos infinitos usando Grafos Dirigidos Acíclicos (DAGs) e identificar rutas críticas.",
+    "Entender la jerarquía de memoria (Caché L1/L2, RAM, NVMe/SSD) para evitar cuellos de botella y errores Out Of Memory (OOM).",
+    "Operar fluidamente en entornos Linux headless utilizando Bash, flujos stdin/stdout/stderr, tuberías y procesamiento por streaming con awk.",
+    "Analizar el costo computacional con notación Big-O e implementar el algoritmo de External Merge Sort para ordenar datos más grandes que la memoria RAM."
+  ],
+  "lessons": [
+    "logica-conjuntos-grafos",
+    "arquitectura-computadores-linux",
+    "algoritmos-complejidad-big-o"
+  ],
+  "labs": [
+    "dag-algebra-relacional",
+    "bash-stream-processing-awk",
+    "external-merge-sort"
+  ],
+  "quizPassRatio": 0.7,
+  "quizQuestionCount": 10
+}

@@ -1,0 +1,47 @@
+{
+  "$schema": "../../../schemas/project.schema.json",
+  "title": "Proyecto Final del Bloque 6: Arquitectura Kappa de Detección de Fraude en Tiempo Real",
+  "context": "Una institución bancaria procesa miles de transacciones con tarjeta por segundo sobre una base de datos PostgreSQL de producción. Los métodos tradicionales por lotes (batch nocturno) detectan los fraudes 12 horas tarde, cuando los fondos ya fueron retirados. Tu misión como Data Engineer Senior es diseñar e implementar un sistema Kappa End-to-End de baja latencia: capturar transacciones en vivo con Debezium (CDC) sin sobrecargar la base de datos, enrutar por Apache Kafka, procesar con un motor de streaming (Spark Structured Streaming / Flink) calculando velocidades en ventanas deslizantes con tolerancia a retrasos (Watermarking), persistir en un Lakehouse Delta para analítica histórica y disparar alertas de fraude en milisegundos hacia un tópico secundario de Kafka.",
+  "requirements": [
+    "Configurar un clúster local con Docker Compose: PostgreSQL con wal_level=logical, Kafka Broker (KRaft o Zookeeper), Debezium Connect y MinIO.",
+    "Configurar el conector de Debezium para capturar eventos de inserción en la tabla de transacciones de PostgreSQL leyendo directamente del Write-Ahead Log (WAL) y publicando en el tópico kafka.banking.transactions.",
+    "Desarrollar un trabajo de Stream Processing (en PySpark o Flink) que consuma desde Kafka y parsee el payload estructurado con esquema estricto.",
+    "Implementar gestión de tiempo por evento (Event-Time) con un Watermark de 10 minutos para gestionar la llegada desordenada de eventos de redes móviles inestables.",
+    "Definir la regla de fraude con ventanas deslizantes (Sliding Windows): alertar si un mismo usuario acumula más de $5,000 USD en transacciones o más de 3 compras en una ventana de 5 minutos que se desliza cada 30 segundos.",
+    "Doble persistencia en tiempo real: persistir los eventos enriquecidos en una tabla Delta Lake en MinIO (capa analítica histórica) y publicar inmediatamente las alertas de fraude en el tópico kafka.banking.fraud_alerts con latencia inferior a 500ms."
+  ],
+  "deliverables": [
+    "docker/docker-compose-kappa.yml: Entorno completo contenerizado (PostgreSQL, Kafka, Debezium, Spark, MinIO).",
+    "debezium/postgres_connector.json: Configuración de captura CDC sobre PostgreSQL WAL.",
+    "streaming/fraud_detector.py: Script principal de streaming con Watermarks, ventanas deslizantes y escritura dual (Delta + Kafka).",
+    "tests/simulate_traffic.py: Generador de transacciones concurrentes con inyección deliberada de patrones de fraude y eventos tardíos para validar el Watermark."
+  ],
+  "rubric": [
+    {
+      "criterion": "Captura No Invasiva CDC con Debezium",
+      "weight": 25,
+      "description": "Las transacciones se capturan directamente desde el WAL de PostgreSQL sin ejecutar sentencias SELECT polleras en producción."
+    },
+    {
+      "criterion": "Event-Time y Watermarking Riguroso",
+      "weight": 25,
+      "description": "El trabajo procesa basándose en la marca temporal del evento (event_time); los eventos tardíos dentro del watermark se absorben correctamente y los excesivamente retrasados se descartan ordenadamente."
+    },
+    {
+      "criterion": "Detección de Fraude en Ventana Deslizante",
+      "weight": 25,
+      "description": "Las agregaciones en ventana deslizante identifican instantáneamente los picos de gasto anormal y publican alertas en milisegundos."
+    },
+    {
+      "criterion": "Arquitectura Kappa y Doble Escritura",
+      "weight": 25,
+      "description": "El sistema unifica la capa de servicio en tiempo real (alertas en Kafka) y la capa de almacenamiento histórico (Delta Lakehouse) a partir de una única fuente de eventos inmutable."
+    }
+  ],
+  "referenceSolution": "# Fragmento de Spark Structured Streaming con Watermark y Ventana Deslizante\n\"\"\"\ndf_stream = spark.readStream.format('kafka').option('subscribe', 'banking.transactions').load()\n\ndf_fraud = df_stream \\\n    .withWatermark('event_time', '10 minutes') \\\n    .groupBy(F.window('event_time', '5 minutes', '30 seconds'), 'user_id') \\\n    .agg(F.sum('amount').alias('total_amount'), F.count('*').alias('tx_count')) \\\n    .filter((F.col('total_amount') > 5000) | (F.col('tx_count') >= 3))\n\"\"\"",
+  "sources": [
+    "Kafka: The Definitive Guide (Gwen Shapira et al.)",
+    "Streaming Systems (Tyler Akidau et al.)",
+    "Debezium Documentation (Red Hat)"
+  ]
+}

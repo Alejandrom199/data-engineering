@@ -1,0 +1,181 @@
+{
+  "$schema": "../../../../../schemas/lesson.schema.json",
+  "id": "stream-processing-ventanas",
+  "title": "Stream Processing: Matemáticas del Tiempo, Ventanas y Watermarks",
+  "estimatedMinutes": 30,
+  "domainIds": ["streaming-real-time"],
+  "topics": ["stream-processing-core", "event-time-vs-processing-time", "ventanas-tumbling-sliding", "watermarks-late-data", "hyperloglog-probabilistico"],
+  "hook": "¿Cómo calculas el total de transacciones bancarias ocurridas a las 10:00 AM si a las 10:15 AM llega un lote retrasado desde una terminal móvil sin señal? En flujos infinitos de datos en vivo, el tiempo no es una simple marca de reloj: es un dominio matemático con retraso, desorden y memoria de estado acotada.",
+  "concept": {
+    "blocks": [
+      {
+        "type": "heading",
+        "text": "1. Las Tres Dimensiones del Tiempo en Streaming"
+      },
+      {
+        "type": "paragraph",
+        "text": "El error fundamental de los desarrolladores novatos en streaming es confiar en la hora del servidor. En **Stream Processing** profesional (Apache Flink, Spark Structured Streaming) se distinguen estrictamente tres tiempos:"
+      },
+      {
+        "type": "table",
+        "headers": ["Dimensión Temporal", "Definición Física", "Propósito en Analítica"],
+        "rows": [
+          ["Event-Time (Tiempo de Evento)", "El instante exacto en que ocurrió la acción en el dispositivo emisor (embebido en el payload).", "La única métrica válida para cálculos contables, cohortes y auditoría del negocio."],
+          ["Ingestion-Time (Tiempo de Ingesta)", "El instante en que el mensaje fue recibido y almacenado en el broker de Kafka.", "Útil como aproximación intermedia si el dispositivo emisor tiene un reloj descalibrado."],
+          ["Processing-Time (Tiempo de Procesamiento)", "La hora del reloj local del nodo del clúster que ejecuta la transformación.", "Fácil de implementar pero sensible a latencias de red y pausas por Garbage Collection."]
+        ],
+        "caption": "Las tres dimensiones temporales en sistemas de streaming."
+      },
+      {
+        "type": "heading",
+        "text": "2. Tipos de Ventanas de Agregación"
+      },
+      {
+        "type": "paragraph",
+        "text": "Un flujo de datos es continuo e infinito; para calcular agregaciones (sumas, conteos, anomalías) se debe segmentar el tiempo en **ventanas discretas**:"
+      },
+      {
+        "type": "list",
+        "style": "bullet",
+        "items": [
+          "**Tumbling Windows (Ventanas Fijas / Caídas):** Ventanas de tamaño fijo y disjuntas que no se solapan (ej. de 10:00 a 10:05, de 10:05 a 10:10). Cada evento pertenece a exactamente una ventana.",
+          "**Sliding Windows (Ventanas Deslizantes):** Ventanas de tamaño fijo que se desplazan con una frecuencia menor que su duración (ej. ventana de 10 minutos evaluada cada 1 minuto). Los eventos pertenecen a múltiples ventanas superpuestas (ideal para detección de fraude y picos de tráfico).",
+          "**Session Windows (Ventanas de Sesión):** Ventanas dinámicas delimitadas por periodos de inactividad (gaps) del usuario (ej. una sesión finaliza si el usuario pasa 15 minutos sin emitir clics)."
+        ]
+      },
+      {
+        "type": "heading",
+        "text": "3. Watermarks (Marcas de Agua) y Gestión de Memoria"
+      },
+      {
+        "type": "paragraph",
+        "text": "Si los eventos llegan desordenados debido a intermitencias de red, ¿cuánto tiempo debe el motor de streaming mantener abierta la ventana en la memoria RAM esperando registros rezagados?"
+      },
+      {
+        "type": "callout",
+        "tone": "info",
+        "title": "La Función del Watermark",
+        "text": "Un **Watermark** es una cota temporal que avanza monótonamente: `Watermark = Max_Event_Time - Delay_Tolerado`. Cuando el Watermark supera el final de una ventana (ej. ventana finaliza a las 10:05 y el Watermark llega a 10:05:01), el motor asume con alta confianza estadística que no llegarán más datos para esa ventana, emite el resultado final y purga el estado de la memoria RAM para evitar fugas OOM."
+      }
+    ]
+  },
+  "keyPoints": [
+    "La analítica de streaming debe procesar siempre sobre Event-Time para garantizar resultados correctos y reproducibles.",
+    "Las ventanas deslizantes (Sliding Windows) son ideales para monitoreo continuo de velocidad y detección de anomalías.",
+    "El Watermark define el compromiso entre latencia y completitud: un watermark mayor retiene más memoria pero absorbe más datos tardíos.",
+    "Los eventos que llegan por detrás del Watermark se consideran 'Late Data' y se descartan o desvían a una cola lateral (Side Output)."
+  ],
+  "terms": [
+    {
+      "term": "Event-Time",
+      "translation": "Tiempo de Evento",
+      "definition": "Marca de tiempo original grabada en el registro cuando ocurrió el hecho físico en el sistema o dispositivo cliente."
+    },
+    {
+      "term": "Watermark",
+      "translation": "Marca de Agua",
+      "definition": "Mecanismo que mide el progreso del tiempo del evento en un motor de streaming para decidir cuándo cerrar ventanas y emitir resultados."
+    },
+    {
+      "term": "Sliding Window",
+      "translation": "Ventana Deslizante",
+      "definition": "Ventana temporal continua de duración fija que se recalcula a intervalos regulares solapados para detectar tendencias en vivo."
+    }
+  ],
+  "diagram": {
+    "type": "flow",
+    "nodes": [
+      {
+        "icon": "clock",
+        "label": "Flujo de Eventos Crudos",
+        "sub": "Llegadas desordenadas",
+        "detail": "Eventos de redes móviles con latencias y retrasos heterogéneos."
+      },
+      {
+        "icon": "shield",
+        "label": "Evaluador de Watermark",
+        "sub": "Max(Event_Time) - 10 min",
+        "detail": "Controla el avance del tiempo lógico de eventos."
+      },
+      {
+        "icon": "loop",
+        "label": "Estado de Ventana (RAM)",
+        "sub": "Ventana [10:00 - 10:05)",
+        "detail": "Acumula métricas en memoria mientras el Watermark < 10:05."
+      },
+      {
+        "icon": "check",
+        "label": "Cierre y Emisión",
+        "sub": "Watermark >= 10:05",
+        "detail": "Emite el resultado a Kafka/Lakehouse y libera la RAM.",
+        "kind": "end"
+      }
+    ]
+  },
+  "activity": {
+    "type": "order",
+    "prompt": "Ordena cronológicamente la toma de decisiones de un motor de streaming con Watermarking:",
+    "hint": "El motor calcula el Watermark antes de decidir si acepta o descarta un evento.",
+    "items": [
+      "Llega un nuevo evento con timestamp de evento T_evento",
+      "Se actualiza el tiempo máximo de evento visto si T_evento > Max_Visto",
+      "Se recalcula el Watermark móvil: Watermark = Max_Visto - Tolerancia",
+      "Se compara T_evento contra el Watermark actual",
+      "Si T_evento >= Watermark se agrega a la ventana activa; si T_evento < Watermark se descarta por tardío"
+    ]
+  },
+  "checkQuestionId": "q-stream-watermark-definition",
+  "traps": [
+    {
+      "pitfall": "Configurar un Watermark de 0 segundos creyendo que 'hace el streaming más en tiempo real'.",
+      "reality": "Un watermark de cero segundos descarta cualquier evento que sufra un microsegundo de latencia de red, provocando una pérdida masiva de datos en producción."
+    },
+    {
+      "pitfall": "Configurar un Watermark de 7 días 'por si acaso los datos se demoran'.",
+      "reality": "Esto obliga al motor de streaming a mantener el estado en memoria de millones de ventanas abiertas durante 7 días, provocando invariablemente el colapso por OutOfMemory en el clúster."
+    }
+  ],
+  "trapSummary": "No calibrar el Watermark y confundir Processing-Time con Event-Time arruina las métricas en tiempo real; el streaming profesional gestiona el desorden con rigor matemático.",
+  "flashcards": [
+    {
+      "id": "fc-tumbling-vs-sliding",
+      "front": "¿Cuál es la diferencia entre una Tumbling Window y una Sliding Window?",
+      "back": "Las Tumbling Windows no se solapan (cada evento pertenece a una sola ventana); las Sliding Windows se solapan (un evento puede pertenecer a múltiples ventanas consecutivas)."
+    },
+    {
+      "id": "fc-watermark-memory-link",
+      "front": "¿Por qué el Watermark es fundamental para evitar fugas de memoria en streaming?",
+      "back": "Porque le indica al motor cuándo es seguro purgar de la memoria RAM el estado de las ventanas anteriores, evitando que el consumo de memoria crezca hacia el infinito."
+    },
+    {
+      "id": "fc-side-output",
+      "front": "¿Qué es un 'Side Output' o cola de descarte en Apache Flink / Spark?",
+      "back": "Un flujo secundario donde se desvían de forma no destructiva los eventos tardíos que llegaron por detrás del Watermark para su posterior análisis forense."
+    }
+  ],
+  "quickFacts": [
+    {
+      "statement": "El Event-Time se calcula utilizando el reloj del servidor que procesa la consulta en el data center.",
+      "answer": false
+    },
+    {
+      "statement": "El Watermark permite reconciliar eventos que llegan desordenados debido a intermitencias de red en clientes móviles.",
+      "answer": true
+    },
+    {
+      "statement": "En una ventana deslizante de 10 minutos evaluada cada 1 minuto, un mismo evento influye en el cálculo de 10 ventanas distintas.",
+      "answer": true
+    }
+  ],
+  "labId": "streaming-watermarks-late-data",
+  "sources": [
+    {
+      "title": "Streaming Systems: The What, Where, When, and How of Large-Scale Data Processing (Akidau et al.)",
+      "url": "https://www.oreilly.com/library/view/streaming-systems/9781491983867/"
+    },
+    {
+      "title": "Apache Flink Official Documentation: Timely Stream Processing",
+      "url": "https://nightlies.apache.org/flink/flink-docs-stable/docs/concepts/time-and-watermarks/"
+    }
+  ]
+}

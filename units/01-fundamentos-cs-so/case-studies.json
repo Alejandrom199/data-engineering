@@ -1,0 +1,25 @@
+{
+  "$schema": "../../../schemas/case-studies.schema.json",
+  "caseStudies": [
+    {
+      "id": "oom-log-parser-incident",
+      "title": "Incidente en Producción: OOM Killer aniquila el ingestor de logs nocturno",
+      "prompt": "Un ingeniero junior escribió un script en Python que utilizaba `open('access.log').readlines()` para analizar 40GB de logs en un servidor con 8GB de RAM. A las 03:15 AM el kernel de Linux ejecutó el OOM Killer y mató no solo el proceso, sino también la base de datos que compartía la máquina. ¿Cuál fue el error de arquitectura física y cómo se resuelve aplicando conceptos de flujos y memoria?",
+      "modelAnswer": "El error fundamental fue intentar materializar en memoria RAM toda la colección de cadenas simultáneamente (`readlines()` crea una lista en memoria de 40GB en un servidor con solo 8GB disponibles). El Kernel agotó las páginas libres y la memoria Swap, activando el OOM Killer.\n\nLa solución técnica consiste en desacoplar el consumo de memoria del tamaño del archivo mediante **procesamiento por streaming**: iterar sobre el descriptor de archivo línea por línea (`for line in file:` en Python o tuberías estándar de Unix `cat | awk`), manteniendo una complejidad espacial de O(1) con un buffer de pocos kilobytes en memoria independientemente de si el archivo pesa 40GB o 40TB.",
+      "sources": [
+        "Modern Operating Systems (Andrew S. Tanenbaum)",
+        "Linux Kernel Documentation: Out of Memory Management"
+      ]
+    },
+    {
+      "id": "cyclic-dependency-deadlock",
+      "title": "Incidente de Orquestación: Bloqueo infinito por ciclo en dependencias",
+      "prompt": "Un equipo de analítica configuró scripts cron con dependencias cruzadas: la tabla de Usuarios agregados dependía de la tabla de Sesiones, la cual a su vez leía una métrica precalculada de Usuarios. El sistema colapsó en un bucle infinito de espera sin emitir ningún error. ¿Qué propiedad matemática de grafos se violó y cómo se previene estructuralmente?",
+      "modelAnswer": "Se violó la propiedad de **Aciclicidad** de los Grafos Dirigidos Acíclicos (DAGs). Al existir una dependencia circular (A -> B -> A), el grado de entrada (in-degree) de las tareas involucradas nunca llega a cero, impidiendo el ordenamiento topológico (Topological Sort).\n\nPara solucionarlo, se debe auditar el grafo de dependencias mediante un algoritmo de detección de ciclos (como Depth-First Search con coloreado de vértices blanco-gris-negro) y romper la recursión creando una capa inmutable de datos en crudo (Bronze) desde la cual ambas transformaciones deriven de forma unidireccional y estrictamente acíclica.",
+      "sources": [
+        "Introduction to Algorithms (Cormen et al.)",
+        "Designing Data-Intensive Applications (Martin Kleppmann)"
+      ]
+    }
+  ]
+}

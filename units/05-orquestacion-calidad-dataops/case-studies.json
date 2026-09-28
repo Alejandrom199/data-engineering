@@ -1,0 +1,25 @@
+{
+  "$schema": "../../../schemas/case-studies.schema.json",
+  "caseStudies": [
+    {
+      "id": "silent-pipeline-success-corrupt-kpi",
+      "title": "El Pipeline Verde que Destruyó el Reporte Financiero de la Junta Directiva",
+      "prompt": "Un pipeline de facturación nocturno en Airflow terminó a las 05:00 AM con todas sus tareas marcadas en verde ('SUCCESS'). Sin embargo, el equipo de frontend cambió silenciosamente el nombre del campo `total_amount` por `amount_usd` en el JSON de origen. La consulta SQL usó `NULL` por defecto para el campo faltante, resultando en que las ventas del día se registraron en $0.00. La junta directiva entró en pánico creyendo que la empresa había dejado de vender. ¿Cómo se previene esto mediante Data SRE?",
+      "modelAnswer": "El incidente ocurrió por falta de **Contratos de Datos (Data Contracts)** y validación temprana en el pipeline. Un estatus 'SUCCESS' en Airflow solo significa que el proceso retornó código de salida 0; no garantiza en absoluto que los datos contengan sentido semántico ni completitud de esquema.\n\nLa solución es integrar un **Circuit Breaker de Calidad** utilizando herramientas como Great Expectations antes de escribir en las tablas de hechos: la tarea ejecuta un contrato que exige que la columna `total_amount` exista, no tenga más del 0.01% de nulos y que la suma sea mayor a cero. Si el contrato falla, la tarea se marca en 'FAILED' y alerta de inmediato al canal de guardia de ingeniería antes de que los reportes de gerencia sean actualizados.",
+      "sources": [
+        "Data Quality Fundamentals (Barr Moses et al.)",
+        "Site Reliability Engineering (Google)"
+      ]
+    },
+    {
+      "id": "backfill-datetime-now-disaster",
+      "title": "Desastre de Backfill por Usar datetime.now() en el Código del Pipeline",
+      "prompt": "Un ingeniero escribió un DAG en Airflow que utilizaba `datetime.now()` dentro del script de Python para filtrar las ventas de ayer. Cuando un incidente de red obligó a reprocesar (hacer backfill) las particiones de los últimos 30 días, el DAG ejecutó 30 tareas simultáneas pero todas procesaron exactamente la fecha de hoy, sobrescribiendo 30 veces los mismos datos y dejando el mes histórico vacío. ¿Por qué ocurrió esto?",
+      "modelAnswer": "Ocurrió por violar el principio de **Idempotencia y Determinismo Temporal**. El tiempo real del reloj del sistema (`datetime.now()`) no tiene ninguna relevancia durante una ejecución analítica o un backfill.\n\nUn pipeline debe estar estrictamente parametrizado por la **fecha lógica de ejecución** (`logical_date` o `{{ ds }}` en Airflow). Al usar `{{ ds }}`, cuando el orquestador lanza la tarea para el día `2026-08-01`, el script procesa invariable y deterministamente los datos de ese día, ya sea que se ejecute en 2026 o en 2030, permitiendo hacer backfills masivos con total seguridad.",
+      "sources": [
+        "Apache Airflow Documentation: Execution Date & Logical Date",
+        "Fundamentals of Data Engineering (Reis & Housley)"
+      ]
+    }
+  ]
+}

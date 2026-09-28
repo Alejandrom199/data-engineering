@@ -1,0 +1,45 @@
+{
+  "$schema": "../../../schemas/project.schema.json",
+  "title": "Proyecto del Bloque 4: Pipeline Distribuido de Alto Rendimiento",
+  "context": "Una multinacional de servicios financieros procesa diariamente 50 millones de transacciones almacenadas en un bucket S3/MinIO en formatos mixtos (JSON crudo y CSV comprimido). El job anterior en Spark tardaba 6 horas y fallaba con errores OOM en los ejecutores debido a un sesgo masivo de datos (Data Skew en la clave de país de origen). Tu objetivo es reescribir y optimizar el pipeline en PySpark, implementando técnicas de salting, broadcast joins y persistencia en un Lakehouse Delta/Iceberg con particionamiento eficiente.",
+  "requirements": [
+    "Configurar un entorno local o contenerizado con MinIO (Object Storage compatible S3) y Apache Spark (PySpark 3.5+ con soporte Delta Lake).",
+    "Ingestar formatos heterogéneos (JSON/CSV) aplicando esquemas explícitos (evitar schema inference que provoca lecturas duplicadas completas).",
+    "Unir una tabla transaccional masiva (50M filas) con una tabla pequeña de metadatos de países usando Broadcast Hash Join (broadcast(dim_df)) para eliminar shuffles en la red.",
+    "Diagnosticar Data Skew en una clave sesgada (ej. 80% de transacciones en 'US') y aplicar la técnica de Salting: agregar un número pseudo-aleatorio [0..N-1] a la clave antes del join para dispersar la carga uniformemente entre todos los ejecutores.",
+    "Escribir los resultados en una tabla Delta Lake / Iceberg particionada físicamente por año/mes/día, asegurando un tamaño óptimo de archivo de 128MB a 512MB (evitando el problema de Small Files).",
+    "Demostrar atomicidad ACID y Time Travel: consultar la tabla en una versión previa tras una operación de MERGE incremental."
+  ],
+  "deliverables": [
+    "spark_jobs/high_performance_pipeline.py: Script PySpark con broadcast joins, salting y escrituras Delta.",
+    "docker/docker-compose.yml: Entorno reproducible con Spark Master/Worker y MinIO.",
+    "benchmarks/spark_ui_metrics.md: Análisis comparativo de métricas de la Spark UI (Shuffle Read/Write, GC time y duración de etapas antes y después de salting)."
+  ],
+  "rubric": [
+    {
+      "criterion": "Eliminación de Data Skew con Salting",
+      "weight": 30,
+      "description": "El trabajo distribuye equitativamente las tareas entre ejecutores; ninguna tarea individual tarda órdenes de magnitud más que sus pares."
+    },
+    {
+      "criterion": "Optimización de Shuffles y Broadcast Joins",
+      "weight": 25,
+      "description": "Se evita el SortMergeJoin innecesario en dimensiones pequeñas, reduciendo el tráfico de red de shuffle a cero."
+    },
+    {
+      "criterion": "Persistencia Correcta en Lakehouse (Delta/Iceberg)",
+      "weight": 25,
+      "description": "La tabla final está particionada adecuadamente por fecha y soporta consultas de Time Travel y operaciones de MERGE ACID."
+    },
+    {
+      "criterion": "Control del Problema de Small Files",
+      "weight": 20,
+      "description": "El pipeline produce archivos de tamaño óptimo sin saturar el metastore con millones de fragmentos de pocos kilobytes."
+    }
+  ],
+  "referenceSolution": "# PySpark Salting & Broadcast Join Snippet\n\"\"\"\nfrom pyspark.sql import functions as F\n\n# Salting de clave sesgada\nSALT_FACTOR = 8\ndf_skewed = df_skewed.withColumn('salt', F.concat(F.col('country_code'), F.lit('_'), F.floor(F.rand() * SALT_FACTOR)))\ndf_lookup = df_lookup.withColumn('salt_array', F.array([F.lit(i) for i in range(SALT_FACTOR)]))\n# Broadcast join optimizado\n\"\"\"",
+  "sources": [
+    "Learning Spark, 2nd Edition (Damji et al.)",
+    "Delta Lake Documentation (Linux Foundation)"
+  ]
+}

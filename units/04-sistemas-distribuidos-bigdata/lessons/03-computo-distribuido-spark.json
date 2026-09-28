@@ -1,0 +1,182 @@
+{
+  "$schema": "../../../../../schemas/lesson.schema.json",
+  "id": "computo-distribuido-spark",
+  "title": "Procesamiento Distribuido con Apache Spark",
+  "estimatedMinutes": 30,
+  "domainIds": ["distributed-systems-bigdata"],
+  "topics": ["apache-spark-internals", "driver-executors-dag", "spark-shuffles", "data-skew-mitigation", "salting-broadcast-joins"],
+  "hook": "Tienes 500 máquinas en un clúster de Spark para procesar un petabyte. 499 máquinas terminan su trabajo en 2 minutos; una sola máquina se queda calculando sola durante 6 horas hasta que colapsa con OutOfMemory. ¿Qué es el infame Data Skew y cómo los ingenieros senior lo neutralizan con Salting y Broadcast Joins?",
+  "concept": {
+    "blocks": [
+      {
+        "type": "heading",
+        "text": "1. Arquitectura Interna de Apache Spark: Driver y Ejecutores"
+      },
+      {
+        "type": "paragraph",
+        "text": "Apache Spark es un motor de procesamiento unificado distribuido en memoria que opera bajo una arquitectura Maestro-Trabajador:"
+      },
+      {
+        "type": "list",
+        "style": "bullet",
+        "items": [
+          "**Driver Process:** El cerebro del trabajo. Mantiene la SparkSession, compila el código del usuario, optimiza el plan lógico mediante el **Catalyst Optimizer**, divide el cálculo en un DAG de etapas (Stages) y programa tareas en los ejecutores.",
+          "**Executors (Ejecutores):** Procesos de cómputo distribuidos que residen en los nodos trabajadores (Workers). Ejecutan tareas (Tasks) en paralelo y almacenan datos en memoria RAM o disco.",
+          "**Lazy Evaluation (Evaluación Perezosa):** Spark no ejecuta nada cuando defines transformaciones (`select`, `filter`, `join`). Únicamente construye el grafo de dependencias lógico (DAG). El procesamiento real solo arranca cuando se invoca una Acción (`count()`, `write()`, `collect()`)."
+        ]
+      },
+      {
+        "type": "heading",
+        "text": "2. Shuffles y las Etapas (Stages) del DAG"
+      },
+      {
+        "type": "paragraph",
+        "text": "Spark divide un trabajo en etapas delimitadas por operaciones que requieren reorganizar físicamente los datos a través de la red (**Shuffle Boundaries**):"
+      },
+      {
+        "type": "table",
+        "headers": ["Tipo de Transformación", "Ejemplos", "Impacto en Red y Rendimiento"],
+        "rows": [
+          ["Narrow Transformation (Estrecha)", "`map`, `filter`, `withColumn`", "Sin Shuffle. Cada partición se procesa localmente en su ejecutor sin tocar la red."],
+          ["Wide Transformation (Ancha)", "`groupBy`, `join`, `distinct`, `repartition`", "Requiere SHUFFLE. Los datos se serializan, vuelcan a disco local y se envían por la red física."]
+        ],
+        "caption": "Transformaciones estrechas vs anchas en Spark."
+      },
+      {
+        "type": "heading",
+        "text": "3. Patologías de Clúster y Soluciones: Data Skew y Salting"
+      },
+      {
+        "type": "paragraph",
+        "text": "Cuando una clave de agrupación o join está desbalanceada en el negocio (por ejemplo, el 80% de los usuarios son del país 'US'), la función hash asigna todas esas filas al mismo ejecutor. Esa tarea se convierte en un cuello de botella fatal (**Straggler Task**)."
+      },
+      {
+        "type": "list",
+        "style": "bullet",
+        "items": [
+          "**Broadcast Hash Join:** Si una de las tablas del join es pequeña (< 10MB o configurado con `broadcast(pequeña_df)`), Spark copia la tabla entera a la memoria de todos los ejecutores, eliminando el shuffle de la tabla grande por completo.",
+          "**Salting:** Concatena un prefijo aleatorio a la clave sesgada en la tabla grande (`key + '_' + rand(0, N)`) y expande la tabla de lookup con un array de sales. Esto reparte la clave sesgada entre N particiones independientes, balanceando la carga al 100%."
+        ]
+      }
+    ]
+  },
+  "keyPoints": [
+    "Spark opera con evaluación perezosa (Lazy Evaluation); el código solo se ejecuta físicamente al disparar una Acción.",
+    "Las transformaciones anchas (Wide Dependencies) provocan Shuffles de red, que son el mayor factor de costo y latencia en Spark.",
+    "Para tablas pequeñas, Broadcast Hash Join elimina el Shuffle de red copiando la dimensión a cada ejecutor.",
+    "Data Skew ocurre cuando una partición recibe sustancialmente más datos que las demás; se mitiga aplicando la técnica de Salting."
+  ],
+  "terms": [
+    {
+      "term": "Driver",
+      "translation": "Proceso Conductor",
+      "definition": "Proceso central de Spark que coordina la ejecución, compila el DAG lógico y distribuye tareas a los ejecutores."
+    },
+    {
+      "term": "Shuffle",
+      "translation": "Mezcla / Redistribución",
+      "definition": "Proceso físico de redistribuir datos entre todas las particiones del clúster a través de la red para operaciones como joins o group-bys."
+    },
+    {
+      "term": "Data Skew",
+      "translation": "Sesgo de Datos",
+      "definition": "Distribución asimétrica de datos entre particiones donde una tarea recibe significativamente más volumen que el promedio."
+    }
+  ],
+  "diagram": {
+    "type": "flow",
+    "nodes": [
+      {
+        "icon": "terminal",
+        "label": "Driver (SparkSession)",
+        "sub": "Plan Lógico y Físico",
+        "detail": "El Catalyst Optimizer compila transformaciones y genera el DAG."
+      },
+      {
+        "icon": "layers",
+        "label": "Stage 1 (Narrow)",
+        "sub": "Filtros y Mapeos locales",
+        "detail": "Cada ejecutor computa particiones locales sin usar la red."
+      },
+      {
+        "icon": "loop",
+        "label": "Shuffle Boundary",
+        "sub": "Redistribución por Red",
+        "detail": "Los datos cruzan la red del clúster agrupados por hash de la clave."
+      },
+      {
+        "icon": "server",
+        "label": "Stage 2 (Wide)",
+        "sub": "Agregación y Join",
+        "detail": "Los ejecutores calculan el resultado final balanceado.",
+        "kind": "end"
+      }
+    ]
+  },
+  "activity": {
+    "type": "order",
+    "prompt": "Ordena las fases de optimización y ejecución de una consulta en Apache Spark (Catalyst):",
+    "hint": "El Catalyst Optimizer transforma el plan antes de enviar las tareas a los ejecutores.",
+    "items": [
+      "Definición de transformaciones perezosas en el código del Driver",
+      "Invocación de una Acción (ej. write.save() o count())",
+      "Generación del Plan Lógico no resuelto y análisis contra el Catálogo",
+      "Optimización física con Catalyst (selección de Broadcast Join o SortMergeJoin)",
+      "División en Stages y distribución de Tareas a los Ejecutores del clúster"
+    ]
+  },
+  "checkQuestionId": "q-dist-spark-shuffle-cost",
+  "traps": [
+    {
+      "pitfall": "Ejecutar `df.collect()` sobre un DataFrame de 100 millones de registros.",
+      "reality": "Esto intenta transferir los 100 millones de registros a través de la red hacia el Driver único, colapsándolo instantáneamente con un error de memoria Java heap."
+    },
+    {
+      "pitfall": "Confiar ciegamente en el auto-broadcast join para tablas de gigabytes.",
+      "reality": "Hacer broadcast de una tabla demasiado pesada saturará la RAM de todos los ejecutores provocando fallos OOM generalizados; solo usa broadcast con dimensiones pequeñas comprobadas."
+    }
+  ],
+  "trapSummary": "El poder de Apache Spark radica en la distribución equitativa; descuidar los shuffles de red y el Data Skew convierte un clúster masivo en un sistema inútil y estrangulado.",
+  "flashcards": [
+    {
+      "id": "fc-lazy-eval",
+      "front": "¿Por qué Spark implementa evaluación perezosa (Lazy Evaluation)?",
+      "back": "Permite al optimizador Catalyst inspeccionar el grafo completo de transformaciones y fusionar filtros y proyecciones antes de tocar los datos (Whole-Stage Code Generation)."
+    },
+    {
+      "id": "fc-straggler-task",
+      "front": "¿Qué es una 'Straggler Task' en Spark?",
+      "back": "Una tarea individual que tarda mucho más tiempo en completarse que todas las demás en el mismo Stage, generalmente causada por Data Skew o degradación de hardware."
+    },
+    {
+      "id": "fc-broadcast-threshold",
+      "front": "¿Cuál es el valor por defecto del umbral de broadcast join en Spark (`spark.sql.autoBroadcastJoinThreshold`)?",
+      "back": "10 Megabytes (10485760 bytes). Si la tabla estimada supera este tamaño, Spark optará por SortMergeJoin a menos que se fuerce con broadcast()."
+    }
+  ],
+  "quickFacts": [
+    {
+      "statement": "Las transformaciones como filter() o withColumn() provocan inmediatamente un Shuffle de datos a través de la red.",
+      "answer": false
+    },
+    {
+      "statement": "El Broadcast Hash Join elimina el Shuffle de la tabla grande copiando la tabla pequeña a todos los ejecutores.",
+      "answer": true
+    },
+    {
+      "statement": "La técnica de Salting resuelve el Data Skew añadiendo números aleatorios a la clave de particionado para repartirla entre múltiples ejecutores.",
+      "answer": true
+    }
+  ],
+  "labId": "spark-skew-salting-optimization",
+  "sources": [
+    {
+      "title": "Learning Spark, 2nd Edition (Damji et al.)",
+      "url": "https://www.oreilly.com/library/view/learning-spark-2nd/9781492050032/"
+    },
+    {
+      "title": "Apache Spark Official Architecture Documentation",
+      "url": "https://spark.apache.org/docs/latest/cluster-overview.html"
+    }
+  ]
+}

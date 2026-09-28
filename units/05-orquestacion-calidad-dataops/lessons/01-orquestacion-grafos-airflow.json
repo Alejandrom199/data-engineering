@@ -1,0 +1,172 @@
+{
+  "$schema": "../../../../../schemas/lesson.schema.json",
+  "id": "orquestacion-grafos-airflow",
+  "title": "Orquestación Basada en Grafos con Apache Airflow",
+  "estimatedMinutes": 30,
+  "domainIds": ["orchestration-quality-dataops"],
+  "topics": ["apache-airflow-core", "dags-operadores", "logical-date-ds", "sensores-reschedule", "backfilling-idempotencia"],
+  "hook": "Programar tus tareas de datos con el comando `cron` de Linux es una receta segura para el desastre en producción: `cron` es ciego a dependencias, no reintenta de forma inteligente y si la Tarea A tarda 5 minutos más de lo usual, la Tarea B arranca con datos incompletos. ¿Cómo resuelve Apache Airflow este caos usando teoría de grafos y determinismo temporal?",
+  "concept": {
+    "blocks": [
+      {
+        "type": "heading",
+        "text": "1. Por qué `cron` no escala en Ingeniería de Datos"
+      },
+      {
+        "type": "paragraph",
+        "text": "Un programador de tareas simple como `cron` solo entiende una dimensión: **la hora del reloj del sistema**. No sabe si la tarea previa terminó, no sabe si hubo un error silencioso, no maneja reintentos con backoff y no permite auditar el historial de ejecuciones pasadas. Los pipelines modernos requieren **Orquestación Dirigida por Grafos**."
+      },
+      {
+        "type": "heading",
+        "text": "2. Arquitectura de Apache Airflow"
+      },
+      {
+        "type": "paragraph",
+        "text": "Apache Airflow es la plataforma estándar de la industria para definir, programar y monitorizar pipelines complejos programados como código en Python puro (Configuration as Code):"
+      },
+      {
+        "type": "list",
+        "style": "bullet",
+        "items": [
+          "**Webserver:** Interfaz gráfica para inspeccionar el estado del DAG, árboles de ejecución, gantt charts y logs de tareas.",
+          "**Scheduler:** El motor cardíaco. Evalúa continuamente el estado de las dependencias de los DAGs y encola las tareas listas para ejecutarse.",
+          "**Executor (Celery / Kubernetes / Local):** El mecanismo que gestiona los procesos trabajadores (Workers) que ejecutan físicamente el código de cada tarea.",
+          "**Metadata Database:** Base de datos relacional (PostgreSQL) que persiste el estado de todas las tareas, variables y conexiones."
+        ]
+      },
+      {
+        "type": "heading",
+        "text": "3. El Contexto Temporal: `logical_date` y Backfilling"
+      },
+      {
+        "type": "paragraph",
+        "text": "El concepto más incomprendido de Airflow es el tiempo de ejecución. **Nunca uses el reloj actual (`datetime.now()`)**. En su lugar, Airflow inyecta la macro **`{{ ds }}`** (`logical_date`): la fecha del periodo de datos que la tarea está autorizada a procesar."
+      },
+      {
+        "type": "callout",
+        "tone": "info",
+        "title": "Idempotencia y Backfill",
+        "text": "Un pipeline es **idempotente** si ejecutarlo N veces consecutivas sobre la misma fecha lógica produce exactamente el mismo resultado sin duplicar datos ni corromper particiones. Gracias a la parametrización con `{{ ds }}`, si un cliente te solicita regenerar los datos de todo el año pasado, un simple comando `airflow dags backfill -s 2025-01-01 -e 2025-12-31` ejecutará 365 días de datos históricos en paralelo sin alterar el presente."
+      }
+    ]
+  },
+  "keyPoints": [
+    "Airflow desacopla la definición del grafo de dependencias de la programación temporal de tareas.",
+    "La macro {{ ds }} (logical_date) es innegociable para garantizar la idempotencia de pipelines y permitir backfilling histórico seguro.",
+    "Los Sensores en Airflow deben configurarse con mode='reschedule' para liberar recursos del clúster mientras esperan eventos externos.",
+    "Un DAG en Airflow debe limitarse a orquestar; el cómputo pesado debe delegarse a motores externos como Apache Spark o Snowflake."
+  ],
+  "terms": [
+    {
+      "term": "Airflow DAG",
+      "translation": "Grafo Dirigido Acíclico de Airflow",
+      "definition": "Colección organizada de todas las tareas a ejecutar, estructurada en un archivo de Python para reflejar sus dependencias de precedencia y orden."
+    },
+    {
+      "term": "Backfilling",
+      "translation": "Reprocesamiento Histórico",
+      "definition": "Operación de ejecutar un DAG sobre un intervalo de fechas pasadas para cargar datos históricos o corregir errores retroactivamente."
+    },
+    {
+      "term": "Idempotency",
+      "translation": "Idempotencia",
+      "definition": "Propiedad de un sistema por la cual múltiples ejecuciones idénticas producen exactamente el mismo efecto sobre el estado que una sola ejecución."
+    }
+  ],
+  "diagram": {
+    "type": "flow",
+    "nodes": [
+      {
+        "icon": "clock",
+        "label": "Sensor de Archivo",
+        "sub": "mode='reschedule'",
+        "detail": "Espera que el bucket contenga los datos de {{ ds }}."
+      },
+      {
+        "icon": "shield",
+        "label": "Data Contract Check",
+        "sub": "Circuit Breaker",
+        "detail": "Valida esquema y nulos antes de procesar."
+      },
+      {
+        "icon": "server",
+        "label": "Spark Job Submit",
+        "sub": "Cómputo pesado",
+        "detail": "Delega la transformación distribuida al clúster."
+      },
+      {
+        "icon": "check",
+        "label": "Notificación y Éxito",
+        "sub": "Marcado de TaskInstance",
+        "detail": "Persiste el estado SUCCESS en el metastore de PostgreSQL.",
+        "kind": "end"
+      }
+    ]
+  },
+  "activity": {
+    "type": "order",
+    "prompt": "Ordena el flujo de trabajo del Scheduler de Airflow para una tarea de un DAG:",
+    "hint": "El Scheduler debe verificar las tareas upstream antes de encolar.",
+    "items": [
+      "El Scheduler evalúa el cronograma e identifica que se cumplió el data interval para logical_date",
+      "Se crea la instancia DagRun y las instancias TaskInstance en estado SCHEDULED",
+      "El Scheduler comprueba que todas las dependencias upstream están en estado SUCCESS",
+      "La TaskInstance pasa a estado QUEUED y se asigna al Executor",
+      "El Worker ejecuta la tarea; al terminar retorna el código de salida actualizando a SUCCESS"
+    ]
+  },
+  "checkQuestionId": "q-ops-airflow-logical-date",
+  "traps": [
+    {
+      "pitfall": "Hacer procesamiento pesado de gigabytes de datos en la memoria del Worker de Airflow mediante PythonOperator.",
+      "reality": "Airflow es un orquestador, no un motor de cómputo distribuido. Si cargas millones de filas en el worker, provocarás OOMs en el scheduler; delega el trabajo pesado a Spark, Trino o Snowflake."
+    },
+    {
+      "pitfall": "Usar sensores con `mode='poke'` que esperan durante horas.",
+      "reality": "En modo poke, el sensor secuestra un hilo del worker indefinidamente, impidiendo que otras tareas prioritarias puedan arrancar (slot starvation)."
+    }
+  ],
+  "trapSummary": "Usar Airflow como motor de procesamiento en lugar de orquestador o programar tareas dependientes del reloj actual destruye su valor; el código limpio usa logical_date y reschedule.",
+  "flashcards": [
+    {
+      "id": "fc-logical-date",
+      "front": "¿Qué representa exactamente `logical_date` (o `{{ ds }}`) en Airflow?",
+      "back": "El inicio de la ventana de datos que la tarea debe procesar, garantizando que el pipeline opere de manera determinista sin importar cuándo se ejecute en el reloj real."
+    },
+    {
+      "id": "fc-poke-vs-reschedule",
+      "front": "¿Cuál es la diferencia crítica entre `mode='poke'` y `mode='reschedule'` en sensores?",
+      "back": "`poke` bloquea el hilo del worker continuamente durante las esperas; `reschedule` libera el worker entre comprobaciones, ahorrando slots de cómputo en el clúster."
+    },
+    {
+      "id": "fc-xcom-risk",
+      "front": "¿Por qué no se deben transferir DataFrames o grandes volúmenes de datos usando XCom en Airflow?",
+      "back": "Porque XCom serializa los datos y los almacena directamente en la base de datos relacional de metadatos de Airflow; guardar datasets allí degradará severamente el rendimiento del scheduler."
+    }
+  ],
+  "quickFacts": [
+    {
+      "statement": "El parámetro catchup=True en Airflow permite reprocesar automáticamente todos los intervalos de datos pasados desde el start_date.",
+      "answer": true
+    },
+    {
+      "statement": "En un pipeline idempotente, ejecutar la misma tarea dos veces duplica las filas en la base de datos de destino.",
+      "answer": false
+    },
+    {
+      "statement": "Airflow almacena el estado de todas las ejecuciones y tareas en una base de datos relacional (Metadata DB).",
+      "answer": true
+    }
+  ],
+  "labId": "airflow-dag-backfilling-sensors",
+  "sources": [
+    {
+      "title": "Apache Airflow Official Documentation",
+      "url": "https://airflow.apache.org/docs/apache-airflow/stable/"
+    },
+    {
+      "title": "Fundamentals of Data Engineering (Reis & Housley)",
+      "url": "https://www.oreilly.com/library/view/fundamentals-of-data/9781098108298/"
+    }
+  ]
+}

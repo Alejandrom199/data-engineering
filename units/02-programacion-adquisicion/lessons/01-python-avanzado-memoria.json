@@ -1,0 +1,175 @@
+{
+  "$schema": "../../../../../schemas/lesson.schema.json",
+  "id": "python-avanzado-memoria",
+  "title": "Python Avanzado y Gestión de Memoria en Datos",
+  "estimatedMinutes": 25,
+  "domainIds": ["robust-programming-ingestion"],
+  "topics": ["generadores-yield", "protocolo-iteradores", "tipado-estatico", "pruebas-pytest", "solid-datos"],
+  "hook": "Un analista escribe `df = pd.read_csv('huge.csv')` en un servidor y todo colapsa. ¿Por qué el código de juguete en Python falla en producción? Porque los ingenieros de software construyen con generadores, tipos estáticos y contratos inmutables.",
+  "concept": {
+    "blocks": [
+      {
+        "type": "heading",
+        "text": "1. El Protocolo de Iteración y la Magia de `yield`"
+      },
+      {
+        "type": "paragraph",
+        "text": "En Python estándar, cuando una función calcula una lista y ejecuta `return mi_lista`, todos los objetos deben ser instanciados simultáneamente en el montículo (heap) de la memoria RAM. Si la lista contiene 10 millones de diccionarios, el consumo de memoria explota."
+      },
+      {
+        "type": "paragraph",
+        "text": "Un **Generador** convierte una función en una fábrica de valores bajo demanda. Al encontrar la palabra clave `yield`, la función congela su pila de ejecución local (variables y puntero de instrucción) y entrega el control al llamador. Cuando el llamador solicita el siguiente elemento (`next()`), la ejecución se reanuda exactamente donde se detuvo."
+      },
+      {
+        "type": "code",
+        "language": "python",
+        "code": "def leer_lineas_gigantes(ruta: str):\n    with open(ruta, 'r', encoding='utf-8') as f:\n        for linea in f:\n            # Cada linea se entrega a demanda: Memoria constante O(1)\n            yield linea.strip()\n",
+        "caption": "Lectura perezosa (lazy evaluation) con complejidad espacial O(1)."
+      },
+      {
+        "type": "heading",
+        "text": "2. Tipado Estático y Dataclasses Inmutables"
+      },
+      {
+        "type": "paragraph",
+        "text": "En pipelines de datos profesionales, el tipado dinámico sin control es la causa número uno de datos corruptos silenciosos. Usar `typing` (`Optional`, `Union`, `Literal`) y `dataclasses(frozen=True)` o `Pydantic` garantiza que los datos cumplan un contrato estricto desde la puerta de entrada:"
+      },
+      {
+        "type": "list",
+        "style": "bullet",
+        "items": [
+          "**Inmutabilidad:** Los objetos congelados previenen efectos secundarios en funciones paralelas.",
+          "**Validación temprana:** Los errores de tipo se detectan en tiempo de ingesta, evitando que un string contamine una columna de métricas numéricas en el Data Warehouse.",
+          "**Auto-documentación:** El código expresa con claridad qué campos son obligatorios y cuáles admiten valores nulos."
+        ]
+      },
+      {
+        "type": "heading",
+        "text": "3. Pruebas Unitarias con Pytest y Principios SOLID"
+      },
+      {
+        "type": "paragraph",
+        "text": "El código de ingeniería de datos debe probarse con el mismo rigor que un motor financiero. Aplicando el Principio de Responsabilidad Única (SRP) y de Inversión de Dependencias (DIP), desacoplamos la lógica de transformación del almacenamiento físico (bases de datos o S3), permitiendo escribir pruebas unitarias deterministas ultrarrápidas con `pytest` y fixtures."
+      }
+    ]
+  },
+  "keyPoints": [
+    "Los generadores con yield permiten procesar volúmenes masivos de datos manteniendo una huella de memoria constante O(1).",
+    "El tipado estático con dataclasses inmutables previene fallos silenciosos y mutaciones de estado no deseadas.",
+    "El desacoplamiento de dependencias permite escribir pruebas unitarias en pytest con cobertura de casos de borde sin tocar bases de datos reales.",
+    "Las excepciones deben ser específicas y controladas; nunca captures 'except Exception: pass' en pipelines de datos."
+  ],
+  "terms": [
+    {
+      "term": "Generator",
+      "translation": "Generador",
+      "definition": "Función que produce una secuencia de valores perezosamente utilizando la palabra clave yield, implementando el protocolo de iteración."
+    },
+    {
+      "term": "Lazy Evaluation",
+      "translation": "Evaluación Perezosa",
+      "definition": "Estrategia de evaluación que retrasa el cálculo de un valor hasta el momento exacto en que es requerido por el consumidor."
+    },
+    {
+      "term": "Dataclass",
+      "translation": "Clase de Datos",
+      "definition": "Decorador de Python que automatiza la generación de métodos especiales (__init__, __repr__, __eq__) para estructuras de datos fuertemente tipadas."
+    }
+  ],
+  "diagram": {
+    "type": "flow",
+    "nodes": [
+      {
+        "icon": "file",
+        "label": "Archivo Masivo en Disco",
+        "sub": "Línea por línea",
+        "detail": "El SO mantiene un buffer de pocos KB en RAM."
+      },
+      {
+        "icon": "braces",
+        "label": "Generador (yield)",
+        "sub": "Lazy Evaluation O(1)",
+        "detail": "Entrega un único registro al llamador y pausa su ejecución."
+      },
+      {
+        "icon": "shield",
+        "label": "Validación Dataclass",
+        "sub": "Tipado Estático",
+        "detail": "Comprueba tipos y levanta excepciones controladas ante datos corruptos."
+      },
+      {
+        "icon": "server",
+        "label": "Almacenamiento / DB",
+        "sub": "Persistencia de destino",
+        "detail": "Escribe o acumula métricas de forma segura y eficiente.",
+        "kind": "end"
+      }
+    ]
+  },
+  "activity": {
+    "type": "order",
+    "prompt": "Ordena el ciclo de vida de ejecución de una función generadora con yield en Python:",
+    "hint": "La función no ejecuta su cuerpo hasta que se llama a next() por primera vez.",
+    "items": [
+      "Llamada a la función: se crea y retorna el objeto generador sin ejecutar código",
+      "El consumidor invoca next(generador) o un bucle for",
+      "El código se ejecuta hasta encontrar la sentencia yield",
+      "El generador emite el valor y congela su estado local en memoria",
+      "Al agotarse los datos, el generador levanta la excepción StopIteration"
+    ]
+  },
+  "checkQuestionId": "q-prog-generators-memory",
+  "traps": [
+    {
+      "pitfall": "Convertir un generador en lista inmediatamente con `list(mi_generador)`.",
+      "reality": "Hacer `list()` fuerza la evaluación completa y materializa todos los elementos en RAM a la vez, destruyendo por completo el beneficio del generador y causando OOM."
+    },
+    {
+      "pitfall": "Usar `except Exception: pass` para que el pipeline 'no se caiga'.",
+      "reality": "Esto oculta errores graves de corrupción de datos y claves ausentes, introduciendo valores nulos silenciosos que arruinan la analítica del negocio."
+    }
+  ],
+  "trapSummary": "Materializar listas innecesarias y silenciar excepciones convierte a los scripts de datos en bombas de tiempo; el código robusto utiliza streaming perezoso y tipos estrictos.",
+  "flashcards": [
+    {
+      "id": "fc-yield-state",
+      "front": "¿Qué ocurre internamente con las variables locales cuando una función ejecuta `yield`?",
+      "back": "Se congelan en el marco de pila (stack frame) del generador, listas para continuar exactamente en ese punto cuando se solicite el siguiente valor."
+    },
+    {
+      "id": "fc-frozen-dataclass",
+      "front": "¿Qué garantiza el parámetro `frozen=True` en un decorador `@dataclass`?",
+      "back": "Que la instancia sea inmutable (de solo lectura); cualquier intento de modificar un atributo lanzará un `FrozenInstanceError`."
+    },
+    {
+      "id": "fc-pytest-fixture",
+      "front": "¿Cuál es la función de un `@pytest.fixture` en pruebas de pipelines?",
+      "back": "Proveer datos de prueba limpios o simular dependencias externas (conexiones, archivos temporales) de forma reusable y aislada."
+    }
+  ],
+  "quickFacts": [
+    {
+      "statement": "Una función con yield devuelve inmediatamente una lista completa con todos los elementos calculados.",
+      "answer": false
+    },
+    {
+      "statement": "Un generador se agota una vez consumido; para volver a iterar sobre los datos se debe instanciar uno nuevo.",
+      "answer": true
+    },
+    {
+      "statement": "El tipado estático con dataclasses previene que se asignen cadenas de texto a columnas que esperan números flotantes.",
+      "answer": true
+    }
+  ],
+  "labId": "json-streaming-generator-parser",
+  "sources": [
+    {
+      "title": "Fluent Python (Luciano Ramalho)",
+      "url": "https://www.oreilly.com/library/view/fluent-python-2nd/9781492056348/"
+    },
+    {
+      "title": "Python Documentation: Generators and Iterators",
+      "url": "https://docs.python.org/3/howto/functional.html#generators"
+    }
+  ]
+}

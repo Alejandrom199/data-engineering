@@ -1,0 +1,133 @@
+{
+  "$schema": "../../../schemas/questions.schema.json",
+  "questions": [
+    {
+      "id": "q-prog-generators-memory",
+      "type": "single",
+      "domainId": "robust-programming-ingestion",
+      "skill": "Python Avanzado y Generadores",
+      "topic": "generadores-python",
+      "stem": "¿Por qué el uso de generadores (`yield`) en Python permite procesar archivos JSON de 50GB en máquinas con solo 2GB de RAM, mientras que una función que retorna una lista `return list` provoca un error MemoryError?",
+      "options": [
+        {
+          "key": "A",
+          "text": "Porque `yield` comprime automáticamente los objetos en formato binario zlib."
+        },
+        {
+          "key": "B",
+          "text": "Porque un generador produce elementos de forma perezosa (lazy evaluation) bajo demanda, manteniendo en memoria solo un registro a la vez con complejidad espacial O(1)."
+        },
+        {
+          "key": "C",
+          "text": "Porque Python delega la ejecución de los generadores directamente a los registros de la GPU."
+        },
+        {
+          "key": "D",
+          "text": "Porque los generadores desactivan el Garbage Collector de Python de forma permanente."
+        }
+      ],
+      "correct": ["B"],
+      "explanation": "Las funciones con `yield` retornan un objeto iterador generador que implementa el protocolo de iteración (`__next__`). No materializan la colección completa en el montículo (heap) de la memoria, sino que suspenden su estado local y producen un único elemento a la vez, garantizando un consumo de RAM constante O(1) independientemente del tamaño del dataset.",
+      "hint": "¿Qué diferencia a una evaluación perezosa (lazy) de una evaluación impaciente (eager)?",
+      "sources": [
+        "Fluent Python (Luciano Ramalho)"
+      ]
+    },
+    {
+      "id": "q-prog-backoff-jitter",
+      "type": "single",
+      "domainId": "robust-programming-ingestion",
+      "skill": "Protocolos de Red, Backoff y Circuit Breakers",
+      "topic": "backoff-exponencial",
+      "stem": "En un sistema distribuido que consulta APIs externas, ¿cuál es el propósito fundamental de agregar 'Jitter' (aleatoriedad) al algoritmo de Backoff Exponencial?",
+      "options": [
+        {
+          "key": "A",
+          "text": "Cifrar el payload HTTP para evitar ataques Man-in-the-Middle."
+        },
+        {
+          "key": "B",
+          "text": "Desincronizar las oleadas de reintentos de múltiples clientes paralelos, evitando el fenómeno de estampida (Thundering Herd) sobre el servidor."
+        },
+        {
+          "key": "C",
+          "text": "Garantizar que las peticiones se completen siempre en menos de 100 microsegundos."
+        },
+        {
+          "key": "D",
+          "text": "Evitar que la respuesta sea almacenada en el caché del navegador."
+        }
+      ],
+      "correct": ["B"],
+      "explanation": "Si decenas de clientes concurrentes fallan simultáneamente y usan backoff exponencial determinista (ej. 2s, 4s, 8s), todos reintentarán exactamente al mismo tiempo en cada ciclo, creando picos cíclicos destructivos de tráfico. El jitter introduce una variación aleatoria en el tiempo de espera que distribuye uniformemente las solicitudes.",
+      "hint": "¿Qué ocurre si 100 hilos esperan exactamente 4.000 segundos para reintentar?",
+      "sources": [
+        "AWS Architecture Blog: Exponential Backoff And Jitter"
+      ]
+    },
+    {
+      "id": "q-prog-keyset-pagination",
+      "type": "single",
+      "domainId": "robust-programming-ingestion",
+      "skill": "Protocolos de Red, Backoff y Circuit Breakers",
+      "topic": "paginacion-cursores",
+      "stem": "¿Cuál es la principal ventaja técnica de la paginación por cursores (Keyset Pagination) frente a la paginación tradicional con LIMIT / OFFSET en grandes volúmenes de datos?",
+      "options": [
+        {
+          "key": "A",
+          "text": "Que OFFSET realiza una búsqueda binaria en tiempo O(log n)."
+        },
+        {
+          "key": "B",
+          "text": "Que los cursores aprovechan los índices de la base de datos (WHERE id > last_id) ejecutando en O(1) o O(log n), mientras que OFFSET debe escanear y descartar físicamente N filas anteriores con costo O(N)."
+        },
+        {
+          "key": "C",
+          "text": "Que la paginación por cursores convierte automáticamente los datos a formato Parquet."
+        },
+        {
+          "key": "D",
+          "text": "Que LIMIT / OFFSET no es soportado por SQL estándar."
+        }
+      ],
+      "correct": ["B"],
+      "explanation": "Con `OFFSET 1000000`, el motor de la base de datos debe escanear y desechar un millón de filas antes de devolver las siguientes diez, lo que degrada drásticamente la latencia a medida que avanzan las páginas. Con cursores (`WHERE id > :cursor LIMIT 10`), el motor salta directamente a la posición exacta usando el índice B-Tree.",
+      "hint": "Piensa en el trabajo que debe hacer el motor de base de datos cuando el offset es un número gigante.",
+      "sources": [
+        "Use The Index, Luke! (Markus Winand)"
+      ]
+    },
+    {
+      "id": "q-prog-circuit-breaker-states",
+      "type": "single",
+      "domainId": "robust-programming-ingestion",
+      "skill": "Protocolos de Red, Backoff y Circuit Breakers",
+      "topic": "circuit-breaker",
+      "stem": "En el patrón de arquitectura Circuit Breaker, ¿cuál es el comportamiento del estado 'HALF-OPEN'?",
+      "options": [
+        {
+          "key": "A",
+          "text": "Rechaza inmediatamente el 100% de las peticiones sin tocar la red."
+        },
+        {
+          "key": "B",
+          "text": "Permite el paso de un número limitado de peticiones de prueba para verificar si el servicio dependiente se ha recuperado antes de cerrar el circuito nuevamente."
+        },
+        {
+          "key": "C",
+          "text": "Duplica la tasa de peticiones para forzar la reactivación del servidor."
+        },
+        {
+          "key": "D",
+          "text": "Borra la base de datos local para reiniciar el almacenamiento."
+        }
+      ],
+      "correct": ["B"],
+      "explanation": "Tras un periodo de enfriamiento en estado OPEN (donde todas las peticiones fallan rápido sin tocar la red), el circuito pasa a HALF-OPEN. En este estado permite el paso de una cantidad controlada de peticiones de sondeo; si tienen éxito, transiciona a CLOSED (operación normal); si fallan, regresa a OPEN.",
+      "hint": "¿Cómo comprueba un disyuntor si el servicio downstream ya sanó?",
+      "sources": [
+        "Release It! (Michael T. Nygard)"
+      ]
+    }
+  ]
+}

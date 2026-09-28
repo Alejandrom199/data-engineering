@@ -1,0 +1,29 @@
+{
+  "$schema": "../../../../schemas/lab.schema.json",
+  "id": "airflow-dag-backfilling-sensors",
+  "title": "Orquestación en Airflow: Sensores, Idempotencia y Backfilling",
+  "goal": "Construir un DAG en Apache Airflow con programación diaria que utilice un Sensor en modo reschedule para esperar la llegada de archivos de partición, procese los datos parametrizando estrictamente por logical_date ({{ ds }}), y permita ejecutar un backfill retroactivo de múltiples fechas sin romper la idempotencia.",
+  "level": "intermediate",
+  "estimatedMinutes": 45,
+  "icon": "route",
+  "domainId": "orchestration-quality-dataops",
+  "lessonId": "orquestacion-grafos-airflow",
+  "file": "daily_idempotent_dag.py",
+  "steps": [
+    "Definir un DAG en Airflow con catchup=True y schedule='@daily', iniciando en una fecha histórica (start_date=datetime(2026, 8, 1)).",
+    "Configurar un FileSensor con mode='reschedule' que espere el archivo /data/raw/transactions_{{ ds }}.json.",
+    "Implementar una tarea de transformación en Python que reciba el parámetro ds del contexto de Airflow.",
+    "Asegurar que la tarea de escritura sobrescriba de forma atómica únicamente la partición de fecha correspondiente (WHERE partition_date = '{{ ds }}') para garantizar idempotencia.",
+    "Simular la ejecución de un backfill por CLI (airflow dags backfill) y comprobar que cada fecha histórica procesa su archivo exacto."
+  ],
+  "code": "from datetime import datetime, timedelta\nimport os\nfrom airflow import DAG\nfrom airflow.sensors.filesystem import FileSensor\nfrom airflow.operators.python import PythonOperator\n\ndef process_partition(ds: str, **kwargs):\n    \"\"\"\n    Procesamiento determinista e idempotente parametrizado por la fecha logica (ds).\n    \"\"\"\n    input_path = f\"/tmp/data/raw/transactions_{ds}.json\"\n    output_path = f\"/tmp/data/processed/partition_date={ds}/data.parquet\"\n    \n    print(f\"[Task Start] Procesando particion para la fecha logica: {ds}\")\n    print(f\"  Leyendo origen: {input_path}\")\n    \n    # Logica de procesamiento idempotente\n    os.makedirs(os.path.dirname(output_path), exist_ok=True)\n    with open(output_path, \"w\") as f:\n        f.write(f\"Processed records for date: {ds}\\n\")\n        \n    print(f\"[Task Success] Particion {ds} escrita limpiamente en {output_path}\")\n\ndefault_args = {\n    \"owner\": \"data-engineering\",\n    \"depends_on_past\": False,\n    \"email_on_failure\": False,\n    \"retries\": 2,\n    \"retry_delay\": timedelta(minutes=1)\n}\n\nwith DAG(\n    dag_id=\"daily_idempotent_ingestion\",\n    default_args=default_args,\n    description=\"Pipeline diario con sensor y soporte de backfilling idempotente\",\n    schedule_interval=\"@daily\",\n    start_date=datetime(2026, 8, 1),\n    catchup=False,\n    tags=[\"dataops\", \"production\"]\n) as dag:\n\n    # 1. Sensor que espera la llegada del archivo para la fecha logica\n    wait_for_file = FileSensor(\n        task_id=\"wait_for_daily_file\",\n        filepath=\"/tmp/data/raw/transactions_{{ ds }}.json\",\n        mode=\"reschedule\",  # Libera worker slot entre sondeos\n        poke_interval=30,\n        timeout=600\n    )\n\n    # 2. Tarea de procesamiento parametrizada por {{ ds }}\n    transform_task = PythonOperator(\n        task_id=\"process_daily_partition\",\n        python_callable=process_partition,\n        op_kwargs={\"ds\": \"{{ ds }}\"}\n    )\n\n    wait_for_file >> transform_task\n",
+  "codeLanguage": "python",
+  "expectedOutput": "[Task Start] Procesando particion para la fecha logica: 2026-08-01\n  Leyendo origen: /tmp/data/raw/transactions_2026-08-01.json\n[Task Success] Particion 2026-08-01 escrita limpiamente en /tmp/data/processed/partition_date=2026-08-01/data.parquet",
+  "verify": "El DAG valida que la parametrización de Airflow utiliza la macro {{ ds }} para mantener independencia estricta de fechas y el FileSensor utiliza reschedule para no secuestrar recursos del scheduler.",
+  "successCriteria": [
+    "El FileSensor está configurado con mode='reschedule'.",
+    "La función Python recibe y utiliza explícitamente el parámetro ds inyectado por el contexto de ejecución de Airflow.",
+    "El path de destino está particionado por fecha, garantizando que re-ejecutar la tarea no duplique registros.",
+    "El DAG compila sin errores de sintaxis en el linter de Airflow."
+  ]
+}

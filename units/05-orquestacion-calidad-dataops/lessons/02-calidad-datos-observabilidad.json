@@ -1,0 +1,171 @@
+{
+  "$schema": "../../../../../schemas/lesson.schema.json",
+  "id": "calidad-datos-observabilidad",
+  "title": "Calidad de Datos, Data Contracts y Observabilidad (Data SRE)",
+  "estimatedMinutes": 30,
+  "domainIds": ["orchestration-quality-dataops"],
+  "topics": ["data-contracts", "great-expectations", "data-observability", "data-downtime", "circuit-breakers"],
+  "hook": "El pipeline terminó en estado verde ('Success'), pero los reportes de ventas de la empresa amanecieron con ingresos negativos y un 98% de valores nulos porque un microservicio cambió el esquema de JSON sin avisar. ¿Por qué el código que 'no arroja error' puede ser más destructivo que uno que colapsa y cómo los Contratos de Datos detienen la corrupción en seco?",
+  "concept": {
+    "blocks": [
+      {
+        "type": "heading",
+        "text": "1. La Paradoja del Pipeline Verde"
+      },
+      {
+        "type": "paragraph",
+        "text": "En ingeniería de software tradicional, si el código compila y no lanza excepciones, la aplicación funciona. En ingeniería de datos, **el código puede ser sintácticamente impecable y procesar datos completamente envenenados**. El tiempo en que los datos son erróneos, incompletos o faltantes se denomina **Data Downtime** (Tiempo de Inactividad de Datos) y cuesta millones a las organizaciones."
+      },
+      {
+        "type": "heading",
+        "text": "2. Los Cinco Pilares de la Observabilidad de Datos"
+      },
+      {
+        "type": "table",
+        "headers": ["Pilar", "Pregunta que Resuelve", "Ejemplo de Detección"],
+        "rows": [
+          ["Frescura (Freshness)", "¿Cuándo fue la última vez que llegaron datos nuevos?", "Alerta si la tabla de hechos no recibe eventos en más de 2 horas."],
+          ["Distribución (Distribution)", "¿Los valores numéricos y categóricos están dentro de lo esperado?", "Detección de montos negativos o porcentajes mayores a 100%."],
+          ["Volumen (Volume)", "¿Llegó la cantidad de datos esperada?", "Alerta de anomalía si un día festivo entran solo 50 filas en lugar de 500,000."],
+          ["Esquema (Schema)", "¿Se modificaron tipos de datos o se eliminaron columnas?", "Detección de una columna renombrada de 'price' a 'cost_usd'."],
+          ["Linaje (Lineage)", "¿Qué tablas y dashboards se verán afectados por esta tabla?", "Rastreo de impacto desde el origen hasta el reporte de PowerBI."]
+        ],
+        "caption": "Los cinco pilares de la observabilidad de datos (Monte Carlo Data)."
+      },
+      {
+        "type": "heading",
+        "text": "3. Data Contracts y Great Expectations como Circuit Breakers"
+      },
+      {
+        "type": "paragraph",
+        "text": "Un **Contrato de Datos (Data Contract)** es un acuerdo formal y ejecutable entre los productores de datos (ingenieros de software de microservicios) y los consumidores (ingenieros de datos y científicos). Mediante herramientas como **Great Expectations**, el contrato se materializa en una suite de expectativas declarativas que actúa como un **Circuit Breaker**:"
+      },
+      {
+        "type": "code",
+        "language": "python",
+        "code": "# Suite declarativa de expectativas\nvalidator.expect_column_values_to_not_be_null(\"user_id\")\nvalidator.expect_column_values_to_be_between(\"fare_amount\", min_value=0.0, max_value=10000.0)\nvalidator.expect_table_columns_to_match_ordered_list([\"id\", \"user_id\", \"fare_amount\", \"created_at\"])\n",
+        "caption": "Definición de contrato en Great Expectations."
+      }
+    ]
+  },
+  "keyPoints": [
+    "Un estatus verde en el orquestador no garantiza calidad; los datos pueden ser corruptos o nulos sin lanzar errores de sintaxis.",
+    "Los cinco pilares de observabilidad (Frescura, Distribución, Volumen, Esquema y Linaje) son la base del Data SRE.",
+    "Los Data Contracts son acuerdos formales ejecutables por código entre productores y consumidores de datos.",
+    "Un Circuit Breaker de calidad aborta el pipeline inmediatamente si se viola el contrato, protegiendo las capas Gold y dashboards."
+  ],
+  "terms": [
+    {
+      "term": "Data Contract",
+      "translation": "Contrato de Datos",
+      "definition": "Acuerdo técnico formal y automatizado que define el esquema, semántica y niveles de servicio de calidad garantizados por el productor."
+    },
+    {
+      "term": "Data Downtime",
+      "translation": "Tiempo de Inactividad de Datos",
+      "definition": "Periodos de tiempo en los que los datos de una organización están incompletos, corruptos, desactualizados o faltantes."
+    },
+    {
+      "term": "Data Lineage",
+      "translation": "Linaje de Datos",
+      "definition": "Mapa de trazabilidad del ciclo de vida del dato que registra su origen, todas sus transformaciones intermedias y su destino final."
+    }
+  ],
+  "diagram": {
+    "type": "flow",
+    "nodes": [
+      {
+        "icon": "server",
+        "label": "Ingesta Bronze (Cruda)",
+        "sub": "Lote recibido",
+        "detail": "Datos recién descargados del upstream."
+      },
+      {
+        "icon": "shield",
+        "label": "Validación de Contrato",
+        "sub": "Great Expectations",
+        "detail": "Verifica esquema, tasa de nulos y rangos numéricos."
+      },
+      {
+        "icon": "alert",
+        "label": "Circuit Breaker",
+        "sub": "¿Pasa expectativas?",
+        "detail": "Si falla, aborta la tarea y alerta por PagerDuty/Slack.",
+        "kind": "decision"
+      },
+      {
+        "icon": "check",
+        "label": "Carga a Silver / Gold",
+        "sub": "Datos Confiables",
+        "detail": "Solo los datos 100% validados ingresan al Data Warehouse analítico.",
+        "kind": "end"
+      }
+    ]
+  },
+  "activity": {
+    "type": "order",
+    "prompt": "Ordena las fases de respuesta de un Circuit Breaker de datos ante un lote corrupto:",
+    "hint": "Primero se detecta la violación antes de abortar la ejecución.",
+    "items": [
+      "El validador de contratos ejecuta las expectativas declarativas sobre el lote recién ingerido",
+      "Se detecta que una columna obligatoria contiene un 15% de valores nulos (umbral max 1%)",
+      "El Circuit Breaker lanza una excepción fatal de contrato y detiene el pipeline",
+      "Se dispara una alerta inmediata al equipo productor upstream con el reporte de violaciones",
+      "Se preservan los datos crudos en cuarentena para análisis forense sin tocar las tablas de producción"
+    ]
+  },
+  "checkQuestionId": "q-ops-data-circuit-breaker",
+  "traps": [
+    {
+      "pitfall": "Configurar las validaciones de calidad de datos para que envíen un correo de advertencia pero dejen continuar el pipeline.",
+      "reality": "Nadie lee los correos de advertencia hasta que los tableros de gerencia están arruinados; los contratos de datos deben detener físicamente el pipeline (Circuit Breaker) ante fallos críticos."
+    },
+    {
+      "pitfall": "Asumir que las pruebas de software en pytest sustituyen a las pruebas de datos en Great Expectations.",
+      "reality": "pytest prueba que tu código Python funciona lógicamente; Great Expectations prueba que los datos que produce un tercero externo cumplen los supuestos del negocio."
+    }
+  ],
+  "trapSummary": "La negligencia en la calidad de datos destruye la confianza del negocio en minutos; los contratos de datos declarativos y los Circuit Breakers en tiempo de ingesta son el escudo del ingeniero.",
+  "flashcards": [
+    {
+      "id": "fc-data-freshness",
+      "front": "¿Qué evalúa el pilar de 'Frescura' en observabilidad de datos?",
+      "back": "Mide el tiempo transcurrido desde la última actualización de una tabla o partición para alertar si un pipeline no se ejecutó a tiempo."
+    },
+    {
+      "id": "fc-data-contract-benefit",
+      "front": "¿Cuál es el beneficio de un Data Contract frente a un cambio de esquema de un microservicio?",
+      "back": "Impide que los desarrolladores de software modifiquen o eliminen columnas sin pasar por un proceso de versionado y coordinación con el equipo de datos."
+    },
+    {
+      "id": "fc-quarantine-table",
+      "front": "¿Qué es una tabla de 'Cuarentena' (Dead Letter Queue de datos)?",
+      "back": "Un repositorio aislado donde se desvían automáticamente los registros que violaron el contrato de datos para auditoría sin frenar el flujo de datos válidos."
+    }
+  ],
+  "quickFacts": [
+    {
+      "statement": "Un pipeline de datos puede terminar con estatus SUCCESS habiendo generado datos completamente nulos o erróneos.",
+      "answer": true
+    },
+    {
+      "statement": "El linaje de datos permite identificar con precisión qué reportes de negocio se verán afectados por la falla de una tabla intermedia.",
+      "answer": true
+    },
+    {
+      "statement": "Los contratos de datos solo se aplican en bases de datos NoSQL.",
+      "answer": false
+    }
+  ],
+  "labId": "great-expectations-circuit-breaker",
+  "sources": [
+    {
+      "title": "Data Quality Fundamentals (Barr Moses et al.)",
+      "url": "https://www.oreilly.com/library/view/data-quality-fundamentals/9781098112042/"
+    },
+    {
+      "title": "Great Expectations Official Guide",
+      "url": "https://docs.greatexpectations.io/docs/"
+    }
+  ]
+}

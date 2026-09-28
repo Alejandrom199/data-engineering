@@ -1,0 +1,28 @@
+{
+  "$schema": "../../../schemas/unit.schema.json",
+  "id": "orquestacion-calidad-dataops",
+  "title": "Orquestación, Calidad y DataOps",
+  "officialTitle": "Orchestration, Data Quality & DataOps",
+  "summary": "Industrialización de pipelines. Aprende a automatizar, auditar y garantizar la calidad del dato sin intervención humana manual: orquestación avanzada con Apache Airflow basada en teoría de grafos, parametrización temporal con logical_date, sensores, backfilling retroactivo e idempotencia; ingeniería de confiabilidad de datos (Data SRE) con contratos de datos y Circuit Breakers mediante Great Expectations; e Infraestructura como Código (IaC) reproducible con Docker, Terraform y pipelines de integración continua (CI/CD en GitHub Actions) con linters estáticos.",
+  "icon": "route",
+  "color": "#f472b6",
+  "objectives": [
+    "Diseñar DAGs en Apache Airflow utilizando contexto de ejecución (logical_date) y sensores para garantizar ejecuciones idempotentes.",
+    "Ejecutar reprocesamientos históricos (backfilling) de meses de datos sin colisiones ni duplicación de registros.",
+    "Implementar contratos de datos estrictos y Circuit Breakers de calidad con Great Expectations para detener pipelines ante esquemas mutados o datos corruptos.",
+    "Aprovisionar infraestructura cloud de almacenamiento e identidades de forma declarativa e inmutable usando Terraform.",
+    "Construir pipelines automatizados de CI/CD en GitHub Actions con linters de código (flake8/ruff) y SQL (sqlfluff) para despliegues confiables."
+  ],
+  "lessons": [
+    "orquestacion-grafos-airflow",
+    "calidad-datos-observabilidad",
+    "iac-terraform-cicd"
+  ],
+  "labs": [
+    "airflow-dag-backfilling-sensors",
+    "great-expectations-circuit-breaker",
+    "terraform-docker-cicd-pipeline"
+  ],
+  "quizPassRatio": 0.7,
+  "quizQuestionCount": 10
+}

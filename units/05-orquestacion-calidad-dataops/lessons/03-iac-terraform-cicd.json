@@ -1,0 +1,177 @@
+{
+  "$schema": "../../../../../schemas/lesson.schema.json",
+  "id": "iac-terraform-cicd",
+  "title": "Infraestructura como Código (Terraform, Docker) y CI/CD en Datos",
+  "estimatedMinutes": 30,
+  "domainIds": ["orchestration-quality-dataops"],
+  "topics": ["terraform-iac", "docker-containers", "github-actions-cicd", "linters-sqlfluff-ruff"],
+  "hook": "Un administrador crea manualmente un clúster en la consola web de AWS haciendo clic en 40 botones. Al año siguiente ocurre un desastre en la región y nadie sabe qué permisos de IAM, firewalls o configuraciones se usaron para crearlo. ¿Por qué el 'ClickOps' está prohibido en equipos de datos de élite y cómo Terraform y CI/CD garantizan la reproducibilidad total?",
+  "concept": {
+    "blocks": [
+      {
+        "type": "heading",
+        "text": "1. El Peligro del 'ClickOps' y la Filosofía IaC"
+      },
+      {
+        "type": "paragraph",
+        "text": "Gestionar infraestructura de datos mediante la interfaz web de los proveedores cloud (AWS, GCP, Azure) genera ambientes artesanales imposibles de auditar, propensos a brechas de seguridad (como buckets públicos accidentales) y que no pueden replicarse ante fallos de región. **Infraestructura como Código (IaC)** define servidores, buckets, roles y clústeres como archivos de texto declarativos versionados en Git."
+      },
+      {
+        "type": "heading",
+        "text": "2. Terraform: Declaración, Estado y Proveedores"
+      },
+      {
+        "type": "paragraph",
+        "text": "HashiCorp Terraform es el estándar universal de IaC declarativo. Describe **qué** infraestructura deseas, y el motor calcula el plan de ejecución óptimo para llegar a ese estado deseado:"
+      },
+      {
+        "type": "list",
+        "style": "bullet",
+        "items": [
+          "**Proveedores (Providers):** Plugins que interactúan con las APIs de AWS, GCP, Databricks o Snowflake.",
+          "**Archivo de Estado (`terraform.tfstate`):** El mapa de verdad canónico que vincula tu código con los recursos físicos reales en la nube.",
+          "**Ciclo de Tres Pasos:** `terraform init` (descarga proveedores), `terraform plan` (auditoría visual previa de qué recursos se crearán, modificarán o destruirán) y `terraform apply` (ejecución real)."
+        ]
+      },
+      {
+        "type": "heading",
+        "text": "3. CI/CD en Datos con GitHub Actions y Linters Estáticos"
+      },
+      {
+        "type": "paragraph",
+        "text": "Todo cambio de código en pipelines o modelos dimensionales debe pasar por una compuerta automatizada de **Integración Continua (CI)** antes de llegar a la rama `main`:"
+      },
+      {
+        "type": "table",
+        "headers": ["Herramienta", "Área de Validación", "Beneficio en Producción"],
+        "rows": [
+          ["Ruff / Flake8", "Código Python (ETL / DAGs)", "Detecta variables no usadas, errores de sintaxis y código muerto."],
+          ["SQLFluff", "Modelos y Consultas SQL", "Garantiza un dialecto uniforme, legibilidad y previene antipatrones analíticos."],
+          ["Airflow DAG Integrity", "Grafos de Orquestación", "Comprueba que los DAGs compilen sin ciclos ni colisiones de IDs."],
+          ["Terraform Validate", "Infraestructura Cloud", "Verifica la sintaxis HCL antes de aplicar cambios a los buckets."]
+        ],
+        "caption": "Pila de verificación estática de calidad en CI/CD."
+      }
+    ]
+  },
+  "keyPoints": [
+    "La configuración manual por consola (ClickOps) es inaceptable en producción; toda la infraestructura debe vivir en código Git.",
+    "Terraform gestiona el ciclo de vida completo de buckets, identidades IAM y clústeres de forma declarativa e idempotente.",
+    "El archivo de estado de Terraform requiere bloqueo remoto (State Locking) para prevenir condiciones de carrera en equipos concurrentes.",
+    "Los pipelines de CI/CD en GitHub Actions deben validar la sintaxis de DAGs y formateo SQL con linters estáticos en cada Pull Request."
+  ],
+  "terms": [
+    {
+      "term": "IaC",
+      "translation": "Infraestructura como Código",
+      "definition": "Práctica de ingeniería de software que gestiona y aprovisiona infraestructura mediante archivos de definición legibles por máquina en lugar de procesos manuales."
+    },
+    {
+      "term": "State File",
+      "translation": "Archivo de Estado de Terraform",
+      "definition": "Archivo que almacena el mapeo entre los recursos declarados en los archivos de configuración y los objetos físicos del proveedor cloud."
+    },
+    {
+      "term": "SQL Linter",
+      "translation": "Analizador Estático de SQL",
+      "definition": "Herramienta de análisis estático (como SQLFluff) que audita la sintaxis, estilo y cumplimiento de buenas prácticas en archivos SQL."
+    }
+  ],
+  "diagram": {
+    "type": "flow",
+    "nodes": [
+      {
+        "icon": "git",
+        "label": "Pull Request",
+        "sub": "Código nuevo / DAG",
+        "detail": "El ingeniero propone una modificación en una rama secundaria."
+      },
+      {
+        "icon": "terminal",
+        "label": "GitHub Actions CI",
+        "sub": "Linter & Tests",
+        "detail": "Ejecuta ruff, sqlfluff y validación de sintaxis de Airflow."
+      },
+      {
+        "icon": "shield",
+        "label": "Terraform Plan",
+        "sub": "Auditoría de cambios",
+        "detail": "Genera el plan de impacto en buckets y permisos cloud.",
+        "kind": "decision"
+      },
+      {
+        "icon": "check",
+        "label": "Merge & Despliegue",
+        "sub": "Producción Automatizada",
+        "detail": "Aplica los cambios automáticamente a los clústeres de producción.",
+        "kind": "end"
+      }
+    ]
+  },
+  "activity": {
+    "type": "order",
+    "prompt": "Ordena el flujo de trabajo estándar de Terraform para aprovisionar un nuevo bucket de datos:",
+    "hint": "Siempre se inicializa y se revisa el plan antes de aplicar.",
+    "items": [
+      "Escribir la declaración del recurso aws_s3_bucket en main.tf",
+      "Ejecutar terraform init para inicializar el backend y descargar el proveedor de AWS",
+      "Ejecutar terraform plan para inspeccionar el plan de cambios calculado",
+      "Revisar que ningún recurso crítico sea destruido accidentalmente",
+      "Ejecutar terraform apply para aplicar físicamente los cambios en la nube"
+    ]
+  },
+  "checkQuestionId": "q-ops-terraform-state-locking",
+  "traps": [
+    {
+      "pitfall": "Hacer modificaciones 'rápidas' a mano en la consola de AWS sin registrarlas en el código de Terraform.",
+      "reality": "Esto genera 'Config Drift' (deriva de configuración). La siguiente vez que alguien ejecute `terraform apply`, Terraform detectará la discrepancia y podría revertir o destruir tus cambios inesperadamente."
+    },
+    {
+      "pitfall": "Guardar el archivo `terraform.tfstate` en el repositorio público de Git.",
+      "reality": "El archivo de estado contiene metadatos sensibles y contraseñas en texto plano; debe residir exclusivamente en un backend remoto cifrado (S3 + KMS) con acceso restringido."
+    }
+  ],
+  "trapSummary": "La reproducibilidad es el pilar de la ingeniería moderna; construir plataformas con Terraform, Docker y CI/CD previene desastres y profesionaliza la entrega de valor.",
+  "flashcards": [
+    {
+      "id": "fc-config-drift",
+      "front": "¿Qué es la 'Deriva de Configuración' (Configuration Drift)?",
+      "back": "La discrepancia que surge cuando los recursos reales en la nube se modifican manualmente fuera del control de los archivos de código de Terraform."
+    },
+    {
+      "id": "fc-docker-dataops",
+      "front": "¿Por qué Docker es crucial para la orquestación en DataOps?",
+      "back": "Porque encapsula todas las dependencias del sistema operativo, bibliotecas de Python y binarios de Java, garantizando que el pipeline corra idéntico en local y en producción."
+    },
+    {
+      "id": "fc-sqlfluff-role",
+      "front": "¿Cuál es la función de SQLFluff en un pipeline de CI/CD?",
+      "back": "Auditar automáticamente que todo el código SQL cumpla las guías de estilo, identación y dialéctica del equipo antes de permitir un merge a la rama principal."
+    }
+  ],
+  "quickFacts": [
+    {
+      "statement": "Terraform plan muestra qué recursos se van a crear o destruir antes de realizar cualquier cambio real en la nube.",
+      "answer": true
+    },
+    {
+      "statement": "El archivo terraform.tfstate debe subirse al repositorio público de GitHub sin cifrado.",
+      "answer": false
+    },
+    {
+      "statement": "Los linters estáticos en CI/CD ayudan a atrapar errores de sintaxis antes de que el código llegue a producción.",
+      "answer": true
+    }
+  ],
+  "labId": "terraform-docker-cicd-pipeline",
+  "sources": [
+    {
+      "title": "Terraform: Up & Running, 3rd Edition (Yevgeniy Brikman)",
+      "url": "https://www.oreilly.com/library/view/terraform-up-and/9781098116736/"
+    },
+    {
+      "title": "GitHub Actions Official Documentation",
+      "url": "https://docs.github.com/en/actions"
+    }
+  ]
+}

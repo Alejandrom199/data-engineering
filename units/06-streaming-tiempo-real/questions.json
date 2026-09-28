@@ -1,0 +1,134 @@
+{
+  "$schema": "../../../schemas/questions.schema.json",
+  "questions": [
+    {
+      "id": "q-stream-kafka-partitions-concurrency",
+      "type": "single",
+      "domainId": "streaming-real-time",
+      "skill": "Mensajería Basada en Logs con Apache Kafka",
+      "topic": "kafka-particiones",
+      "stem": "En un tópico de Apache Kafka que cuenta exactamente con 4 particiones, si levantas un Consumer Group con 6 instancias de consumidores activos, ¿cuál será la asignación de particiones que realizará el Group Coordinator de Kafka?",
+      "options": [
+        {
+          "key": "A",
+          "text": "Cada partición se dividirá en sub-hilos para que los 6 consumidores procesen simultáneamente."
+        },
+        {
+          "key": "B",
+          "text": "4 consumidores recibirán exactamente una partición cada uno, y los 2 consumidores restantes quedarán completamente ociosos (en espera pasiva)."
+        },
+        {
+          "key": "C",
+          "text": "El broker de Kafka rechazará las 2 instancias sobrantes con un error fatal."
+        },
+        {
+          "key": "D",
+          "text": "Las 4 particiones se duplicarán automáticamente en disco para balancear la carga."
+        }
+      ],
+      "correct": ["B"],
+      "explanation": "En el modelo de concurrencia de Apache Kafka, una partición individual solo puede ser consumida por **un único consumidor dentro del mismo Consumer Group** en un momento dado (para garantizar el orden estricto de mensajes por clave). Por lo tanto, el número de particiones define el límite máximo absoluto de paralelismo de consumo dentro de un grupo: las 2 instancias excedentes quedan ociosas en espera pasiva por si alguna de las 4 activas cae.",
+      "hint": "¿Puede una misma partición de Kafka ser leída por dos consumidores del mismo grupo simultáneamente?",
+      "sources": [
+        "Kafka: The Definitive Guide (Gwen Shapira et al.)"
+      ]
+    },
+    {
+      "id": "q-stream-watermark-definition",
+      "type": "single",
+      "domainId": "streaming-real-time",
+      "skill": "Stream Processing con Watermarks y Ventanas Temporales",
+      "topic": "watermarks-streaming",
+      "stem": "En motores de procesamiento de flujos como Apache Flink o Spark Structured Streaming, ¿qué función matemática y de memoria cumple exactamente un 'Watermark' (Marca de Agua)?",
+      "options": [
+        {
+          "key": "A",
+          "text": "Comprime los registros binarios en memoria usando el algoritmo gzip."
+        },
+        {
+          "key": "B",
+          "text": "Es una marca temporal móvil monotónica que declara que no se esperan más eventos con una marca de tiempo anterior a (Tiempo_Máximo_Visto - Retraso_Tolerado), permitiendo al motor cerrar ventanas de agregación y purgar el estado de memoria."
+        },
+        {
+          "key": "C",
+          "text": "Mide el consumo de energía eléctrica de los servidores del clúster."
+        },
+        {
+          "key": "D",
+          "text": "Convierte los eventos de streaming en archivos CSV inmediatamente."
+        }
+      ],
+      "correct": ["B"],
+      "explanation": "En procesamiento de flujos ilimitados no se puede mantener el estado de ventanas abiertas indefinidamente esperando que lleguen datos viejos (agotaría la memoria). Un Watermark de retraso T declara una cota temporal: cualquier evento con marca de tiempo anterior al Watermark se considera 'demasiado tarde' y se descarta o envía a una cola de descarte (side output), permitiendo materializar el resultado de la ventana y liberar la memoria RAM.",
+      "hint": "¿Cómo decide el motor de streaming cuándo cerrar una ventana de agregación?",
+      "sources": [
+        "Streaming Systems (Tyler Akidau et al.)"
+      ]
+    },
+    {
+      "id": "q-stream-cdc-vs-polling",
+      "type": "single",
+      "domainId": "streaming-real-time",
+      "skill": "Change Data Capture (CDC Debezium) y Arquitectura Kappa",
+      "topic": "cdc-debezium",
+      "stem": "¿Por qué la captura de datos basada en Change Data Capture (CDC leyendo el WAL de la base de datos con Debezium) es inmensamente superior al enfoque tradicional de consultas periódicas por sondeo ('Polling queries' con SELECT ... WHERE updated_at > last)?",
+      "options": [
+        {
+          "key": "A",
+          "text": "Porque las consultas SELECT de sondeo consumen CPU masiva, no capturan eventos de tipo DELETE (borrados duros) y pasan por alto modificaciones intermedias que ocurran entre ciclos de sondeo, mientras que CDC lee el log binario de transacciones de forma no invasiva capturando cada INSERT, UPDATE y DELETE individual."
+        },
+        {
+          "key": "B",
+          "text": "Porque Debezium apaga la base de datos para leer el disco directamente."
+        },
+        {
+          "key": "C",
+          "text": "Porque el sondeo con SELECT solo funciona en servidores Windows."
+        },
+        {
+          "key": "D",
+          "text": "Porque el log WAL de PostgreSQL se borra automáticamente cada 10 segundos."
+        }
+      ],
+      "correct": ["A"],
+      "explanation": "El sondeo periódico (Polling) castiga el rendimiento de la base de datos operativa con escaneos frecuentes sobre índices, no puede detectar registros eliminados físicamente (`DELETE FROM users`) porque la fila ya no existe para ser leída por un SELECT, y pierde cambios efímeros intermedios. CDC mediante decodificación lógica del WAL captura de forma no invasiva el 100% de las mutaciones transaccionales en tiempo real.",
+      "hint": "¿Qué ocurre con una fila que es eliminada físicamente si solo consultas con SELECT?",
+      "sources": [
+        "Debezium Architecture Documentation (Red Hat)",
+        "Designing Data-Intensive Applications (Martin Kleppmann)"
+      ]
+    },
+    {
+      "id": "q-stream-kappa-vs-lambda",
+      "type": "single",
+      "domainId": "streaming-real-time",
+      "skill": "Change Data Capture (CDC Debezium) y Arquitectura Kappa",
+      "topic": "arquitectura-kappa",
+      "stem": "¿Cuál es la principal ventaja arquitectónica de la Arquitectura Kappa (Jay Kreps) frente a la Arquitectura Lambda clásica (Nathan Marz)?",
+      "options": [
+        {
+          "key": "A",
+          "text": "Que la Arquitectura Lambda no admite el uso de Kafka."
+        },
+        {
+          "key": "B",
+          "text": "Que la Arquitectura Kappa elimina la duplicación de código y mantenimiento al utilizar un único motor de procesamiento de flujos (Stream Processing) tanto para datos en tiempo real como para reprocesamiento histórico a partir de un log inmutable retenido en Kafka o Lakehouse."
+        },
+        {
+          "key": "C",
+          "text": "Que la Arquitectura Kappa solo procesa datos una vez al mes."
+        },
+        {
+          "key": "D",
+          "text": "Que la Arquitectura Lambda no permite hacer consultas en SQL."
+        }
+      ],
+      "correct": ["B"],
+      "explanation": "La Arquitectura Lambda obligaba a mantener dos pilas tecnológicas paralelas con la misma lógica de negocio duplicada: una capa Batch (Hadoop/Spark batch) para datos históricos y una capa Speed (Storm/Flink) para tiempo real, creando pesadillas de consistencia. La Arquitectura Kappa unifica todo bajo un único motor de streaming: para recalcular la historia, simplemente se lee el log inmutable desde el inicio (offset 0) con el mismo código.",
+      "hint": "¿Qué problema surge cuando tienes que programar la misma regla de negocio en dos lenguajes o motores distintos?",
+      "sources": [
+        "Questioning the Lambda Architecture (Jay Kreps / O'Reilly)"
+      ]
+    }
+  ]
+}

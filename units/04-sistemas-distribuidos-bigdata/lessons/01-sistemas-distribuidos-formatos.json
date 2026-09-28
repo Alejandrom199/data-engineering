@@ -1,0 +1,183 @@
+{
+  "$schema": "../../../../../schemas/lesson.schema.json",
+  "id": "sistemas-distribuidos-formatos",
+  "title": "Teoría de Sistemas Distribuidos y Formatos Columnares",
+  "estimatedMinutes": 30,
+  "domainIds": ["distributed-systems-bigdata"],
+  "topics": ["teorema-cap", "formatos-columnares", "apache-parquet", "predicate-pushdown", "object-storage-s3"],
+  "hook": "Guardar un Terabyte de datos en archivos CSV es una sentencia de muerte para el rendimiento y la factura en la nube: leer una sola columna obliga a escanear el Terabyte entero. ¿Por qué el formato Apache Parquet y el Teorema CAP son las leyes fundamentales que gobiernan el almacenamiento moderno a escala masiva?",
+  "concept": {
+    "blocks": [
+      {
+        "type": "heading",
+        "text": "1. El Teorema CAP: Las Leyes Físicas del Clúster"
+      },
+      {
+        "type": "paragraph",
+        "text": "En 2000, Eric Brewer formuló el **Teorema CAP**, que postula que un sistema de datos distribuido no puede garantizar simultáneamente las tres propiedades siguientes en todo momento:"
+      },
+      {
+        "type": "list",
+        "style": "bullet",
+        "items": [
+          "**Consistencia (Consistency):** Toda lectura recibe la escritura más reciente o un error; todos los nodos ven los mismos datos al mismo tiempo.",
+          "**Disponibilidad (Availability):** Toda petición no defectuosa recibe una respuesta no errónea, aunque no garantice contener la escritura más reciente.",
+          "**Tolerancia a Particiones (Partition Tolerance):** El sistema continúa operando a pesar de que la red pierda o retrase mensajes entre nodos."
+        ]
+      },
+      {
+        "type": "callout",
+        "tone": "warning",
+        "title": "El dilema real: CP frente a AP",
+        "text": "Dado que las particiones de red ('P') son inevitables por la física del hardware, la elección real de un arquitecto de datos es entre **CP** (Consistencia sobre Disponibilidad: si un nodo se aísla, rechaza escrituras para no divergir) o **AP** (Disponibilidad sobre Consistencia: acepta escrituras en ambos lados tolerando divergencias temporales que deben reconciliarse después)."
+      },
+      {
+        "type": "heading",
+        "text": "2. Formatos por Filas (Row-Oriented) vs. Columnares (Column-Oriented)"
+      },
+      {
+        "type": "paragraph",
+        "text": "Los formatos de texto tradicionales como CSV o JSON organizan los datos por filas adyacentes en disco. Esto es eficiente para OLTP (leer o escribir un registro completo), pero desastroso para OLAP, donde una consulta típica solo necesita dos columnas de una tabla de 100:"
+      },
+      {
+        "type": "table",
+        "headers": ["Característica", "Formatos por Filas (CSV / JSON / Avro)", "Formatos Columnares (Parquet / ORC)"],
+        "rows": [
+          ["Organización en Disco", "Fila tras fila consecutiva", "Columnas contiguas dentro de cada Row Group"],
+          ["E/S al leer pocas columnas", "Lee el 100% de los bytes del archivo", "Lee únicamente los bytes de las columnas solicitadas"],
+          ["Ratio de Compresión", "Pobre (5% a 20%) debido a mezcla de tipos", "Excelente (70% a 90%) por datos homogéneos continuos"],
+          ["Tipado", "Débil (texto plano en CSV) o parsing pesado (JSON)", "Esquema binario estricto embebido en metadatos"],
+          ["Predicate Pushdown", "No soportado; requiere escanear cada línea", "Soportado mediante estadísticas min/max en el footer"]
+        ],
+        "caption": "Comparativa técnica entre almacenamiento por filas y columnar."
+      },
+      {
+        "type": "heading",
+        "text": "3. Anatomía de Apache Parquet y Predicate Pushdown"
+      },
+      {
+        "type": "paragraph",
+        "text": "Un archivo Parquet divide los datos verticalmente en **Row Groups** (típicamente de 128MB a 512MB) y horizontalmente en **Column Chunks**. En el footer del archivo se guardan estadísticas enriquecidas (mínimo, máximo, número de nulos) de cada columna por cada grupo. Con **Predicate Pushdown**, si filtras `WHERE fecha >= '2026-09-01'` y el footer de un bloque indica `max(fecha) = '2026-08-31'`, el motor salta completamente ese bloque de disco sin gastar un solo ciclo de CPU ni I/O."
+      }
+    ]
+  },
+  "keyPoints": [
+    "Las particiones de red son inevitables; el Teorema CAP obliga a elegir entre consistencia estricta (CP) o alta disponibilidad (AP).",
+    "Los formatos columnares como Parquet reducen la E/S en órdenes de magnitud al leer exclusivamente las columnas requeridas por la consulta.",
+    "La compresión por diccionarios y run-length encoding (RLE) en Parquet reduce el costo de almacenamiento en un 70%-90% frente a CSV.",
+    "Predicate Pushdown permite descartar bloques completos de datos en disco leyendo únicamente las estadísticas del footer del archivo."
+  ],
+  "terms": [
+    {
+      "term": "CAP Theorem",
+      "translation": "Teorema CAP",
+      "definition": "Principio que demuestra que un sistema de datos distribuido no puede garantizar simultáneamente consistencia, disponibilidad y tolerancia a particiones."
+    },
+    {
+      "term": "Columnar Storage",
+      "translation": "Almacenamiento Columnar",
+      "definition": "Esquema de organización física donde los valores de una misma columna se almacenan contiguamente en disco para acelerar agregaciones analíticas."
+    },
+    {
+      "term": "Predicate Pushdown",
+      "translation": "Empuje de Predicados",
+      "definition": "Optimización donde el motor de ejecución evalúa los filtros de consulta a nivel de almacenamiento antes de leer los datos a memoria."
+    }
+  ],
+  "diagram": {
+    "type": "flow",
+    "nodes": [
+      {
+        "icon": "search",
+        "label": "Consulta Analítica",
+        "sub": "WHERE edad > 60",
+        "detail": "El motor compila la consulta y extrae los predicados de filtro."
+      },
+      {
+        "icon": "file",
+        "label": "Lectura del Footer Parquet",
+        "sub": "Metadatos min/max",
+        "detail": "Lee las estadísticas de cada Row Group sin tocar los bloques de datos."
+      },
+      {
+        "icon": "shield",
+        "label": "Descarte de Bloques (Pushdown)",
+        "sub": "max(edad) = 45 -> SKIP",
+        "detail": "Descarta físicamente el 80% de los Row Groups del archivo."
+      },
+      {
+        "icon": "server",
+        "label": "Lectura Columnar Selectiva",
+        "sub": "Solo columna 'edad'",
+        "detail": "Transfiere a RAM únicamente los bytes filtrados a máxima velocidad.",
+        "kind": "end"
+      }
+    ]
+  },
+  "activity": {
+    "type": "order",
+    "prompt": "Ordena el flujo de lectura optimizado de un archivo Parquet con Predicate Pushdown:",
+    "hint": "El motor primero inspecciona los metadatos al final del archivo antes de transferir datos.",
+    "items": [
+      "Lectura del footer de metadatos al final del archivo Parquet",
+      "Inspección de las estadísticas min/max de cada Row Group para el predicado WHERE",
+      "Descarte de los Row Groups cuyos rangos no cumplen el filtro (Pruning)",
+      "Identificación de las posiciones en disco (offsets) únicamente de las columnas solicitadas",
+      "Descompresión y streaming a memoria de los bloques sobrevivientes"
+    ]
+  },
+  "checkQuestionId": "q-dist-parquet-pushdown",
+  "traps": [
+    {
+      "pitfall": "Guardar un Data Lake en archivos CSV o JSON crudos creyendo que la nube escalará mágicamente.",
+      "reality": "Las consultas en Athena, Spark o Snowflake cobrarán por Terabytes escaneados y tardarán órdenes de magnitud más tiempo; Parquet es el estándar innegociable."
+    },
+    {
+      "pitfall": "Crear millones de archivos Parquet de 1MB en un bucket S3.",
+      "reality": "Esto provoca el 'Small Files Problem', saturando las llamadas HTTP de metadatos en S3 y arruinando el beneficio de los Row Groups (que deben medir entre 128MB y 512MB)."
+    }
+  ],
+  "trapSummary": "Ignorar los formatos columnares en Big Data multiplica por diez los costos de computación y red; Parquet junto a Predicate Pushdown es la base de la eficiencia analítica.",
+  "flashcards": [
+    {
+      "id": "fc-cap-p-inevitable",
+      "front": "¿Por qué la 'P' (Tolerancia a Particiones) en el Teorema CAP se considera obligatoria en la práctica?",
+      "back": "Porque las particiones de red (cables cortados, switches colapsados, latencia extrema) son fallas físicas inevitables en cualquier red del mundo real."
+    },
+    {
+      "id": "fc-row-group-size",
+      "front": "¿Cuál es el tamaño típico recomendado para un Row Group en Apache Parquet para Big Data?",
+      "back": "Entre 128 Megabytes y 512 Megabytes, para permitir compresión eficiente y maximizar el rendimiento de lecturas secuenciales en streaming."
+    },
+    {
+      "id": "fc-dictionary-encoding",
+      "front": "¿Cómo funciona la compresión por diccionario en Parquet?",
+      "back": "Reemplaza cadenas de texto largas y repetidas (ej. nombres de países) por enteros pequeños (ej. 0, 1, 2), reduciendo masivamente el espacio en disco."
+    }
+  ],
+  "quickFacts": [
+    {
+      "statement": "En una consulta que lee 3 columnas de una tabla de 50 columnas, Parquet lee sustancialmente menos bytes que un CSV.",
+      "answer": true
+    },
+    {
+      "statement": "El Teorema CAP permite que un sistema distribuido garantice simultáneamente Consistencia estricta y Disponibilidad total durante una partición de red.",
+      "answer": false
+    },
+    {
+      "statement": "El footer de un archivo Parquet contiene metadatos con los valores mínimos y máximos de cada columna por Row Group.",
+      "answer": true
+    }
+  ],
+  "labId": "parquet-compression-pushdown",
+  "sources": [
+    {
+      "title": "Apache Parquet Official Documentation",
+      "url": "https://parquet.apache.org/docs/"
+    },
+    {
+      "title": "Designing Data-Intensive Applications (Martin Kleppmann)",
+      "url": "https://dataintensive.net/"
+    }
+  ]
+}
