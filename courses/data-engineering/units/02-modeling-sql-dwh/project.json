@@ -1,0 +1,33 @@
+{
+  "$schema": "../../../../schemas/project.schema.json",
+  "title": "Data Warehouse Dimensional con Esquema en Estrella y Carga SCD2",
+  "context": "Una cadena de retail necesita consolidar sus ventas omnicanal. Diseñarás e implementarás el modelo dimensional con Esquema en Estrella en PostgreSQL/DuckDB, integrando la dimensión de clientes con SCD Tipo 2 para rastrear cambios de residencia y un pipeline SQL idempotente de carga de hechos.",
+  "requirements": [
+    "Diseñar la Tabla de Hechos fact_ventas con granularidad a nivel de línea de ticket y claves subrogadas.",
+    "Crear las tablas de dimensiones conformadas: dim_tiempo, dim_producto y dim_cliente.",
+    "Implementar el proceso ETL que detecta cambios en clientes e inserta nuevas versiones en dim_cliente bajo SCD Tipo 2.",
+    "Crear vistas analíticas optimizadas con funciones de ventana que calculen ventas acumuladas (Running Total) y ticket promedio por cohorte."
+  ],
+  "deliverables": [
+    "Script DDL con la arquitectura completa del Esquema en Estrella.",
+    "Pipeline SQL / Python con la lógica de inserción y actualización de SCD Tipo 2.",
+    "Suite de consultas analíticas con cálculo de métricas de negocio usando ventanas."
+  ],
+  "rubric": [
+    {
+      "criterion": "Diseño Dimensional",
+      "weight": 35,
+      "description": "El esquema en estrella respeta la metodología Kimball con claves subrogadas y separación clara de hechos y dimensiones."
+    },
+    {
+      "criterion": "Implementación de SCD2",
+      "weight": 35,
+      "description": "La evolución histórica de clientes se gestiona de forma inmutable con fechas de validez e is_current."
+    },
+    {
+      "criterion": "SQL Analítico y Rendimiento",
+      "weight": 30,
+      "description": "Las consultas de reportería usan funciones de ventana optimizadas sin JOINs redundantes."
+    }
+  ]
+}

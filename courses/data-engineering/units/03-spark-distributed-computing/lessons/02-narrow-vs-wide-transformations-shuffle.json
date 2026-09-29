@@ -1,0 +1,213 @@
+{
+  "$schema": "../../../../../schemas/lesson.schema.json",
+  "id": "narrow-vs-wide-transformations-shuffle",
+  "title": "Transformaciones Narrow vs Wide: El Coste Oculto del Shuffle de Red",
+  "estimatedMinutes": 13,
+  "domainIds": [
+    "spark-distributed-computing"
+  ],
+  "topics": [
+    "narrow-transformations",
+    "wide-transformations",
+    "spark-shuffle",
+    "optimizador-catalyst"
+  ],
+  "hook": "Un pipeline con `filter()` y `select()` tarda 15 segundos en procesar 500 millones de filas. Le agregas un simple `groupBy().count()` y el tiempo total salta a 18 minutos saturando el ancho de banda del cluster. ¿Qué ocurrió bajo el capó?",
+  "concept": {
+    "blocks": [
+      {
+        "type": "heading",
+        "text": "1. Narrow vs Wide Dependencies"
+      },
+      {
+        "type": "paragraph",
+        "text": "En Spark, las transformaciones se clasifican estrictamente en dos categorías según cómo se comunican las particiones:"
+      },
+      {
+        "type": "table",
+        "headers": [
+          "Característica",
+          "Narrow Transformation",
+          "Wide Transformation"
+        ],
+        "rows": [
+          [
+            "Definición",
+            "Cada partición hija depende de exactamente una partición padre",
+            "Múltiples particiones hijas dependen de datos distribuidos en todas las particiones"
+          ],
+          [
+            "Ejemplos",
+            "map(), filter(), select(), withColumn()",
+            "groupBy(), join(), distinct(), repartition()"
+          ],
+          [
+            "Movimiento de Red",
+            "Cero (se ejecuta en memoria local del executor)",
+            "Masivo (Shuffle por red entre todos los nodos)"
+          ],
+          [
+            "Escritura en Disco",
+            "No requiere volcado intermedio",
+            "Escribe ficheros intermedios de Shuffle en disco local"
+          ],
+          [
+            "Frontera de Stage",
+            "Se fusiona en el mismo Stage (Pipelining)",
+            "Rompe el flujo y crea una nueva Stage boundary"
+          ]
+        ]
+      },
+      {
+        "type": "heading",
+        "text": "2. La Anatomía del Shuffle"
+      },
+      {
+        "type": "paragraph",
+        "text": "El Shuffle es la operación más cara en computación distribuida. Para agrupar por una clave, cada executor debe particionar sus datos locales por hash, escribirlos en disco, transferirlos por conexiones HTTP a otros executors y volver a ordenarlos. Para minimizar el shuffle, el optimizador **Catalyst** reordena filtros (`Pushdown Predicate`) para descartar filas antes del intercambio."
+      },
+      {
+        "type": "callout",
+        "text": "Atención con repartition(): Usar `df.repartition(200)` fuerza un shuffle completo por la red. Si solo buscas reducir particiones tras un filtro masivo, usa `df.coalesce()`, que fusiona particiones existentes sin forzar shuffle.",
+        "tone": "warning"
+      }
+    ]
+  },
+  "diagram": {
+    "type": "flow",
+    "nodes": [
+      {
+        "icon": "file",
+        "label": "Partición 1",
+        "sub": "etapa",
+        "detail": "Partición 1",
+        "kind": "default"
+      },
+      {
+        "icon": "file",
+        "label": "Partición 2",
+        "sub": "etapa",
+        "detail": "Partición 2",
+        "kind": "default"
+      },
+      {
+        "icon": "route",
+        "label": "Exchange / Shuffle",
+        "sub": "etapa",
+        "detail": "Exchange / Shuffle",
+        "kind": "default"
+      },
+      {
+        "icon": "chart",
+        "label": "Stage 2 (Agregación)",
+        "sub": "etapa",
+        "detail": "Stage 2 (Agregación)",
+        "kind": "default"
+      }
+    ]
+  },
+  "terms": [
+    {
+      "term": "Narrow Dependency",
+      "definition": "Dependencia donde los datos necesarios para una partición de salida residen en una sola partición de entrada, permitiendo procesamiento en memoria sin red.",
+      "translation": "Narrow Dependency"
+    },
+    {
+      "term": "Wide Dependency",
+      "definition": "Dependencia que exige que los datos de múltiples particiones se redistribuyan a través del cluster, marcando el inicio de un nuevo Stage.",
+      "translation": "Wide Dependency"
+    },
+    {
+      "term": "Shuffle",
+      "definition": "Proceso físico de redistribución de datos entre particiones mediante escritura en disco local y transferencia de red.",
+      "translation": "Shuffle"
+    },
+    {
+      "term": "Catalyst Optimizer",
+      "definition": "Motor de optimización de Spark que analiza el árbol de operaciones lógicas y genera el plan físico más eficiente.",
+      "translation": "Catalyst Optimizer"
+    }
+  ],
+  "traps": [
+    {
+      "option": "Usar repartition() indiscriminadamente cada vez que un pipeline va lento.",
+      "reason": "repartition() introduce un shuffle forzado que añade I/O de disco y saturación de red. Solo debe usarse cuando hay severo desbalance de datos."
+    },
+    {
+      "option": "Creer que coalesce() y repartition() hacen exactamente lo mismo.",
+      "reason": "coalesce() solo puede reducir particiones y evita el shuffle fusionando bloques adyacentes; repartition() puede aumentar o reducir pero siempre hace shuffle."
+    }
+  ],
+  "keyPoints": [
+    "Las operaciones Narrow se encadenan en un único Stage de memoria ultrarrápido.",
+    "Las operaciones Wide exigen un Shuffle que escribe en disco y satura la red del cluster.",
+    "Preferir siempre `coalesce` para reducir particiones y filtrar los datos lo antes posible para reducir el volumen que entra al shuffle."
+  ],
+  "checkQuestionId": "q-u3-02",
+  "trapSummary": "Usar repartition() sin motivo antes de un filtro, forzando un Shuffle de red innecesario que ralentiza el cluster.",
+  "activity": {
+    "type": "sort",
+    "prompt": "Clasifica cada transformación de Spark según su tipo de dependencia:",
+    "buckets": [
+      "Narrow Transformation (Sin Shuffle)",
+      "Wide Transformation (Fuerza Shuffle)"
+    ],
+    "items": [
+      {
+        "text": "df.filter(col('monto') > 100)",
+        "bucket": 0
+      },
+      {
+        "text": "df.groupBy('categoria').sum('total')",
+        "bucket": 1
+      },
+      {
+        "text": "df.select('id', 'nombre')",
+        "bucket": 0
+      },
+      {
+        "text": "df.join(df2, on='cliente_id') [sin broadcast]",
+        "bucket": 1
+      },
+      {
+        "text": "df.coalesce(2) [para reducir particiones]",
+        "bucket": 0
+      }
+    ]
+  },
+  "flashcards": [
+    {
+      "id": "fc-u3-l2-1",
+      "front": "¿Qué es una frontera de Stage (Stage Boundary) en Spark?",
+      "back": "El punto del DAG donde una transformación Wide exige un Shuffle de red para reagrupar datos."
+    },
+    {
+      "id": "fc-u3-l2-2",
+      "front": "¿Qué diferencia hay entre coalesce() y repartition()?",
+      "back": "coalesce() reduce particiones sin shuffle fusionando adyacentes; repartition() redistribuye por hash forzando un shuffle completo."
+    },
+    {
+      "id": "fc-u3-l2-3",
+      "front": "¿Qué optimización de Catalyst empuja los filtros al origen?",
+      "back": "Predicate Pushdown."
+    }
+  ],
+  "quickFacts": [
+    {
+      "statement": "Las transformaciones Narrow se encadenan en un único Stage en memoria (Pipelining).",
+      "answer": true
+    },
+    {
+      "statement": "Un Shuffle implica escribir ficheros intermedios en disco y transmitirlos por la red.",
+      "answer": true
+    },
+    {
+      "statement": "coalesce() puede utilizarse para aumentar el número de particiones de un DataFrame.",
+      "answer": false
+    },
+    {
+      "statement": "El operador Exchange en un plan físico de Spark denota la ocurrencia de un Shuffle.",
+      "answer": true
+    }
+  ]
+}

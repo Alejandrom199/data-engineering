@@ -1,0 +1,19 @@
+{
+  "$schema": "../../../../schemas/case-studies.schema.json",
+  "caseStudies": [
+    {
+      "id": "cs-u3-01",
+      "title": "La tarea rezagada del 99% que triplicó la factura de EMR por un NULL masivo",
+      "prompt": "Un job nocturno de Spark en Amazon EMR con 80 nodos tardaba habitualmente 25 minutos. Repentinamente empezó a tardar 4 horas: 79 nodos terminaban en 20 minutos y 1 solo nodo quedaba procesando la tarea final al 100% de CPU. Analiza la causa y presenta la solución.",
+      "modelAnswer": "El problema fue un caso clásico de Data Skew severo: una migración reciente de la aplicación web comenzó a registrar transacciones con cliente_id = NULL. Al hacer un JOIN por cliente_id, Spark agrupó todos los registros con clave NULL (más de 80 millones de filas) en una única partición física asignada al último executor. Los otros 79 nodos quedaron inactivos pero facturando a precio completo por hora. Solución: Filtrar los registros con NULL antes del JOIN o asignarles un ID sintético disperso aleatorio (Salting) si debían preservarse en un Outer Join.",
+      "sources": []
+    },
+    {
+      "id": "cs-u3-02",
+      "title": "El desborde catastrófico del Driver al intentar exportar un reporte a Excel con .collect()",
+      "prompt": "Un data engineer escribió un script para exportar el resultado de una agregación a un archivo Excel local mediante .toPandas(). En las pruebas de staging con 1,000 filas funcionó sin problemas, pero al ejecutarse en producción con 15 millones de filas el Driver de Spark colapsó con Java Heap Space OOM matando toda la aplicación. Explica el error conceptual.",
+      "modelAnswer": "El error radica en violar el límite arquitectónico del Driver. El Driver sólo debe coordinar la computación distribuida. Al invocar .toPandas() o .collect(), Spark descarga la totalidad de los datos de todos los executors a través de la red hacia la memoria heap del proceso maestro. 15 millones de filas consumen decenas de gigabytes sin comprimir, desbordando el heap del Driver. Solución: Los datasets masivos deben escribirse directamente en almacenamiento distribuido (S3/GCS) en formato columnar particionado mediante .write.parquet() sin pasar jamás por el Driver.",
+      "sources": []
+    }
+  ]
+}

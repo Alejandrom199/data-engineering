@@ -1,0 +1,33 @@
+{
+  "$schema": "../../../../schemas/project.schema.json",
+  "title": "Pipeline de Detección de Fraude en Tiempo Real con Kafka y Change Data Capture",
+  "context": "Una pasarela de pagos digitales necesita detectar patrones de fraude en transacciones financieras con una latencia inferior a 2 segundos. El sistema transaccional corre sobre PostgreSQL y debe alimentar un motor de scoring en tiempo real y persistir los eventos confirmados en un Lakehouse con semántica exactly-once.",
+  "requirements": [
+    "Diseñar la topología de tópicos en Apache Kafka configurando particiones por cliente y factor de replicación adecuado.",
+    "Configurar el conector de Change Data Capture (Debezium) para capturar movimientos de cuentas desde el WAL sin sobrecargar el motor OLTP.",
+    "Implementar un consumidor con procesamiento por ventanas de Event Time (Tumbling Window de 5 minutos) y Watermark de 2 minutos para detectar múltiples compras simultáneas en distintas ciudades.",
+    "Garantizar semántica At-Least-Once con escritura idempotente en el Lakehouse destino mediante sentencias MERGE o deduplicación de claves."
+  ],
+  "deliverables": [
+    "Diagrama de arquitectura del pipeline en tiempo real (Postgres WAL -> Debezium -> Kafka -> Streaming Consumer -> Lakehouse).",
+    "Código del consumidor en Python con lógica de ventanas de Event Time y Watermarks.",
+    "Demostración de resiliencia y deduplicación ante fallos simulados de red con reintentos."
+  ],
+  "rubric": [
+    {
+      "criterion": "Diseño de la topología Kafka y CDC no invasivo",
+      "weight": 35,
+      "description": "Modela el particionamiento adecuado y la extracción vía Write-Ahead Log."
+    },
+    {
+      "criterion": "Gestión de Event Time, Watermarks y Late Data",
+      "weight": 35,
+      "description": "Implementa ventanas de agregación tolerantes a eventos desordenados."
+    },
+    {
+      "criterion": "Idempotencia y garantías de entrega",
+      "weight": 30,
+      "description": "Asegura la ausencia de duplicados y cobros dobles mediante deduplicación."
+    }
+  ]
+}

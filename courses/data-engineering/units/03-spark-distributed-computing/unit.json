@@ -1,0 +1,28 @@
+{
+  "$schema": "../../../../schemas/unit.schema.json",
+  "id": "03-spark-distributed-computing",
+  "title": "Computación Distribuida con Apache Spark",
+  "officialTitle": "Distributed Computing with Apache Spark",
+  "summary": "Arquitectura interna de Apache Spark: modelo Driver-Executor, transformaciones Narrow vs Wide y coste del Shuffle, optimizador Catalyst y Tungsten, resolución de cuellos de botella por Data Skew mediante salting, gestión de memoria (Storage vs Execution) y prevención de OOM y Disk Spill.",
+  "icon": "flame",
+  "color": "#f97316",
+  "objectives": [
+    "Comprender el rol del Driver y los Executors en la ejecución distribuida y evitar errores de memoria al recolectar datos.",
+    "Diferenciar transformaciones Narrow de Wide y calcular el impacto del Shuffle de red en la latencia del cluster.",
+    "Identificar tareas rezagadas (stragglers) causadas por Data Skew y aplicar técnicas de salting y broadcast joins.",
+    "Configurar la memoria de Spark (Storage vs Execution) para erradicar el derrame a disco (Disk Spill) y caídas por OOM."
+  ],
+  "lessons": [
+    "spark-arquitectura-driver-executors",
+    "narrow-vs-wide-transformations-shuffle",
+    "data-skew-salting-optimizacion",
+    "spark-memoria-spill-oom"
+  ],
+  "labs": [
+    "lab-spark-narrow-wide-shuffle",
+    "lab-spark-data-skew-salting",
+    "lab-spark-broadcast-join-tuning"
+  ],
+  "quizPassRatio": 0.7,
+  "quizQuestionCount": 10
+}

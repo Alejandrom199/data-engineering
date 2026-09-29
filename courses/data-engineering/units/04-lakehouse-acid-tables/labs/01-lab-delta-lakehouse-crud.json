@@ -1,0 +1,26 @@
+{
+  "$schema": "../../../../schemas/lab.schema.json",
+  "id": "lab-delta-lakehouse-crud",
+  "title": "Operaciones Transaccionales y Time Travel con Delta Lake",
+  "goal": "Crear una tabla Delta, ejecutar operaciones de actualización atómica y recuperar versiones previas mediante Time Travel.",
+  "level": "intermediate",
+  "estimatedMinutes": 15,
+  "icon": "shield",
+  "domainId": "lakehouse-acid-tables",
+  "lessonId": "time-travel-auditoria-rollback",
+  "file": "lab01_delta_time_travel.py",
+  "steps": [
+    "Crea una tabla Delta inicial con 5 registros de cuentas bancarias.",
+    "Ejecuta una actualización modificando los saldos.",
+    "Consulta el historial de commits de la tabla con history().",
+    "Lee la tabla en la versión inicial utilizando el parámetro versionAsOf."
+  ],
+  "code": "from deltalake import DeltaTable, write_deltalake\nimport pandas as pd, os, shutil\n\npath = '/tmp/delta_cuentas'\nif os.path.exists(path): shutil.rmtree(path)\n\n# Versión 0\ndf_v0 = pd.DataFrame({'id': [1, 2, 3], 'saldo': [100.0, 250.0, 500.0]})\nwrite_deltalake(path, df_v0, mode='overwrite')\n\n# Versión 1\ndf_v1 = pd.DataFrame({'id': [1, 2, 3], 'saldo': [150.0, 300.0, 750.0]})\nwrite_deltalake(path, df_v1, mode='overwrite')\n\ndt = DeltaTable(path)\nprint(f'Versión actual: {dt.version()}')\n\n# Time Travel a Versión 0\ndt_hist = DeltaTable(path, version=0)\nprint('=== DATOS EN VERSIÓN 0 (ORIGINAL) ===')\nprint(dt_hist.to_pandas())\n",
+  "codeLanguage": "python",
+  "expectedOutput": "Versión actual: 1\n=== DATOS EN VERSIÓN 0 (ORIGINAL) ===\n   id  saldo\n0   1  100.0\n1   2  250.0\n2   3  500.0",
+  "verify": "La consulta a version=0 retorna fielmente los valores originales sin verse afectada por el overwrite posterior.",
+  "successCriteria": [
+    "Se registra el commit incremental en el log transaccional de Delta.",
+    "El lector puede acceder tanto a la versión actual como a los snapshots históricos."
+  ]
+}

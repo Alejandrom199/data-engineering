@@ -1,0 +1,26 @@
+{
+  "$schema": "../../../../schemas/lab.schema.json",
+  "id": "lab-data-quality-circuit-breaker",
+  "title": "Circuit Breaker de Calidad y Desvío a Cuarentena",
+  "goal": "Implementar una compuerta de validación de datos que interrumpe la carga si existen claves nulas y aísla registros anómalos.",
+  "level": "intermediate",
+  "estimatedMinutes": 15,
+  "icon": "shield",
+  "domainId": "orchestration-quality-dataops",
+  "lessonId": "calidad-datos-circuit-breakers-expectations",
+  "file": "lab03_quality_gate.py",
+  "steps": [
+    "Carga un lote de datos con transacciones simuladas, algunas con precio negativo o cliente nulo.",
+    "Aplica una batería de aserciones de calidad (contratos de datos).",
+    "Separa las filas válidas hacia la tabla de producción y las inválidas a cuarentena.",
+    "Lanza una excepción controlada si el porcentaje de registros inválidos supera el 5%."
+  ],
+  "code": "import pandas as pd\n\ndata = [\n    {'tx_id': 1, 'cliente_id': 'C10', 'monto': 150.0},\n    {'tx_id': 2, 'cliente_id': None, 'monto': 80.0},    # Invalido (null)\n    {'tx_id': 3, 'cliente_id': 'C30', 'monto': -50.0},   # Invalido (negativo)\n    {'tx_id': 4, 'cliente_id': 'C40', 'monto': 320.0},\n]\ndf = pd.DataFrame(data)\n\n# Circuit Breaker Logic\nes_valido = df['cliente_id'].notnull() & (df['monto'] > 0)\nvalidos = df[es_valido]\ncuarentena = df[~es_valido]\n\nprint(f'Registros limpios para Gold: {len(validos)}')\nprint(f'Registros aislados en Cuarentena: {len(cuarentena)}')\nprint('=== DETALLE CUARENTENA ===')\nprint(cuarentena.to_string(index=False))\n",
+  "codeLanguage": "python",
+  "expectedOutput": "Registros limpios para Gold: 2\nRegistros aislados en Cuarentena: 2\n=== DETALLE CUARENTENA ===\n tx_id cliente_id  monto\n     2       None   80.0\n     3        C30  -50.0",
+  "verify": "Los registros anómalos son segregados a la estructura de cuarentena sin contaminar la salida válida.",
+  "successCriteria": [
+    "Se detectan correctamente las violaciones al contrato de calidad.",
+    "Los registros erróneos quedan documentados y aislados."
+  ]
+}

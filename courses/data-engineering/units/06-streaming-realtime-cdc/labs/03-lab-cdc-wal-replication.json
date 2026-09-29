@@ -1,0 +1,25 @@
+{
+  "$schema": "../../../../schemas/lab.schema.json",
+  "id": "lab-cdc-wal-replication",
+  "title": "Reconciliación de Eventos CDC con Operaciones Insert, Update y Delete",
+  "goal": "Construir un reconciliador en streaming que procese eventos del WAL de Debezium y mantenga el estado final de una tabla.",
+  "level": "intermediate",
+  "estimatedMinutes": 15,
+  "icon": "shield",
+  "domainId": "streaming-realtime-cdc",
+  "lessonId": "change-data-capture-debezium-kappa",
+  "file": "lab03_cdc_parser.py",
+  "steps": [
+    "Modela eventos CDC en formato Debezium con campos op ('c', 'u', 'd'), before y after.",
+    "Aplica la lógica de inserción, actualización de campos y borrado de clave.",
+    "Verifica el estado final de la réplica tras la secuencia completa de operaciones."
+  ],
+  "code": "cdc_stream = [\n    {'op': 'c', 'after': {'id': 1, 'nombre': 'Tablet', 'precio': 200.0}},\n    {'op': 'c', 'after': {'id': 2, 'nombre': 'Teclado', 'precio': 50.0}},\n    {'op': 'u', 'before': {'precio': 200.0}, 'after': {'id': 1, 'nombre': 'Tablet Pro', 'precio': 250.0}},\n    {'op': 'd', 'before': {'id': 2}},\n]\n\ntable_state = {}\nfor ev in cdc_stream:\n    op = ev['op']\n    if op in ('c', 'u'):\n        table_state[ev['after']['id']] = ev['after']\n    elif op == 'd':\n        table_state.pop(ev['before']['id'], None)\n\nprint('=== ESTADO FINAL TRAS RECONCILIACIÓN CDC ===')\nfor row_id, data in sorted(table_state.items()):\n    print(f'ID {row_id}: {data}')\n",
+  "codeLanguage": "python",
+  "expectedOutput": "=== ESTADO FINAL TRAS RECONCILIACIÓN CDC ===\nID 1: {'id': 1, 'nombre': 'Tablet Pro', 'precio': 250.0}",
+  "verify": "La entidad 1 refleja la última actualización y la entidad 2 ha sido eliminada por el evento de borrado CDC.",
+  "successCriteria": [
+    "Se procesan correctamente los eventos de creación, mutación y borrado.",
+    "El estado final coincide exactamente con la intención del stream."
+  ]
+}

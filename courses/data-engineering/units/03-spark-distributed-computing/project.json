@@ -1,0 +1,33 @@
+{
+  "$schema": "../../../../schemas/project.schema.json",
+  "title": "Pipeline Distribuido de Telemetría IoT con PySpark y Eliminación de Skew",
+  "context": "Una flota de 500,000 sensores de vehículos envía millones de métricas por hora. El 60% de los paquetes provienen de una única flota de taxis en Madrid, lo que provoca que los jobs de agregación diaria sufran fallos de timeout en el 99% del progreso por culpa del Data Skew.",
+  "requirements": [
+    "Configurar una sesión de Spark optimizada con Adaptive Query Execution (AQE) y gestión de particiones adecuada.",
+    "Ingestar el lote de datos y realizar un enriquecimiento con metadatos de vehículos utilizando un Broadcast Hash Join.",
+    "Aplicar una transformación de Salting sobre la columna de identificación de flota para equilibrar el procesamiento entre todos los cores disponibles.",
+    "Escribir los resultados particionados por fecha y provincia sin generar ficheros de tamaño inferior a 64 MB ni provocar Spill de memoria."
+  ],
+  "deliverables": [
+    "Script de PySpark documentado con la implementación del Salting y Broadcast.",
+    "Captura o log del plan de ejecución con explain() demostrando la eliminación del Shuffle innecesario.",
+    "Resumen métrico comparando el tiempo de ejecución con y sin salting."
+  ],
+  "rubric": [
+    {
+      "criterion": "Eliminación del Data Skew mediante Salting y uniones equilibradas",
+      "weight": 40,
+      "description": "El alumno implementa la técnica de salting en dos fases de agregación."
+    },
+    {
+      "criterion": "Uso adecuado de Broadcast Hash Join",
+      "weight": 30,
+      "description": "La tabla dimensional pequeña se replica mediante broadcast evitando el shuffle."
+    },
+    {
+      "criterion": "Gestión de memoria y prevención de Spill",
+      "weight": 30,
+      "description": "Las particiones se calibran correctamente evitando sobrecarga de heap o desbordes a disco."
+    }
+  ]
+}

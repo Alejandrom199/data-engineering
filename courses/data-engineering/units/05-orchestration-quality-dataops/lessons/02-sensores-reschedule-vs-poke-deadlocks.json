@@ -1,0 +1,178 @@
+{
+  "$schema": "../../../../../schemas/lesson.schema.json",
+  "id": "sensores-reschedule-vs-poke-deadlocks",
+  "title": "Sensores en Airflow: Poke vs Reschedule y la Muerte Silenciosa del Pool",
+  "estimatedMinutes": 11,
+  "domainIds": [
+    "orchestration-quality-dataops"
+  ],
+  "topics": [
+    "airflow-sensores",
+    "sensor-poke-vs-reschedule",
+    "worker-slots-starvation",
+    "deadlocks-orquestacion"
+  ],
+  "hook": "Tienes 16 worker slots en tu cluster de Airflow y 16 DAGs esperando la llegada de un archivo SFTP que suele llegar a las 6:00 AM. A las 3:00 AM todos los slots están ocupados esperando y ningún otro pipeline de la empresa puede correr durante 3 horas. ¿Cómo se evita esta inanición?",
+  "concept": {
+    "blocks": [
+      {
+        "type": "heading",
+        "text": "1. La Trampa del Modo Poke"
+      },
+      {
+        "type": "paragraph",
+        "text": "Un **Sensor** en Airflow es una tarea diseñada para esperar activamente a que ocurra una condición externa (ej. que aparezca un archivo en S3, que una tabla SQL tenga más de 0 filas, o que una API responda 200). Por defecto, muchos sensores operan en **mode='poke'**:"
+      },
+      {
+        "type": "paragraph",
+        "text": "En modo poke, el sensor duerme durante `poke_interval` segundos pero **mantiene bloqueado el worker slot**, consumiendo memoria del worker y ocupando una plaza de concurrencia completa aunque no esté haciendo ningún cómputo útil. Si tienes 20 tareas en modo poke esperando eventos que tardan horas, tu cluster entra en **Worker Slots Starvation** (inanición de trabajadores), congelando todos los demás pipelines."
+      },
+      {
+        "type": "heading",
+        "text": "2. La Solución Arquitectónica: mode='reschedule'"
+      },
+      {
+        "type": "paragraph",
+        "text": "Al configurar **mode='reschedule'**, el sensor ejecuta la comprobación. Si la condición aún no se cumple, el sensor libera inmediatamente el worker slot, pasa al estado `UP_FOR_RESCHEDULE` en la base de metadatos y finaliza el proceso de ejecución. Cuando expira el intervalo, el Scheduler vuelve a encolarlo como una tarea ligera sin haber secuestrado recursos durante la espera."
+      },
+      {
+        "type": "callout",
+        "text": "Regla práctica: Cualquier sensor que pueda demorar más de 5 minutos en validar su condición DEBE configurarse obligatoriamente con mode='reschedule' y un timeout explícito.",
+        "tone": "tip"
+      }
+    ]
+  },
+  "diagram": {
+    "type": "flow",
+    "nodes": [
+      {
+        "icon": "alert",
+        "label": "Modo Poke (Bloqueante)",
+        "sub": "etapa",
+        "detail": "Modo Poke (Bloqueante)",
+        "kind": "default"
+      },
+      {
+        "icon": "check",
+        "label": "Modo Reschedule (Elástico)",
+        "sub": "etapa",
+        "detail": "Modo Reschedule (Elástico)",
+        "kind": "default"
+      },
+      {
+        "icon": "lock",
+        "label": "Cluster Bloqueado (Starvation)",
+        "sub": "etapa",
+        "detail": "Cluster Bloqueado (Starvation)",
+        "kind": "default"
+      },
+      {
+        "icon": "bolt",
+        "label": "Cluster Libre y Ágil",
+        "sub": "etapa",
+        "detail": "Cluster Libre y Ágil",
+        "kind": "default"
+      }
+    ]
+  },
+  "terms": [
+    {
+      "term": "Sensor",
+      "definition": "Tipo especializado de operador en Airflow diseñado para evaluar periódicamente una condición externa antes de permitir que continúen las tareas dependientes.",
+      "translation": "Sensor"
+    },
+    {
+      "term": "Mode Poke",
+      "definition": "Estrategia de sensor que retiene el slot del worker durante todo el tiempo de vida de la tarea, incluyendo los intervalos de descanso.",
+      "translation": "Mode Poke"
+    },
+    {
+      "term": "Mode Reschedule",
+      "definition": "Estrategia de sensor que libera el worker slot tras cada comprobación fallida y se reprograma en la base de metadatos para más tarde.",
+      "translation": "Mode Reschedule"
+    },
+    {
+      "term": "Worker Slots Starvation",
+      "definition": "Condición donde todos los slots de concurrencia están asignados a tareas inactivas o en espera, impidiendo la ejecución de otros jobs listos.",
+      "translation": "Inanición de ranuras de trabajadores"
+    }
+  ],
+  "traps": [
+    {
+      "option": "Usar sensores en modo poke con timeouts de 48 horas sin límite de reintentos.",
+      "reason": "Saturará gradualmente todos los slots de los workers, colapsando el throughput del orquestador por completo."
+    },
+    {
+      "option": "Configurar poke_interval en 1 segundo para enterarse instantáneamente del evento.",
+      "reason": "Bombardeará la base de datos o API externa con miles de consultas inútiles provocando bloqueos de rate-limiting (HTTP 429)."
+    }
+  ],
+  "keyPoints": [
+    "El modo `poke` monopoliza los slots de los workers; el modo `reschedule` los cede cooperativamente.",
+    "Define siempre un `timeout` explícito en los sensores para evitar que queden en ejecución infinita si el evento nunca llega.",
+    "Asigna los sensores a un `Pool` de concurrencia dedicado para acotar su impacto sobre las tareas analíticas pesadas."
+  ],
+  "checkQuestionId": "q-u5-02",
+  "trapSummary": "Dejar sensores en mode='poke' con timeouts de 24 horas, acaparando todos los worker slots y congelando el cluster.",
+  "activity": {
+    "type": "sort",
+    "prompt": "Distingue entre los modos de operación de sensores en Airflow:",
+    "buckets": [
+      "Modo Reschedule (Recomendado)",
+      "Modo Poke (Riesgoso para esperas largas)"
+    ],
+    "items": [
+      {
+        "text": "Libera el worker slot y duerme en la base de metadatos entre cada sondeo",
+        "bucket": 0
+      },
+      {
+        "text": "Mantiene el proceso del worker secuestrado consumiendo memoria durante horas",
+        "bucket": 1
+      },
+      {
+        "text": "Evita el bloqueo de recursos (Worker Slots Starvation) en esperas lentas",
+        "bucket": 0
+      },
+      {
+        "text": "Solo es aceptable para verificaciones ultrarrápidas de menos de un minuto",
+        "bucket": 1
+      }
+    ]
+  },
+  "flashcards": [
+    {
+      "id": "fc-u5-l2-1",
+      "front": "¿Qué es el fenómeno de Worker Slots Starvation?",
+      "back": "La saturación de todos los slots de concurrencia del cluster por tareas inactivas o sensores en espera, impidiendo correr tareas listas."
+    },
+    {
+      "id": "fc-u5-l2-2",
+      "front": "¿En qué estado queda un sensor con mode='reschedule' entre intentos?",
+      "back": "UP_FOR_RESCHEDULE."
+    },
+    {
+      "id": "fc-u5-l2-3",
+      "front": "¿Qué parámetro es obligatorio definir en todo sensor para evitar bucles infinitos?",
+      "back": "timeout (tiempo límite en segundos)."
+    }
+  ],
+  "quickFacts": [
+    {
+      "statement": "Los sensores en modo reschedule liberan la ranura del trabajador entre cada verificación periódica.",
+      "answer": true
+    },
+    {
+      "statement": "El modo poke es el ideal para archivos externos que tardan varias horas en llegar.",
+      "answer": false
+    },
+    {
+      "statement": "Crear un Pool dedicado para sensores limita el número de slots que pueden consumir simultáneamente.",
+      "answer": true
+    },
+    {
+      "statement": "Un sensor sin timeout configurado puede esperar indefinidamente consumiendo recursos.",
+      "answer": true
+    }
+  ]
+}

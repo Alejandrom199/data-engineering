@@ -1,0 +1,203 @@
+{
+  "$schema": "../../../../../schemas/lesson.schema.json",
+  "id": "spark-arquitectura-driver-executors",
+  "title": "Arquitectura de Spark: Driver, Executors y el Ciclo de Vida de una Aplicación",
+  "estimatedMinutes": 12,
+  "domainIds": [
+    "spark-distributed-computing"
+  ],
+  "topics": [
+    "spark-arquitectura",
+    "driver-executor",
+    "dag-scheduler",
+    "tareas-particiones"
+  ],
+  "hook": "Lanzas un job de Spark con 50 executors y 200 GB de RAM totales. El job falla a los 30 segundos con 'java.lang.OutOfMemoryError: Java heap space' en el Driver, mientras los 50 executors estaban al 0% de CPU. ¿Por qué ocurrió esto?",
+  "concept": {
+    "blocks": [
+      {
+        "type": "heading",
+        "text": "1. El Modelo Maestro-Trabajador de Apache Spark"
+      },
+      {
+        "type": "paragraph",
+        "text": "Apache Spark opera bajo una arquitectura distribuida maestro-esclavo. El **Driver** es el cerebro: contiene el `SparkSession`, compila el código en un Grafo Dirigido Acíclico (DAG) de dependencias y coordina la distribución del trabajo. Los **Executors** son procesos de trabajo JVM que ejecutan las tareas en paralelo y almacenan datos en memoria o disco."
+      },
+      {
+        "type": "table",
+        "headers": [
+          "Componente",
+          "Ubicación",
+          "Responsabilidad Principal",
+          "Riesgo de Fallo Común"
+        ],
+        "rows": [
+          [
+            "Driver",
+            "Nodo Maestro / Cliente",
+            "Orquestar el DAG, planificar tareas y reportar estado",
+            "OOM si se hace .collect() de datasets grandes"
+          ],
+          [
+            "Cluster Manager",
+            "YARN / K8s / Standalone",
+            "Asignar recursos de CPU y memoria física",
+            "Falta de recursos o timeouts de heartbeat"
+          ],
+          [
+            "Executors",
+            "Nodos Trabajadores",
+            "Ejecutar tareas asignadas y almacenar bloques de datos",
+            "OOM de heap o Disk Spill por exceso de partición"
+          ]
+        ]
+      },
+      {
+        "type": "heading",
+        "text": "2. Por qué .collect() Destruye el Driver"
+      },
+      {
+        "type": "paragraph",
+        "text": "Cuando ejecutas una transformación como `df.filter()`, Spark es perezoso (lazy) y no mueve datos. Pero cuando invocas una acción como `df.collect()`, Spark fuerza a todos los executors a transferir cada partición de datos por la red hacia el Driver. Si el dataset pesa 40 GB y el Driver tiene 4 GB de Heap, el proceso colapsa instantáneamente."
+      },
+      {
+        "type": "callout",
+        "text": "Regla de Oro en Producción: NUNCA ejecutes `.collect()` ni `.toPandas()` sobre datasets sin limitar. Usa `.take(10)`, `.show(20)` o escribe los resultados directamente a almacenamiento con `.write.parquet()`.",
+        "tone": "warning"
+      }
+    ]
+  },
+  "diagram": {
+    "type": "flow",
+    "nodes": [
+      {
+        "icon": "server",
+        "label": "Driver (DAG Scheduler)",
+        "sub": "etapa",
+        "detail": "Driver (DAG Scheduler)",
+        "kind": "default"
+      },
+      {
+        "icon": "layers",
+        "label": "Cluster Manager",
+        "sub": "etapa",
+        "detail": "Cluster Manager",
+        "kind": "default"
+      },
+      {
+        "icon": "bolt",
+        "label": "Executor 1 (Tasks)",
+        "sub": "etapa",
+        "detail": "Executor 1 (Tasks)",
+        "kind": "default"
+      },
+      {
+        "icon": "bolt",
+        "label": "Executor 2 (Tasks)",
+        "sub": "etapa",
+        "detail": "Executor 2 (Tasks)",
+        "kind": "default"
+      }
+    ]
+  },
+  "terms": [
+    {
+      "term": "Driver",
+      "definition": "Proceso central de Spark que coordina la aplicación, construye el DAG de ejecución y programa tareas en los executors.",
+      "translation": "Driver"
+    },
+    {
+      "term": "Executor",
+      "definition": "Proceso de trabajo JVM lanzado en un nodo del cluster responsable de ejecutar tareas individuales y almacenar datos en caché.",
+      "translation": "Executor"
+    },
+    {
+      "term": "DAG Scheduler",
+      "definition": "Capa del Driver que transforma el grafo lógico de transformaciones en etapas (Stages) basadas en fronteras de Shuffle.",
+      "translation": "Planificador de grafos dirigidos"
+    },
+    {
+      "term": "Partición",
+      "definition": "Fragmento lógico e inmutable de un dataset distribuido que es procesado por un único núcleo de CPU a la vez.",
+      "translation": "Partición"
+    }
+  ],
+  "traps": [
+    {
+      "option": "Aumentar la memoria del Driver para permitir que los desarrolladores usen .collect() en cualquier dataset.",
+      "reason": "El Driver debe limitarse a la orquestación ligera. Sobredimensionarlo encarece el cluster y oculta malas prácticas que quiebran con cargas mayores."
+    },
+    {
+      "option": "Pensar que más executors siempre garantizan que un job termine más rápido.",
+      "reason": "Si los datos tienen pocas particiones (ej. 4), solo 4 executors trabajarán en paralelo mientras los otros 46 estarán ociosos consumiendo presupuesto."
+    }
+  ],
+  "keyPoints": [
+    "El Driver construye el DAG lógico y lo descompone en Stages y Tasks distribuidas.",
+    "Los Executors ejecutan exactamente una tarea por partición y por núcleo disponible.",
+    "Las acciones que concentran datos en el Driver (`collect`, `toPandas`) provocan caídas por OOM si el volumen excede la memoria del maestro."
+  ],
+  "checkQuestionId": "q-u3-01",
+  "trapSummary": "Descargar DataFrames distribuidos gigantes al Driver con .collect() o .toPandas(), desbordando el heap del maestro.",
+  "activity": {
+    "type": "sort",
+    "prompt": "Clasifica las responsabilidades según el componente de Spark:",
+    "buckets": [
+      "Responsabilidad del Driver",
+      "Responsabilidad del Executor"
+    ],
+    "items": [
+      {
+        "text": "Construir el Grafo Dirigido Acíclico (DAG) y planificar los Stages",
+        "bucket": 0
+      },
+      {
+        "text": "Ejecutar las tareas (Tasks) asignadas en sus núcleos de CPU",
+        "bucket": 1
+      },
+      {
+        "text": "Almacenar bloques de datos en memoria caché o disco",
+        "bucket": 1
+      },
+      {
+        "text": "Coordinar con el Cluster Manager la solicitud de recursos",
+        "bucket": 0
+      }
+    ]
+  },
+  "flashcards": [
+    {
+      "id": "fc-u3-l1-1",
+      "front": "¿Qué componente de Spark compila las transformaciones en un DAG físico?",
+      "back": "El Driver (mediante el DAG Scheduler)."
+    },
+    {
+      "id": "fc-u3-l1-2",
+      "front": "¿Qué ocurre si ejecutas df.collect() sobre un dataset de 100 GB?",
+      "back": "Los executors transfieren todos los datos al Driver por red, provocando un colapso por Java Heap Space OutOfMemory."
+    },
+    {
+      "id": "fc-u3-l1-3",
+      "front": "¿Cuál es la relación entre tareas (Tasks) y particiones en Spark?",
+      "back": "Spark lanza exactamente una Task por cada partición de datos para procesarla en un núcleo de CPU."
+    }
+  ],
+  "quickFacts": [
+    {
+      "statement": "Las transformaciones en Spark son perezosas (lazy) y no se ejecutan hasta invocar una acción (Action).",
+      "answer": true
+    },
+    {
+      "statement": "Los Executors se ejecutan dentro del proceso del Driver compartiendo la misma JVM.",
+      "answer": false
+    },
+    {
+      "statement": "df.take(10) transfiere únicamente 10 filas al Driver de forma segura.",
+      "answer": true
+    },
+    {
+      "statement": "Aumentar los executors acelera un job aunque el DataFrame tenga solo 2 particiones.",
+      "answer": false
+    }
+  ]
+}

@@ -1,18 +1,20 @@
 {
   "$schema": "../../../schemas/exam.schema.json",
   "id": "midterm-systems-sql",
-  "title": "Evaluación Intermedia: Sistemas, Python y Modelado SQL",
-  "subtitle": "Examen de control para los Bloques 1, 2 y 3 (Fundamentos, Python robusto y Bases de Datos)",
+  "title": "Evaluación Intermedia: Almacenamiento, SQL y Spark",
+  "subtitle": "Examen de control para los Bloques 1, 2 y 3 (Formatos, Modelado Dimensional y Computación Distribuida)",
   "badge": "MID",
-  "durationMinutes": 90,
-  "langs": ["es"],
+  "durationMinutes": 60,
+  "langs": [
+    "es"
+  ],
   "selection": {
     "mode": "pool",
     "domainIds": [
-      "cs-fundamentals-os",
-      "robust-programming-ingestion",
-      "relational-modeling-olap"
+      "ingestion-storage-formats",
+      "relational-modeling-sql-dwh",
+      "spark-distributed-computing"
     ],
-    "count": 25
+    "count": 12
   }
 }

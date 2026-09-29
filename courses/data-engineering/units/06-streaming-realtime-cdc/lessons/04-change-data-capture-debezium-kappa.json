@@ -1,0 +1,214 @@
+{
+  "$schema": "../../../../../schemas/lesson.schema.json",
+  "id": "change-data-capture-debezium-kappa",
+  "title": "Change Data Capture (CDC): Replicación Transaccional con Debezium y Kappa",
+  "estimatedMinutes": 12,
+  "domainIds": [
+    "streaming-realtime-cdc"
+  ],
+  "topics": [
+    "change-data-capture",
+    "debezium-cdc",
+    "wal-binlog-replication",
+    "arquitectura-kappa"
+  ],
+  "hook": "Un pipeline tradicional ejecuta cada hora `SELECT * FROM transacciones WHERE updated_at > NOW() - 1 HOUR`. Esta consulta sobrecarga la base OLTP, no detecta registros borrados con DELETE y omite modificaciones intermedias rápidas. ¿Cómo soluciona el CDC estos problemas leyendo el Write-Ahead Log (WAL)?",
+  "concept": {
+    "blocks": [
+      {
+        "type": "heading",
+        "text": "1. Las Deficiencias del Polling por Timestamp"
+      },
+      {
+        "type": "paragraph",
+        "text": "Hacer consultas periódicas por `updated_at` tiene graves defectos: realiza escaneos pesados sobre tablas transaccionales, es incapaz de capturar operaciones de borrado (`DELETE`), y si una fila cambia dos veces entre dos ciclos de sondeo, el estado intermedio se pierde para siempre."
+      },
+      {
+        "type": "heading",
+        "text": "2. La Magia del CDC: Leyendo el Log Transaccional"
+      },
+      {
+        "type": "paragraph",
+        "text": "**Change Data Capture (CDC)** no invasivo utiliza herramientas como **Debezium** para conectarse directamente al log de replicación del motor de base de datos (el WAL en PostgreSQL o el Binlog en MySQL). Cada transacción confirmada se captura a nivel de bytes en milisegundos sin ejecutar ninguna consulta SQL que compita con los usuarios:"
+      },
+      {
+        "type": "table",
+        "headers": [
+          "Operación",
+          "Payload Emitido a Kafka",
+          "Información Capturada"
+        ],
+        "rows": [
+          [
+            "INSERT",
+            "`op: 'c'` (create)",
+            "Valores de la nueva fila añadida"
+          ],
+          [
+            "UPDATE",
+            "`op: 'u'` (update)",
+            "Valores previos ('before') y nuevos ('after') con diff de columnas"
+          ],
+          [
+            "DELETE",
+            "`op: 'd'` (delete)",
+            "Clave primaria borrada y mensaje 'tombstone' para compactación"
+          ]
+        ]
+      },
+      {
+        "type": "heading",
+        "text": "3. Arquitectura Kappa: Un Solo Pipeline para Todo"
+      },
+      {
+        "type": "paragraph",
+        "text": "Frente a la compleja Arquitectura Lambda (mantener dos códigos separados: uno batch para histórico y otro streaming para tiempo real), la **Arquitectura Kappa** unifica todo el procesamiento en un único motor de streaming. El log de Kafka o Lakehouse actúa como el registro permanente de verdad; si necesitas recalcular datos históricos, simplemente reinicias el consumidor desde el offset 0."
+      },
+      {
+        "type": "callout",
+        "text": "Log Compaction en Kafka: Al configurar `cleanup.policy=compact` en tópicos CDC, Kafka conserva indefinidamente el último estado conocido para cada clave, funcionando como una réplica en tiempo real de la base de datos.",
+        "tone": "tip"
+      }
+    ]
+  },
+  "diagram": {
+    "type": "flow",
+    "nodes": [
+      {
+        "icon": "server",
+        "label": "PostgreSQL OLTP",
+        "sub": "etapa",
+        "detail": "PostgreSQL OLTP",
+        "kind": "default"
+      },
+      {
+        "icon": "file",
+        "label": "Write-Ahead Log (WAL)",
+        "sub": "etapa",
+        "detail": "Write-Ahead Log (WAL)",
+        "kind": "default"
+      },
+      {
+        "icon": "bolt",
+        "label": "Debezium Connector",
+        "sub": "etapa",
+        "detail": "Debezium Connector",
+        "kind": "default"
+      },
+      {
+        "icon": "layers",
+        "label": "Tópicos de Kafka (CDC)",
+        "sub": "etapa",
+        "detail": "Tópicos de Kafka (CDC)",
+        "kind": "default"
+      },
+      {
+        "icon": "shield",
+        "label": "Lakehouse (Delta / Iceberg)",
+        "sub": "etapa",
+        "detail": "Lakehouse (Delta / Iceberg)",
+        "kind": "default"
+      }
+    ]
+  },
+  "terms": [
+    {
+      "term": "Change Data Capture (CDC)",
+      "definition": "Conjunto de patrones y tecnologías para identificar y capturar cambios realizados en una base de datos y entregarlos en tiempo real a sistemas downstream.",
+      "translation": "Change Data Capture (CDC)"
+    },
+    {
+      "term": "WAL (Write-Ahead Log)",
+      "definition": "Log transaccional en disco donde las bases de datos registran todas las modificaciones antes de aplicarlas en los bloques de datos principales.",
+      "translation": "WAL (Write-Ahead Log)"
+    },
+    {
+      "term": "Debezium",
+      "definition": "Plataforma distribuida de código abierto construida sobre Kafka Connect para capturar cambios desde múltiples bases de datos relacionales.",
+      "translation": "Debezium"
+    },
+    {
+      "term": "Arquitectura Kappa",
+      "definition": "Patrón de arquitectura de datos que procesa tanto datos históricos como en tiempo real a través de un único pipeline de procesamiento de flujos.",
+      "translation": "Patrón de arquitectura Kappa"
+    }
+  ],
+  "traps": [
+    {
+      "option": "Crear un slot de replicación lógica en PostgreSQL con Debezium sin monitorizar el espacio de disco del WAL.",
+      "reason": "Si Debezium se desconecta o cae, PostgreSQL retendrá todos los archivos WAL en disco indefinidamente hasta llenar el 100% del disco de la base de datos."
+    },
+    {
+      "option": "Diseñar una arquitectura Lambda cuando los requerimientos de latencia y volumen pueden satisfacerse con un único pipeline de streaming.",
+      "reason": "La arquitectura Lambda duplica el código, el mantenimiento y la probabilidad de discrepancias entre las vistas batch y streaming."
+    }
+  ],
+  "keyPoints": [
+    "CDC leyendo el WAL elimina el impacto de rendimiento sobre la base de datos transaccional de producción.",
+    "Permite detectar eliminaciones físicas (`DELETE`) y capturar el estado anterior y posterior de cada modificación.",
+    "La Arquitectura Kappa simplifica la infraestructura unificando el procesamiento histórico y en tiempo real en un único flujo de eventos."
+  ],
+  "checkQuestionId": "q-u6-04",
+  "trapSummary": "Crear slots de replicación de Debezium sin monitorizar el espacio en disco de PostgreSQL, saturando el almacenamiento del WAL.",
+  "activity": {
+    "type": "sort",
+    "prompt": "Contrasta el sondeo tradicional por timestamp frente a Change Data Capture (CDC):",
+    "buckets": [
+      "Change Data Capture (Debezium / WAL)",
+      "Sondeo Periódico (SELECT ... WHERE updated_at)"
+    ],
+    "items": [
+      {
+        "text": "Captura inserciones, modificaciones con valor before/after y borrados físicos (DELETE)",
+        "bucket": 0
+      },
+      {
+        "text": "No puede detectar registros que fueron borrados físicamente de la base de datos",
+        "bucket": 1
+      },
+      {
+        "text": "Lee directamente el Write-Ahead Log (WAL) a nivel de bytes sin sobrecargar la CPU de producción",
+        "bucket": 0
+      },
+      {
+        "text": "Ejecuta consultas de escaneo pesadas que compiten por recursos y bloqueos con los usuarios",
+        "bucket": 1
+      }
+    ]
+  },
+  "flashcards": [
+    {
+      "id": "fc-u6-l4-1",
+      "front": "¿Qué es el Write-Ahead Log (WAL) en PostgreSQL?",
+      "back": "El registro en disco donde el motor escribe todas las mutaciones de forma binaria antes de persistirlas en las tablas principales."
+    },
+    {
+      "id": "fc-u6-l4-2",
+      "front": "¿Cómo representa Debezium una eliminación (DELETE)?",
+      "back": "Emite un evento con 'op: d', el estado previo ('before') y un mensaje 'tombstone' (valor nulo) para compactación en Kafka."
+    },
+    {
+      "id": "fc-u6-l4-3",
+      "front": "¿Cuál es la premisa de la Arquitectura Kappa?",
+      "back": "Unificar batch y streaming procesando todo el ciclo de datos mediante un único pipeline de flujo continuo."
+    }
+  ],
+  "quickFacts": [
+    {
+      "statement": "CDC no invasivo con Debezium no ejecuta consultas SELECT sobre las tablas para capturar los cambios.",
+      "answer": true
+    },
+    {
+      "statement": "El sondeo periódico por timestamp detecta todas las mutaciones intermedias ocurridas entre dos consultas.",
+      "answer": false
+    },
+    {
+      "statement": "La Arquitectura Kappa elimina la necesidad de mantener dos códigos separados para batch y streaming.",
+      "answer": true
+    },
+    {
+      "statement": "Si un consumidor de CDC cae por días, PostgreSQL puede retener archivos WAL hasta agotar el disco del servidor.",
+      "answer": true
+    }
+  ]
+}

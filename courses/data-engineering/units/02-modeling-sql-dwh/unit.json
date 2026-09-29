@@ -1,0 +1,30 @@
+{
+  "$schema": "../../../../schemas/unit.schema.json",
+  "id": "02-modeling-sql-dwh",
+  "title": "Modelado Relacional, SQL Analítico y Data Warehousing",
+  "officialTitle": "Relational Modeling, SQL & Data Warehousing",
+  "summary": "Arquitectura de motores de bases de datos: contraste entre sistemas transaccionales (OLTP) y analíticos (OLAP), diseño dimensional de Ralph Kimball con Esquema en Estrella, gestión de evolución temporal con Dimensiones de Cambio Lento (SCD Tipo 2), SQL analítico avanzado con funciones de ventana y optimización mediante lectura de planes de ejecución con EXPLAIN ANALYZE.",
+  "icon": "layers",
+  "color": "#fbbf24",
+  "objectives": [
+    "Distinguir cuándo usar un motor OLTP y cuándo un motor OLAP según los patrones de lectura y escritura del negocio.",
+    "Diseñar modelos en estrella con Tablas de Hechos aditivas/semiaditivas y Dimensiones conformadas con claves subrogadas.",
+    "Implementar la estrategia de Dimensiones de Cambio Lento (SCD Tipo 2) para preservar la trazabilidad histórica de entidades.",
+    "Resolver problemas complejos de analítica empresarial usando funciones de ventana (ROW_NUMBER, LAG, LEAD, SUM OVER) en tiempo óptimo.",
+    "Interpretar planes de ejecución generados por EXPLAIN ANALYZE para eliminar lecturas secuenciales innecesarias."
+  ],
+  "lessons": [
+    "oltp-vs-olap-arquitectura",
+    "kimball-star-schema-hechos-dimensiones",
+    "dimensiones-cambio-lento-scd2",
+    "sql-analitico-funciones-ventana",
+    "optimizacion-consultas-indices-explain"
+  ],
+  "labs": [
+    "lab-scd-type-2-pipeline",
+    "lab-sql-window-cohort-retention",
+    "lab-explain-analyze-optimization"
+  ],
+  "quizPassRatio": 0.7,
+  "quizQuestionCount": 10
+}

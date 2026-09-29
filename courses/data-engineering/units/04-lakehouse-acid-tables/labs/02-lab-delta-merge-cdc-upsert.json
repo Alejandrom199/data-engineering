@@ -1,0 +1,26 @@
+{
+  "$schema": "../../../../schemas/lab.schema.json",
+  "id": "lab-delta-merge-cdc-upsert",
+  "title": "Ingestión Incremental MERGE con Detección de Cambios",
+  "goal": "Implementar un pipeline de conciliación incremental con MERGE INTO que inserte nuevas entidades y actualice registros existentes.",
+  "level": "intermediate",
+  "estimatedMinutes": 15,
+  "icon": "layers",
+  "domainId": "lakehouse-acid-tables",
+  "lessonId": "merge-upsert-cdc-acid",
+  "file": "lab02_delta_merge.py",
+  "steps": [
+    "Inicializa una tabla Delta destino con usuarios y sus correos electrónicos.",
+    "Prepara un lote de cambios (un usuario modificado y un usuario nuevo).",
+    "Aplica la operación merge() especificando la condición de coincidencia por id.",
+    "Verifica que el usuario existente actualizó su correo y el nuevo fue insertado."
+  ],
+  "code": "from deltalake import DeltaTable, write_deltalake\nimport pandas as pd, os, shutil\n\npath = '/tmp/delta_usuarios'\nif os.path.exists(path): shutil.rmtree(path)\n\nbase = pd.DataFrame({'id': [1, 2], 'email': ['ana@mail.com', 'bob@mail.com']})\nwrite_deltalake(path, base)\n\ndt = DeltaTable(path)\nnuevos = pd.DataFrame({'id': [2, 3], 'email': ['bob_nuevo@mail.com', 'carol@mail.com']})\n\ndt.merge(\n    source=nuevos,\n    predicate='target.id = source.id',\n    source_alias='source',\n    target_alias='target'\n).when_matched_update({'email': 'source.email'}) \\\n .when_not_matched_insert({'id': 'source.id', 'email': 'source.email'}) \\\n .execute()\n\nprint('=== TABLA RESULTANTE TRAS MERGE ===')\nprint(dt.to_pandas().sort_values('id').to_string(index=False))\n",
+  "codeLanguage": "python",
+  "expectedOutput": "=== TABLA RESULTANTE TRAS MERGE ===\n id              email\n  1       ana@mail.com\n  2 bob_nuevo@mail.com\n  3     carol@mail.com",
+  "verify": "El id 2 contiene el nuevo email actualizado y el id 3 ha sido incorporado sin alterar al id 1.",
+  "successCriteria": [
+    "La operación MERGE se completa en una única transacción atómica.",
+    "La tabla refleja los cambios combinados de inserción y actualización."
+  ]
+}

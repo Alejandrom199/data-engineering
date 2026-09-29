@@ -1,0 +1,137 @@
+{
+  "$schema": "../../../../schemas/questions.schema.json",
+  "questions": [
+    {
+      "id": "q-u2-01",
+      "type": "single",
+      "domainId": "relational-modeling-sql-dwh",
+      "skill": "OLTP vs OLAP y Planes de Ejecución",
+      "topic": "oltp-vs-olap",
+      "stem": "¿Por qué los motores OLAP son significativamente más rápidos que los OLTP para consultas analíticas con agregaciones masivas?",
+      "options": [
+        {
+          "key": "A",
+          "text": "Porque no soportan tipos de datos numéricos ni de fecha."
+        },
+        {
+          "key": "B",
+          "text": "Porque organizan los datos por columnas y leen únicamente los atributos involucrados en la consulta con alta compresión."
+        },
+        {
+          "key": "C",
+          "text": "Porque ejecutan todas las consultas sin requerir hardware de disco."
+        },
+        {
+          "key": "D",
+          "text": "Porque ignoran los filtros WHERE para acelerar el escaneo."
+        }
+      ],
+      "correct": [
+        "B"
+      ],
+      "explanation": "El almacenamiento columnar permite escanear únicamente las columnas de interés y aprovechar compresión extrema, mientras que OLTP debe leer páginas de filas enteras con todos sus atributos no utilizados.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Column-oriented_DBMS"
+      ]
+    },
+    {
+      "id": "q-u2-02",
+      "type": "single",
+      "domainId": "relational-modeling-sql-dwh",
+      "skill": "Modelado Dimensional y Dimensiones de Cambio Lento (SCD2)",
+      "topic": "star-schema",
+      "stem": "¿Cuál es la función principal de una Clave Subrogada (Surrogate Key) en una tabla de dimensión de un Esquema en Estrella?",
+      "options": [
+        {
+          "key": "A",
+          "text": "Garantizar la conexión directa con la API del cliente."
+        },
+        {
+          "key": "B",
+          "text": "Identificar de forma única cada versión histórica de una entidad de negocio independientemente de su clave en el sistema origen."
+        },
+        {
+          "key": "C",
+          "text": "Comprimir el texto de la tabla de hechos."
+        },
+        {
+          "key": "D",
+          "text": "Impedir que se agreguen nuevos registros a la tabla."
+        }
+      ],
+      "correct": [
+        "B"
+      ],
+      "explanation": "La clave subrogada es un entero sintético asignado por el data warehouse. Permite que una misma entidad de negocio (ej. cliente_id = 50) tenga múltiples filas en la dimensión representando sus distintos estados históricos a lo largo del tiempo (SCD2).",
+      "sources": [
+        "The Data Warehouse Toolkit (Ralph Kimball)"
+      ]
+    },
+    {
+      "id": "q-u2-03",
+      "type": "single",
+      "domainId": "relational-modeling-sql-dwh",
+      "skill": "Modelado Dimensional y Dimensiones de Cambio Lento (SCD2)",
+      "topic": "scd-tipo-2",
+      "stem": "En una tabla de dimensión con SCD Tipo 2, ¿qué columnas de control son indispensables para gestionar la vigencia histórica?",
+      "options": [
+        {
+          "key": "A",
+          "text": "Únicamente una columna 'updated_at'."
+        },
+        {
+          "key": "B",
+          "text": "valid_from, valid_to y una bandera booleana is_current (o fecha fin abierta)."
+        },
+        {
+          "key": "C",
+          "text": "Solo el hash MD5 del registro."
+        },
+        {
+          "key": "D",
+          "text": "La contraseña cifrada del administrador de base de datos."
+        }
+      ],
+      "correct": [
+        "B"
+      ],
+      "explanation": "valid_from y valid_to definen el intervalo temporal de validez del registro, mientras que is_current identifica instantáneamente la versión activa sin necesidad de calcular agregaciones MAX().",
+      "sources": [
+        "The Data Warehouse Toolkit (Ralph Kimball)"
+      ]
+    },
+    {
+      "id": "q-u2-04",
+      "type": "single",
+      "domainId": "relational-modeling-sql-dwh",
+      "skill": "SQL Analítico Avanzado y Funciones de Ventana",
+      "topic": "funciones-ventana",
+      "stem": "¿Cuál es la diferencia esencial entre `GROUP BY` y una Función de Ventana con cláusula `OVER()` en SQL?",
+      "options": [
+        {
+          "key": "A",
+          "text": "GROUP BY solo funciona con cadenas de texto."
+        },
+        {
+          "key": "B",
+          "text": "GROUP BY colapsa las filas del grupo en una sola fila resumen, mientras que la Función de Ventana conserva la identidad de cada fila individual."
+        },
+        {
+          "key": "C",
+          "text": "Las funciones de ventana son exclusivas de bases de datos NoSQL."
+        },
+        {
+          "key": "D",
+          "text": "OVER() impide ordenar los registros."
+        }
+      ],
+      "correct": [
+        "B"
+      ],
+      "explanation": "GROUP BY sintetiza los registros colapsándolos. Las funciones de ventana calculan métricas agregadas o rankings a través de particiones, pero retornan tantas filas como entraron al cálculo, permitiendo comparar el registro actual con sus pares.",
+      "sources": [
+        "https://www.postgresql.org/docs/current/tutorial-window.html"
+      ]
+    }
+  ]
+}

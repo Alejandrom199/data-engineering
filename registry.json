@@ -7,27 +7,28 @@
       "id": "data-engineering",
       "version": "1.0.0",
       "locale": "es",
-      "title": "Mentor de Ingeniería de Datos (Nivel 0 → Experto)",
+      "title": "Ingeniería de Datos Moderna (OpenLearn Edition)",
       "shortTitle": "Data Engineering",
       "provider": "OpenLearn Community · Data Engineering Mentor",
-      "description": "Roadmap integral y de élite en Ingeniería de Datos desde nivel 0: fundamentos de ciencias de la computación, sistemas operativos, programación robusta, SQL/OLTP/OLAP, sistemas distribuidos con Spark y Lakehouses, DataOps con Airflow y streaming en tiempo real con Kafka y CDC.",
-      "level": "beginner",
-      "estimatedHours": 240,
+      "description": "Curso práctico e interactivo de Ingeniería de Datos diseñado según los estándares pedagógicos de OpenLearn: micro-lecciones de 10-14m, formatos columnares (Parquet), modelado dimensional (Kimball/SCD2), computación distribuida con Apache Spark, Lakehouses transaccionales (Delta Lake), DataOps con Airflow y streaming en tiempo real con Apache Kafka y CDC.",
+      "level": "intermediate",
+      "estimatedHours": 36,
       "icon": "server",
       "color": "#0284c7",
       "certificationCode": "DE-01",
       "stats": {
         "units": 6,
-        "lessons": 17,
-        "labs": 17,
+        "lessons": 25,
+        "labs": 18,
         "questions": 24,
         "exams": 3,
         "achievements": 12
       },
       "archive": {
         "path": "archives/data-engineering-1.0.0.zip",
-        "sha256": "de12ff2c7f57cabe5fa25579b581aff90eaf5d811d9795321985bab99bd3c5f4",
-        "bytes": 151956
+        "url": "https://raw.githubusercontent.com/Alejandrom199/data-engineering/main/archives/data-engineering-1.0.0.zip",
+        "sha256": "508fb5a7995d85b83bad867f82a4cc39a43244239d8e519c89c32468e7278843",
+        "bytes": 134789
       }
     }
   ]

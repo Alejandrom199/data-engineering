@@ -1,0 +1,25 @@
+{
+  "$schema": "../../../../schemas/lab.schema.json",
+  "id": "lab-streaming-generator-parser",
+  "title": "Procesador de Logs en Streaming con Memoria Constante",
+  "goal": "Construir un generador en Python para procesar un archivo de log masivo línea por línea garantizando que el uso de RAM nunca supere los 30 MB.",
+  "level": "basic",
+  "estimatedMinutes": 15,
+  "icon": "loop",
+  "domainId": "ingestion-storage-formats",
+  "lessonId": "python-generadores-memoria-eficiente",
+  "file": "lab02_stream_parser.py",
+  "steps": [
+    "Crea una función generadora que lea líneas de un archivo sintético de 500,000 logs.",
+    "Encadena un generador de filtrado que extraiga únicamente eventos con nivel ERROR.",
+    "Calcula el total de errores sin cargar la lista completa en memoria."
+  ],
+  "code": "def parse_logs():\n    for i in range(500_000):\n        level = 'ERROR' if i % 100 == 0 else 'INFO'\n        yield f'2026-03-28 [level={level}] Evento {i}'\n\ndef filter_errors(stream):\n    for line in stream:\n        if '[level=ERROR]' in line:\n            yield line\n\nconteo = sum(1 for _ in filter_errors(parse_logs()))\nprint(f'Total de eventos criticos procesados en streaming: {conteo}')\n",
+  "codeLanguage": "python",
+  "expectedOutput": "Total de eventos criticos procesados en streaming: 5000",
+  "verify": "El script cuenta todos los eventos de error en streaming sin acumular las líneas en memoria RAM.",
+  "successCriteria": [
+    "El consumo de memoria se mantiene plano durante toda la ejecución.",
+    "El conteo coincide exactamente con los 5,000 eventos esperados."
+  ]
+}

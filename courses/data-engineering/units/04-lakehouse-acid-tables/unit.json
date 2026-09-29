@@ -1,0 +1,28 @@
+{
+  "$schema": "../../../../schemas/unit.schema.json",
+  "id": "04-lakehouse-acid-tables",
+  "title": "Arquitectura Lakehouse y Tablas Transaccionales ACID",
+  "officialTitle": "Lakehouse Architecture & ACID Table Formats",
+  "summary": "Superación de las limitaciones del Data Lake tradicional mediante formatos abiertos de tabla transaccional (Delta Lake, Apache Iceberg, Apache Hudi). Mecanismos de commit log atómico, aislamiento Snapshot Isolation, Time Travel, compasión y optimización de layout multidimensional con Z-Ordering.",
+  "icon": "shield",
+  "color": "#06b6d4",
+  "objectives": [
+    "Analizar cómo los formatos abiertos ACID resuelven la falta de atomicidad y concurrencia en almacenamiento de objetos S3/GCS.",
+    "Utilizar Time Travel para auditoría histórica, reproducibilidad analítica y rollback instantáneo ante corrupciones de datos.",
+    "Implementar operaciones de actualización incremental de alto rendimiento con el comando MERGE y Change Data Capture.",
+    "Aplicar compasión de archivos pequeños (OPTIMIZE) y agrupamiento multidimensional con Z-Ordering para maximizar el File Skipping."
+  ],
+  "lessons": [
+    "lakehouse-vs-data-lake-acid",
+    "time-travel-auditoria-rollback",
+    "merge-upsert-cdc-acid",
+    "optimizacion-layout-zordering-compaction"
+  ],
+  "labs": [
+    "lab-delta-lakehouse-crud",
+    "lab-delta-merge-cdc-upsert",
+    "lab-lakehouse-optimize-zorder"
+  ],
+  "quizPassRatio": 0.7,
+  "quizQuestionCount": 10
+}

@@ -1,0 +1,26 @@
+{
+  "$schema": "../../../../schemas/lab.schema.json",
+  "id": "lab-spark-broadcast-join-tuning",
+  "title": "Optimización de Joins Distribuidos con Broadcast Hash Join",
+  "goal": "Comparar los planes de ejecución entre un SortMergeJoin y un BroadcastHashJoin al unir un dataset masivo con una tabla dimensional pequeña.",
+  "level": "intermediate",
+  "estimatedMinutes": 15,
+  "icon": "flame",
+  "domainId": "spark-distributed-computing",
+  "lessonId": "data-skew-salting-optimizacion",
+  "file": "lab03_broadcast_join.py",
+  "steps": [
+    "Crea un DataFrame de ventas con 100,000 registros y una tabla dimensional de 4 países.",
+    "Fuerza un SortMergeJoin desactivando autoBroadcastJoinThreshold.",
+    "Aplica la función broadcast() explícita sobre la tabla de países.",
+    "Verifica que el plan físico omite los operadores de Exchange y Sort."
+  ],
+  "code": "from pyspark.sql import SparkSession\nfrom pyspark.sql.functions import broadcast, col\n\nspark = SparkSession.builder.appName('BroadcastLab').master('local[*]').getOrCreate()\n\nventas = spark.createDataFrame([(i, f'PAIS_{i % 4}', i * 10.0) for i in range(100_000)], ['id', 'pais_id', 'total'])\npaises = spark.createDataFrame([('PAIS_0', 'Espana'), ('PAIS_1', 'Mexico'), ('PAIS_2', 'Colombia'), ('PAIS_3', 'Argentina')], ['pais_id', 'nombre_pais'])\n\n# Broadcast Join explícito\noptimizado = ventas.join(broadcast(paises), on='pais_id')\n\nprint('=== PLAN DEL BROADCAST HASH JOIN ===')\noptimizado.explain()\nspark.stop()\n",
+  "codeLanguage": "python",
+  "expectedOutput": "BroadcastHashJoin [pais_id#...], [pais_id#...], Inner, BuildRight",
+  "verify": "El plan físico contiene BroadcastHashJoin en lugar de SortMergeJoin y carece de operaciones de Shuffle Exchange para la tabla grande.",
+  "successCriteria": [
+    "El join se resuelve sin etapa de Shuffle para el dataset principal.",
+    "El plan físico confirma la presencia de BroadcastHashJoin."
+  ]
+}

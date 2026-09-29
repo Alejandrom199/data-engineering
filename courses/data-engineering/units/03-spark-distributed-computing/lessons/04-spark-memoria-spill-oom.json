@@ -1,0 +1,209 @@
+{
+  "$schema": "../../../../../schemas/lesson.schema.json",
+  "id": "spark-memoria-spill-oom",
+  "title": "Gestión de Memoria en Spark: Storage, Execution y Disk Spill",
+  "estimatedMinutes": 12,
+  "domainIds": [
+    "spark-distributed-computing"
+  ],
+  "topics": [
+    "spark-memoria",
+    "disk-spill",
+    "oom-executor",
+    "persistencia-cache"
+  ],
+  "hook": "En la Spark UI ves una columna alarmante: 'Spill (Memory): 45 GB | Spill (Disk): 12 GB'. Tu job no crasheó, pero tardó 8 veces más de lo habitual. ¿Qué significa el Spill y cómo evitarlo?",
+  "concept": {
+    "blocks": [
+      {
+        "type": "heading",
+        "text": "1. El Administrador Unificado de Memoria de Spark"
+      },
+      {
+        "type": "paragraph",
+        "text": "La memoria heap de cada Executor JVM se divide en regiones administradas dinámicamente:"
+      },
+      {
+        "type": "table",
+        "headers": [
+          "Región de Memoria",
+          "Porcentaje Típico",
+          "Propósito",
+          "Comportamiento Bajo Presión"
+        ],
+        "rows": [
+          [
+            "Reserved Memory",
+            "300 MB",
+            "Uso interno de Spark y librerías base",
+            "Fija e intocable"
+          ],
+          [
+            "User Memory",
+            "25% a 40%",
+            "Estructuras creadas por código del usuario (listas, UDFs)",
+            "Produce OOM directo si se sobrepasa"
+          ],
+          [
+            "Storage Memory",
+            "Dinámica (~50% de Spark)",
+            "Almacenar DataFrames cacheados (`.cache()`, `.persist()`)",
+            "Puede ser desalojada por Execution"
+          ],
+          [
+            "Execution Memory",
+            "Dinámica (~50% de Spark)",
+            "Búferes de trabajo para shuffles, joins y agregaciones",
+            "Tiene prioridad; desaloja Storage o hace Spill"
+          ]
+        ]
+      },
+      {
+        "type": "heading",
+        "text": "2. Qué es Disk Spill y por qué Destruye el Rendimiento"
+      },
+      {
+        "type": "paragraph",
+        "text": "Cuando una operación de agregación o shuffle requiere más memoria de ejecución de la disponible en el heap, Spark no aborta el proceso: serializa las estructuras en memoria y las 'derrama' (**Spill**) a los discos locales del nodo. La próxima vez que necesita esos datos, debe leerlos del disco y deserializarlos. Este vaivén de I/O de disco multiplica el tiempo de ejecución exponencialmente."
+      },
+      {
+        "type": "callout",
+        "text": "Cómo erradicar el Spill: Aumenta el número de particiones (`spark.sql.shuffle.partitions`), de modo que cada partición individual quepa cómodamente en la memoria del core asignado.",
+        "tone": "warning"
+      }
+    ]
+  },
+  "diagram": {
+    "type": "flow",
+    "nodes": [
+      {
+        "icon": "shield",
+        "label": "Reserved Memory (300 MB)",
+        "sub": "etapa",
+        "detail": "Reserved Memory (300 MB)",
+        "kind": "default"
+      },
+      {
+        "icon": "server",
+        "label": "User Memory (~25%)",
+        "sub": "etapa",
+        "detail": "User Memory (~25%)",
+        "kind": "default"
+      },
+      {
+        "icon": "layers",
+        "label": "Spark Memory Pool (~60-70%)",
+        "sub": "etapa",
+        "detail": "Spark Memory Pool (~60-70%)",
+        "kind": "default"
+      },
+      {
+        "icon": "file",
+        "label": "NVMe / SSD Disk Spill",
+        "sub": "etapa",
+        "detail": "NVMe / SSD Disk Spill",
+        "kind": "default"
+      }
+    ]
+  },
+  "terms": [
+    {
+      "term": "Disk Spill",
+      "definition": "Escritura de datos intermedios de shuffle o agregación a disco cuando el tamaño de la partición supera la memoria disponible en el heap.",
+      "translation": "Derrame de memoria a disco (Spill)"
+    },
+    {
+      "term": "Execution Memory",
+      "definition": "Porción de memoria dedicada a buffers temporales requeridos para shuffles, joins y agrupaciones.",
+      "translation": "Execution Memory"
+    },
+    {
+      "term": "Storage Memory",
+      "definition": "Porción de memoria dedicada a mantener datasets persistidos mediante cache() o persist().",
+      "translation": "Storage Memory"
+    },
+    {
+      "term": "OOM (Out Of Memory)",
+      "definition": "Fallo crítico en el que la JVM agota su memoria heap disponible y es terminada por el sistema operativo.",
+      "translation": "OOM (Out Of Memory)"
+    }
+  ],
+  "traps": [
+    {
+      "option": "Llamar a df.cache() sobre cada DataFrame intermedio de un pipeline.",
+      "reason": "Saturarás la Storage Memory forzando a Spark a expulsar bloques útiles o reduciendo el espacio disponible para Execution Memory, provocando spill."
+    },
+    {
+      "option": "Subir spark.executor.memory a 64 GB en una sola máquina.",
+      "reason": "Heaps de JVM gigantes sufren pausas masivas de Garbage Collection (GC) que pueden suspender el executor por minutos y provocar fallos de heartbeat."
+    }
+  ],
+  "keyPoints": [
+    "Execution Memory tiene prioridad sobre Storage Memory durante joins y shuffles pesados.",
+    "El Disk Spill no rompe el job pero degrada severamente la velocidad al cambiar RAM por disco.",
+    "Aumentar el conteo de particiones divide el tamaño de cada bloque, eliminando el spill eficientemente."
+  ],
+  "checkQuestionId": "q-u3-04",
+  "trapSummary": "Cachear DataFrames masivos sin llamar a unpersist(), reduciendo la Execution Memory y provocando derrame a disco (Disk Spill).",
+  "activity": {
+    "type": "sort",
+    "prompt": "Clasifica los componentes y comportamientos de la memoria en un Executor JVM:",
+    "buckets": [
+      "Memoria de Ejecución (Execution)",
+      "Memoria de Almacenamiento (Storage)"
+    ],
+    "items": [
+      {
+        "text": "Búferes de trabajo temporales para shuffles, joins y agregaciones",
+        "bucket": 0
+      },
+      {
+        "text": "Espacio dedicado a DataFrames cacheados con .cache() o .persist()",
+        "bucket": 1
+      },
+      {
+        "text": "Tiene prioridad operativa y puede desalojar bloques cacheados",
+        "bucket": 0
+      },
+      {
+        "text": "Se libera explícitamente invocando df.unpersist()",
+        "bucket": 1
+      }
+    ]
+  },
+  "flashcards": [
+    {
+      "id": "fc-u3-l4-1",
+      "front": "¿Qué es el Disk Spill en Spark?",
+      "back": "El volcado temporal de datos de ejecución a disco cuando la partición excede la memoria RAM disponible en el heap."
+    },
+    {
+      "id": "fc-u3-l4-2",
+      "front": "¿Qué impacto tiene el Disk Spill en el tiempo de procesamiento?",
+      "back": "Degrada el rendimiento exponencialmente al sustituir el acceso a RAM por I/O de disco y serialización."
+    },
+    {
+      "id": "fc-u3-l4-3",
+      "front": "¿Cuál es la forma más directa de mitigar el Disk Spill?",
+      "back": "Aumentar el número de particiones de shuffle (spark.sql.shuffle.partitions) para reducir el tamaño de cada bloque individual."
+    }
+  ],
+  "quickFacts": [
+    {
+      "statement": "El Disk Spill no aborta el job con error, pero puede multiplicar su duración por 5x a 10x.",
+      "answer": true
+    },
+    {
+      "statement": "El recolector de basura (GC) de Java no tiene impacto en la estabilidad de clusters de Spark.",
+      "answer": false
+    },
+    {
+      "statement": "Execution Memory puede tomar prestado espacio libre de Storage Memory dinámicamente.",
+      "answer": true
+    },
+    {
+      "statement": "Configurar executors de 128 GB de RAM por nodo es siempre preferible a múltiples executors de 16 GB.",
+      "answer": false
+    }
+  ]
+}

@@ -1,0 +1,165 @@
+{
+  "$schema": "../../../../../schemas/lesson.schema.json",
+  "id": "particionamiento-object-storage-s3",
+  "title": "Particionamiento en Object Storage (S3 / GCS) y Small File Problem",
+  "estimatedMinutes": 12,
+  "domainIds": [
+    "ingestion-storage-formats"
+  ],
+  "topics": [
+    "object-storage-s3",
+    "particionamiento-hive",
+    "small-file-problem",
+    "partition-pruning"
+  ],
+  "hook": "Un job nocturno de Spark que antes tardaba 5 minutos ahora tarda 3 horas. Al inspeccionar el bucket de S3 descubres 4 millones de archivos de 5 KB cada uno. ¿Qué es el Small File Problem y cómo se soluciona?",
+  "concept": {
+    "blocks": [
+      {
+        "type": "heading",
+        "text": "1. Estructura de Particionamiento Estilo Hive"
+      },
+      {
+        "type": "paragraph",
+        "text": "En almacenamiento de objetos no existen carpetas reales, sino prefijos en la clave de cada objeto. La convención estándar es el particionamiento estilo Hive (`clave=valor`):"
+      },
+      {
+        "type": "code",
+        "language": "text",
+        "code": "s3://lakehouse-raw/ventas/year=2026/month=03/day=28/part-001.parquet\ns3://lakehouse-raw/ventas/year=2026/month=03/day=28/part-002.parquet",
+        "caption": "Estructura de prefijos Hive en AWS S3."
+      },
+      {
+        "type": "paragraph",
+        "text": "Cuando una consulta incluye `WHERE year=2026 AND month=03`, el motor realiza **Partition Pruning**: solo lista y lee los objetos bajo ese prefijo, evitando listar millones de objetos irrelevantes."
+      },
+      {
+        "type": "heading",
+        "text": "2. El Desastre del Sobreparticionamiento y Archivos Pequeños"
+      },
+      {
+        "type": "paragraph",
+        "text": "Particionar por columnas de alta cardinalidad (como `id_usuario` o `hora_minuto`) fragmenta los datos en millones de archivos diminutos. Cada archivo exige una llamada HTTP `GET` separada, sobrecargando la red y los metadatos del motor."
+      },
+      {
+        "type": "callout",
+        "tone": "warning",
+        "title": "Regla de dimensionamiento",
+        "text": "Una partición solo se justifica si acumula al menos varios cientos de megabytes. Si una partición contiene menos de 128 MB, no debería ser una partición independiente."
+      }
+    ]
+  },
+  "keyPoints": [
+    "El particionamiento Hive (`key=value`) permite descartar carpetas enteras en tiempo de consulta (Partition Pruning).",
+    "Nunca particiones por columnas de alta cardinalidad (como IDs únicos o timestamps por segundo).",
+    "El 'Small File Problem' degrada el rendimiento de Spark y Athena por sobrecarga de llamadas a la API de S3.",
+    "Los archivos de tamaño óptimo en Object Storage miden entre 128 MB y 512 MB."
+  ],
+  "terms": [
+    {
+      "term": "Partition Pruning",
+      "translation": "Poda de Particiones",
+      "definition": "Técnica de optimización en la que el motor de consultas descarta prefijos de almacenamiento antes de leerlos según los filtros de la consulta."
+    },
+    {
+      "term": "Small File Problem",
+      "translation": "Problema de Archivos Pequeños",
+      "definition": "Degradación crítica de rendimiento provocada por millones de archivos minúsculos que saturan el listado de metadatos y la red."
+    }
+  ],
+  "diagram": {
+    "type": "flow",
+    "nodes": [
+      {
+        "icon": "server",
+        "label": "Consulta con Filtro",
+        "sub": "etapa",
+        "detail": "Consulta con Filtro",
+        "kind": "default"
+      },
+      {
+        "icon": "route",
+        "label": "Partition Pruning",
+        "sub": "etapa",
+        "detail": "Partition Pruning",
+        "kind": "default"
+      },
+      {
+        "icon": "check",
+        "label": "Lectura Eficiente",
+        "sub": "etapa",
+        "detail": "Lectura Eficiente",
+        "kind": "default"
+      }
+    ]
+  },
+  "traps": [
+    {
+      "option": "Cuantas más columnas usemos para particionar, más rápida será siempre cualquier consulta.",
+      "reason": "El sobreparticionamiento genera millones de archivos diminutos vacíos o de pocos kilobytes, multiplicando las llamadas de red y destruyendo el rendimiento."
+    }
+  ],
+  "checkQuestionId": "q-u1-02",
+  "trapSummary": "Hiper-particionar tablas por columnas de alta cardinalidad como hora o usuario, generando millones de archivos microscópicos.",
+  "activity": {
+    "type": "sort",
+    "prompt": "Evalúa si cada práctica de particionamiento en S3/GCS es recomendada o perjudicial:",
+    "buckets": [
+      "Práctica Recomendada",
+      "Antipatrón de Diseño"
+    ],
+    "items": [
+      {
+        "text": "Particionar por fecha (año/mes/día) con cardinalidad controlada",
+        "bucket": 0
+      },
+      {
+        "text": "Particionar por ID de usuario individual creando millones de carpetas",
+        "bucket": 1
+      },
+      {
+        "text": "Mantener archivos individuales consolidados entre 128 MB y 512 MB",
+        "bucket": 0
+      },
+      {
+        "text": "Generar miles de archivos de 2 KB en cada micro-batch de ingesta",
+        "bucket": 1
+      }
+    ]
+  },
+  "flashcards": [
+    {
+      "id": "fc-u1-l2-1",
+      "front": "¿Qué es el Small File Problem en almacenamiento de objetos?",
+      "back": "La sobrecarga masiva de latencia y costo HTTP provocada por listar y leer millones de archivos diminutos en lugar de bloques óptimos."
+    },
+    {
+      "id": "fc-u1-l2-2",
+      "front": "¿Cuál es el tamaño recomendado para archivos Parquet en un Data Lake?",
+      "back": "Entre 128 MB y 512 MB por archivo (hasta 1 GB para queries muy pesadas)."
+    },
+    {
+      "id": "fc-u1-l2-3",
+      "front": "¿Qué es el Partition Pruning (poda de particiones)?",
+      "back": "La optimización donde el motor omite escanear directorios enteros que no coinciden con los filtros WHERE de la consulta."
+    }
+  ],
+  "quickFacts": [
+    {
+      "statement": "Tener más archivos de tamaño menor a 1 MB acelera las consultas en motores distribuidos.",
+      "answer": false
+    },
+    {
+      "statement": "El estilo de particionado Hive utiliza la estructura clave=valor en las rutas del bucket (ej. /año=2026/mes=03/).",
+      "answer": true
+    },
+    {
+      "statement": "Partition Pruning reduce tanto el tiempo de ejecución como el costo de escaneo en la nube.",
+      "answer": true
+    },
+    {
+      "statement": "S3 cobra por solicitud HTTP GET/LIST, por lo que millones de archivos pequeños disparan la factura.",
+      "answer": true
+    }
+  ]
+}

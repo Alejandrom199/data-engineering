@@ -1,0 +1,137 @@
+{
+  "$schema": "../../../../schemas/questions.schema.json",
+  "questions": [
+    {
+      "id": "q-u4-01",
+      "type": "single",
+      "domainId": "lakehouse-acid-tables",
+      "skill": "Arquitectura Lakehouse y Transacciones ACID",
+      "topic": "lakehouse-paradigma",
+      "stem": "¿Cómo logra un formato de tabla Lakehouse (como Delta Lake o Apache Iceberg) garantizar atomicidad en escrituras sobre almacenamiento de objetos?",
+      "options": [
+        {
+          "key": "A",
+          "text": "Bloqueando el acceso a todo el bucket de S3 hasta que el servidor termine de reiniciarse."
+        },
+        {
+          "key": "B",
+          "text": "Separando los datos de los metadatos y registrando los nuevos archivos en un Transaction Log de commit atómico; si el proceso se interrumpe, los archivos huérfanos nunca se incorporan al log."
+        },
+        {
+          "key": "C",
+          "text": "Convirtiendo todos los archivos Parquet en tablas de memoria RAM Redis."
+        },
+        {
+          "key": "D",
+          "text": "Deshabilitando las conexiones de red de los demás usuarios durante la escritura."
+        }
+      ],
+      "correct": [
+        "B"
+      ],
+      "explanation": "El Transaction Log define qué archivos son parte legítima de la tabla. Las escrituras parciales no registradas en el commit atómico son completamente invisibles para los lectores analíticos.",
+      "sources": [
+        "https://delta.io/learn/blogs/delta-lake-acid-transactions/"
+      ]
+    },
+    {
+      "id": "q-u4-02",
+      "type": "single",
+      "domainId": "lakehouse-acid-tables",
+      "skill": "Time Travel, Auditoría y Mantenimiento de Tablas",
+      "topic": "time-travel",
+      "stem": "¿Por qué es riesgoso ejecutar el comando `VACUUM` con un periodo de retención de cero horas (`RETAIN 0 HOURS`) en una tabla Lakehouse de producción?",
+      "options": [
+        {
+          "key": "A",
+          "text": "Porque elimina permanentemente los archivos históricos que puedan estar siendo leídos por consultas analíticas activas, provocando errores de FileNotFoundException."
+        },
+        {
+          "key": "B",
+          "text": "Porque reinicia los números de ID auto-incrementales de todas las tablas."
+        },
+        {
+          "key": "C",
+          "text": "Porque transforma los datos a texto plano sin compresión."
+        },
+        {
+          "key": "D",
+          "text": "Porque bloquea las lecturas de los usuarios durante 7 días."
+        }
+      ],
+      "correct": [
+        "A"
+      ],
+      "explanation": "Los lectores bajo Snapshot Isolation pueden estar leyendo versiones anteriores. Borrar físicamente los ficheros con retención cero destruye los datos en pleno vuelo de las consultas y anula la posibilidad de realizar Time Travel para recuperaciones de desastres.",
+      "sources": [
+        "https://docs.delta.io/latest/delta-utility.html#vacuum"
+      ]
+    },
+    {
+      "id": "q-u4-03",
+      "type": "single",
+      "domainId": "lakehouse-acid-tables",
+      "skill": "Ingestión Incremental y Operaciones MERGE",
+      "topic": "merge-upsert",
+      "stem": "¿Cuál es la principal optimización de rendimiento al redactar la condición ON de una sentencia `MERGE INTO` sobre una tabla particionada?",
+      "options": [
+        {
+          "key": "A",
+          "text": "Omitir la clave primaria para que el motor decida el orden al azar."
+        },
+        {
+          "key": "B",
+          "text": "Incluir las columnas de partición en el predicado de unión (ON) para que el optimizador aplique Partition Pruning y descarte particiones no afectadas."
+        },
+        {
+          "key": "C",
+          "text": "Reemplazar el operador de igualdad por una comparación LIKE de texto."
+        },
+        {
+          "key": "D",
+          "text": "Forzar una conversión de todos los valores a minúsculas."
+        }
+      ],
+      "correct": [
+        "B"
+      ],
+      "explanation": "Al incluir la clave de partición en la condición ON del MERGE, el motor solo lee y reescribe los archivos de las particiones involucradas, en lugar de escanear la tabla entera.",
+      "sources": [
+        "https://docs.delta.io/latest/delta-update.html#upsert-into-a-table-using-merge"
+      ]
+    },
+    {
+      "id": "q-u4-04",
+      "type": "single",
+      "domainId": "lakehouse-acid-tables",
+      "skill": "Optimización de Layout, Compacting y Z-Ordering",
+      "topic": "z-ordering",
+      "stem": "¿Qué ventaja aporta el agrupamiento con Z-Ordering en comparación con el particionamiento tradicional por carpetas?",
+      "options": [
+        {
+          "key": "A",
+          "text": "Permite agrupar datos de forma multidimensional por varias columnas de alta cardinalidad sin generar el 'Small File Problem' de directorios vacíos."
+        },
+        {
+          "key": "B",
+          "text": "Elimina la necesidad de usar formatos columnares."
+        },
+        {
+          "key": "C",
+          "text": "Duplica automáticamente el ancho de banda de la tarjeta de red del servidor."
+        },
+        {
+          "key": "D",
+          "text": "Garantiza que ningún archivo supere nunca 1 kilobyte."
+        }
+      ],
+      "correct": [
+        "A"
+      ],
+      "explanation": "Z-Ordering organiza los registros dentro de los archivos Parquet mapeando múltiples dimensiones a una curva continua de espacio, lo que permite aprovechar el File Skipping por min/max stats sin crear hiper-particionamiento de carpetas.",
+      "sources": [
+        "https://docs.databricks.com/en/delta/data-skipping.html"
+      ]
+    }
+  ]
+}

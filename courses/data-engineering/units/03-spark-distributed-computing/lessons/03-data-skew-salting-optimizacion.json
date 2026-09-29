@@ -1,0 +1,182 @@
+{
+  "$schema": "../../../../../schemas/lesson.schema.json",
+  "id": "data-skew-salting-optimizacion",
+  "title": "Data Skew: Cómo Salvar el 99% del Cluster de un Solo Executor Atascado",
+  "estimatedMinutes": 13,
+  "domainIds": [
+    "spark-distributed-computing"
+  ],
+  "topics": [
+    "data-skew",
+    "salting-tecnica",
+    "broadcast-join",
+    "adaptive-query-execution"
+  ],
+  "hook": "Tu job de Spark muestra 199 de 200 tareas completadas en 40 segundos. Pero la última tarea (la 200) lleva 45 minutos corriendo sola en un único executor hasta morir por Timeout. ¿Qué es el infame Data Skew y cómo se remedia?",
+  "concept": {
+    "blocks": [
+      {
+        "type": "heading",
+        "text": "1. El Síntoma del Straggler (Tarea Rezagada)"
+      },
+      {
+        "type": "paragraph",
+        "text": "**Data Skew** (sesgo de datos) ocurre cuando los registros de un dataset se distribuyen de forma muy desigual entre particiones debido a una clave no uniforme (por ejemplo, transacciones con `cliente_id = NULL` o un comercio gigante que genera el 40% de todas las ventas del país). Durante un Join o GroupBy, el hash de esa clave dirige millones de filas a un solo executor, mientras los demás reciben un puñado de filas."
+      },
+      {
+        "type": "heading",
+        "text": "2. Solución 1: Broadcast Hash Join"
+      },
+      {
+        "type": "paragraph",
+        "text": "Si una de las tablas del JOIN es pequeña (por defecto <10 MB, configurable con `spark.sql.autoBroadcastJoinThreshold`), puedes usar `broadcast(df_pequena)`. Spark envía una copia completa de la tabla pequeña a cada executor, convirtiendo el JOIN en una operación Narrow sin ningún Shuffle."
+      },
+      {
+        "type": "heading",
+        "text": "3. Solución 2: La Técnica del Salting"
+      },
+      {
+        "type": "paragraph",
+        "text": "Cuando ambas tablas son gigantes y no pueden emitirse por broadcast, aplicamos **Salting**: añadimos una columna con un número aleatorio (ej. 0 a 9) a la clave de la tabla sesgada, y replicamos las filas correspondientes en la otra tabla. Esto divide la clave concentrada en 10 claves distintas (`cliente_NULL_0`, `cliente_NULL_1`), distribuyéndolas entre 10 executors distintos."
+      },
+      {
+        "type": "callout",
+        "text": "En Spark 3.x, habilita siempre AQE: `spark.conf.set('spark.sql.adaptive.enabled', 'true')` y `spark.conf.set('spark.sql.adaptive.skewJoin.enabled', 'true')`. Spark detectará particiones sesgadas en tiempo de ejecución y las dividirá automáticamente.",
+        "tone": "tip"
+      }
+    ]
+  },
+  "diagram": {
+    "type": "flow",
+    "nodes": [
+      {
+        "icon": "alert",
+        "label": "Clave Sesgada (90% NULL)",
+        "sub": "etapa",
+        "detail": "Clave Sesgada (90% NULL)",
+        "kind": "default"
+      },
+      {
+        "icon": "clock",
+        "label": "Executor 3 (Straggler)",
+        "sub": "etapa",
+        "detail": "Executor 3 (Straggler)",
+        "kind": "default"
+      },
+      {
+        "icon": "bolt",
+        "label": "Salting (clave + rand(0,4))",
+        "sub": "etapa",
+        "detail": "Salting (clave + rand(0,4))",
+        "kind": "default"
+      },
+      {
+        "icon": "check",
+        "label": "Executors 1 al 5",
+        "sub": "etapa",
+        "detail": "Executors 1 al 5",
+        "kind": "default"
+      }
+    ]
+  },
+  "terms": [
+    {
+      "term": "Data Skew",
+      "definition": "Desbalance severo en la distribución de datos entre particiones donde un pequeño subconjunto de claves concentra la gran mayoría de los registros.",
+      "translation": "Sesgo en la distribución de datos"
+    },
+    {
+      "term": "Straggler Task",
+      "definition": "Tarea individual que tarda órdenes de magnitud más tiempo en completarse que la mediana del Stage debido a una partición sobrecargada.",
+      "translation": "Straggler Task"
+    },
+    {
+      "term": "Salting",
+      "definition": "Técnica que añade un valor pseudoaleatorio a las claves de unión para dispersar particiones densas a lo largo de múltiples nodos ejecutores.",
+      "translation": "Salting"
+    },
+    {
+      "term": "Broadcast Join",
+      "definition": "Estrategia de join donde la tabla de menor tamaño se replica completa en la memoria de cada executor, evitando el shuffle de la tabla grande.",
+      "translation": "Unión por difusión (Broadcast Join)"
+    }
+  ],
+  "traps": [
+    {
+      "option": "Hacer broadcast de una tabla de 15 GB esperando acelerar el join.",
+      "reason": "Copiar 15 GB por la red a cada executor saturará el Driver y provocará un colapso de memoria inmediato en todos los nodos."
+    },
+    {
+      "option": "Filtrar los valores nulos después del join para evitar el skew.",
+      "reason": "El sesgo ocurre DURANTE el shuffle del join. Los registros NULL deben aislarse o reemplazarse antes de que entren al operador de join."
+    }
+  ],
+  "keyPoints": [
+    "Data Skew destruye el paralelismo: el tiempo del job queda dictado por el único executor que procesa la clave más pesada.",
+    "Para uniones con tablas dimensionales pequeñas, el Broadcast Hash Join elimina el shuffle por completo.",
+    "El Salting dispersa claves hiper-concentradas entre múltiples particiones, permitiendo que todos los cores trabajen al mismo ritmo."
+  ],
+  "checkQuestionId": "q-u3-03",
+  "trapSummary": "Intentar resolver Data Skew agregando más nodos al cluster en vez de equilibrar las claves que saturan a la tarea rezagada.",
+  "activity": {
+    "type": "sort",
+    "prompt": "Determina la técnica recomendada según el escenario de Join en Spark:",
+    "buckets": [
+      "Broadcast Hash Join",
+      "Técnica de Salting"
+    ],
+    "items": [
+      {
+        "text": "Unión de tabla de transacciones de 1 TB con tabla de catálogo de países de 5 MB",
+        "bucket": 0
+      },
+      {
+        "text": "Unión de dos tablas gigantes donde el 80% de filas tienen cliente_id = NULL",
+        "bucket": 1
+      },
+      {
+        "text": "Elimina el shuffle replicando la tabla pequeña en la RAM de cada executor",
+        "bucket": 0
+      },
+      {
+        "text": "Añade un sufijo aleatorio a la clave para dispersar el sesgo entre múltiples tareas",
+        "bucket": 1
+      }
+    ]
+  },
+  "flashcards": [
+    {
+      "id": "fc-u3-l3-1",
+      "front": "¿Qué es una tarea rezagada (Straggler Task)?",
+      "back": "Una tarea que tarda órdenes de magnitud más que las demás en un Stage por recibir una partición sobrecargada por Data Skew."
+    },
+    {
+      "id": "fc-u3-l3-2",
+      "front": "¿Cómo funciona la técnica de Salting?",
+      "back": "Añade un número pseudoaleatorio (0..N) a la clave de partición para subdividir la clave hiper-concentrada en N subparticiones balanceadas."
+    },
+    {
+      "id": "fc-u3-l3-3",
+      "front": "¿Qué umbral controla el Broadcast Join automático por defecto?",
+      "back": "spark.sql.autoBroadcastJoinThreshold (10 MB por defecto)."
+    }
+  ],
+  "quickFacts": [
+    {
+      "statement": "Adaptive Query Execution (AQE) en Spark 3.x puede dividir particiones sesgadas automáticamente en runtime.",
+      "answer": true
+    },
+    {
+      "statement": "Hacer broadcast de una tabla de 50 GB es una práctica recomendada de optimización.",
+      "answer": false
+    },
+    {
+      "statement": "El Data Skew no se soluciona aumentando los executors si una sola partición concentra todo el peso.",
+      "answer": true
+    },
+    {
+      "statement": "Los valores NULL concentrados en una columna de unión son una de las causas más frecuentes de Skew.",
+      "answer": true
+    }
+  ]
+}

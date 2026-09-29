@@ -1,0 +1,137 @@
+{
+  "$schema": "../../../../schemas/questions.schema.json",
+  "questions": [
+    {
+      "id": "q-u6-01",
+      "type": "single",
+      "domainId": "streaming-realtime-cdc",
+      "skill": "Arquitectura de Apache Kafka y Particionamiento",
+      "topic": "kafka-arquitectura",
+      "stem": "Si un tópico de Apache Kafka tiene 6 particiones y despliegas un Consumer Group con 10 instancias del microservicio consumidor, ¿cuántas instancias estarán procesando mensajes activamente?",
+      "options": [
+        {
+          "key": "A",
+          "text": "10 instancias, dividiéndose los mensajes equitativamente."
+        },
+        {
+          "key": "B",
+          "text": "Exactamente 6 instancias; las otras 4 quedarán inactivas (idle) ya que una partición sólo puede asignarse a un consumidor del mismo grupo a la vez."
+        },
+        {
+          "key": "C",
+          "text": "1 instancia, porque Kafka no soporta paralelismo en el mismo grupo."
+        },
+        {
+          "key": "D",
+          "text": "El cluster de Kafka arrojará un error de sintaxis y detendrá el tópico."
+        }
+      ],
+      "correct": [
+        "B"
+      ],
+      "explanation": "El número de particiones de un tópico establece el límite estricto de paralelismo para un único Consumer Group. Cada partición se asigna a lo sumo a un consumidor para garantizar el orden de procesamiento.",
+      "sources": [
+        "https://kafka.apache.org/documentation/#intro_consumers"
+      ]
+    },
+    {
+      "id": "q-u6-02",
+      "type": "single",
+      "domainId": "streaming-realtime-cdc",
+      "skill": "Semántica de Entrega y Procesamiento Idempotente",
+      "topic": "exactly-once-semantics",
+      "stem": "¿Cuál es la estrategia estándar en ingeniería de datos para lograr semántica de procesamiento Exactly-Once a nivel de aplicación cuando se opera con entrega At-Least-Once de Kafka?",
+      "options": [
+        {
+          "key": "A",
+          "text": "Borrar los mensajes del log de Kafka inmediatamente después de leerlos."
+        },
+        {
+          "key": "B",
+          "text": "Implementar escrituras idempotentes en el sistema de destino basadas en una clave única de negocio (ej. UPSERT o deduplicación por UUID)."
+        },
+        {
+          "key": "C",
+          "text": "Desconectar los cables de red de los demás servidores del cluster."
+        },
+        {
+          "key": "D",
+          "text": "Reiniciar los brokers de Kafka cada 10 minutos."
+        }
+      ],
+      "correct": [
+        "B"
+      ],
+      "explanation": "Al asegurar que la escritura en el sistema destino sea idempotente mediante una clave única, cualquier mensaje re-entregado por reintentos de red no alterará el estado final ni generará duplicados.",
+      "sources": [
+        "https://martinfowler.com/articles/patterns-of-distributed-systems/idempotent-receiver.html"
+      ]
+    },
+    {
+      "id": "q-u6-03",
+      "type": "single",
+      "domainId": "streaming-realtime-cdc",
+      "skill": "Gestión de Event Time y Watermarks",
+      "topic": "watermarks-streaming",
+      "stem": "¿Cuál es la función principal de un 'Watermark' en un motor de streaming que procesa eventos basados en Event Time?",
+      "options": [
+        {
+          "key": "A",
+          "text": "Añadir una marca de agua visual transparente a las imágenes exportadas."
+        },
+        {
+          "key": "B",
+          "text": "Establecer una frontera temporal de progreso que define cuándo dar por cerrada una ventana de agregación para emitir resultados tolerando un retraso acotado de eventos tardíos."
+        },
+        {
+          "key": "C",
+          "text": "Limitar el ancho de banda máximo de la red de streaming a 10 Mbps."
+        },
+        {
+          "key": "D",
+          "text": "Convertir números con decimales en enteros redondeados."
+        }
+      ],
+      "correct": [
+        "B"
+      ],
+      "explanation": "El Watermark informa al motor de procesamiento de flujos que asuma que no llegarán más datos con timestamps anteriores a cierto umbral, permitiendo cerrar ventanas temporales y liberar la memoria de cálculo.",
+      "sources": [
+        "https://beam.apache.org/documentation/programming-guide/#watermarks"
+      ]
+    },
+    {
+      "id": "q-u6-04",
+      "type": "single",
+      "domainId": "streaming-realtime-cdc",
+      "skill": "Change Data Capture (CDC) y Arquitectura Kappa",
+      "topic": "change-data-capture",
+      "stem": "¿Por qué el Change Data Capture (CDC) no invasivo basado en la lectura del Write-Ahead Log (WAL) es superior al sondeo periódico mediante consultas SQL (`SELECT ... WHERE updated_at > ...`)?",
+      "options": [
+        {
+          "key": "A",
+          "text": "Porque no sobrecarga el motor transaccional de producción con consultas analíticas, detecta eliminaciones físicas (DELETE) y captura todas las mutaciones intermedias en tiempo real."
+        },
+        {
+          "key": "B",
+          "text": "Porque elimina la necesidad de tener bases de datos en la empresa."
+        },
+        {
+          "key": "C",
+          "text": "Porque sólo funciona los fines de semana."
+        },
+        {
+          "key": "D",
+          "text": "Porque cifra los datos con contraseñas que nadie puede leer."
+        }
+      ],
+      "correct": [
+        "A"
+      ],
+      "explanation": "La lectura directa del WAL a nivel de almacenamiento físico extrae transacciones confirmadas con latencia sub-segundo sin ejecutar consultas que compitan por CPU/bloqueos con los usuarios, y preserva los DELETEs y cambios efímeros que el sondeo omite.",
+      "sources": [
+        "https://debezium.io/documentation/reference/stable/architecture.html"
+      ]
+    }
+  ]
+}

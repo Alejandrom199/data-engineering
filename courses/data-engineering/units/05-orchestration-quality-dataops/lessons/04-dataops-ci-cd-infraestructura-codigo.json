@@ -1,0 +1,209 @@
+{
+  "$schema": "../../../../../schemas/lesson.schema.json",
+  "id": "dataops-ci-cd-infraestructura-codigo",
+  "title": "DataOps: CI/CD, Pruebas Automatizadas y Despliegues Seguros de Pipelines",
+  "estimatedMinutes": 12,
+  "domainIds": [
+    "orchestration-quality-dataops"
+  ],
+  "topics": [
+    "dataops-filosofia",
+    "ci-cd-pipelines",
+    "pruebas-integracion-datos",
+    "entornos-aislados"
+  ],
+  "hook": "Un ingeniero modifica una CTE en un script SQL y hace git push directo a producción. Una coma faltante quiebra los 12 pipelines más críticos de la compañía a las 2:00 AM. ¿Cómo previene DataOps estos desastres?",
+  "concept": {
+    "blocks": [
+      {
+        "type": "heading",
+        "text": "1. El Manifiesto DataOps"
+      },
+      {
+        "type": "paragraph",
+        "text": "**DataOps** es la adaptación de la agilidad, DevOps y control estadístico de procesos a la ingeniería de datos. Su meta es reducir el ciclo de entrega de valor aumentando la confiabilidad del código y de los datos mediante automatización extrema."
+      },
+      {
+        "type": "table",
+        "headers": [
+          "Etapa de CI/CD",
+          "Herramientas Típicas",
+          "Objetivo de Validación"
+        ],
+        "rows": [
+          [
+            "Linting & Formateo",
+            "SQLFluff, Flake8, Black",
+            "Garantizar estándares sintácticos y evitar errores de estilo"
+          ],
+          [
+            "DAG Integrity Tests",
+            "Pytest + Airflow DagBag",
+            "Verificar que ningún DAG tenga ciclos, importaciones rotas o timeouts de parseo"
+          ],
+          [
+            "Pruebas Unitarias",
+            "Pytest + Testcontainers",
+            "Validar funciones de transformación con datasets sintéticos en memoria"
+          ],
+          [
+            "Despliegue Continuo (CD)",
+            "GitHub Actions, Terraform",
+            "Publicar código probado a Staging y Producción automáticamente sin intervención manual"
+          ]
+        ]
+      },
+      {
+        "type": "heading",
+        "text": "2. Pruebas de Integridad de DAGs en CI"
+      },
+      {
+        "type": "paragraph",
+        "text": "Antes de que un Pull Request se fusione en la rama `main`, la suite de CI debe ejecutar una prueba rápida de parseo de Airflow. Esta prueba tarda 5 segundos y detecta el 90% de los fallos habituales:"
+      },
+      {
+        "type": "code",
+        "language": "python",
+        "code": "from airflow.models import DagBag\n\ndef test_dagbag_import_errors():\n    dagbag = DagBag(dag_folder='dags/', include_examples=False)\n    assert len(dagbag.import_errors) == 0, f'Errores de importación en DAGs: {dagbag.import_errors}'"
+      },
+      {
+        "type": "callout",
+        "text": "Aislamiento de Entornos: Los desarrolladores deben probar sus transformaciones contra bases efímeras o réplicas de Staging con datos enmascarados (anonimizados), jamás contra las bases operacionales de clientes en producción.",
+        "tone": "tip"
+      }
+    ]
+  },
+  "diagram": {
+    "type": "flow",
+    "nodes": [
+      {
+        "icon": "git",
+        "label": "Git Pull Request",
+        "sub": "etapa",
+        "detail": "Git Pull Request",
+        "kind": "default"
+      },
+      {
+        "icon": "terminal",
+        "label": "Linter & Formato",
+        "sub": "etapa",
+        "detail": "Linter & Formato",
+        "kind": "default"
+      },
+      {
+        "icon": "check",
+        "label": "Pytest & DAG Integrity",
+        "sub": "etapa",
+        "detail": "Pytest & DAG Integrity",
+        "kind": "default"
+      },
+      {
+        "icon": "server",
+        "label": "Deploy Automático a Prod",
+        "sub": "etapa",
+        "detail": "Deploy Automático a Prod",
+        "kind": "default"
+      }
+    ]
+  },
+  "terms": [
+    {
+      "term": "DataOps",
+      "definition": "Metodología orientada a mejorar la calidad y reducir los tiempos de entrega de la analítica de datos mediante prácticas de DevOps, testing automatizado y colaboración continua.",
+      "translation": "DataOps"
+    },
+    {
+      "term": "DAG Integrity Test",
+      "definition": "Prueba unitaria automatizada que verifica que los archivos de DAG compilen limpiamente sin errores de sintaxis o dependencias circulares.",
+      "translation": "DAG Integrity Test"
+    },
+    {
+      "term": "SQLFluff",
+      "definition": "Linter de dialectos SQL de código abierto diseñado para verificar y corregir reglas de estilo y errores comunes en consultas y transformaciones.",
+      "translation": "SQLFluff"
+    },
+    {
+      "term": "Testcontainers",
+      "definition": "Librería que permite instanciar contenedores Docker efímeros (ej. PostgreSQL) durante la ejecución de tests unitarios de datos.",
+      "translation": "Testcontainers"
+    }
+  ],
+  "traps": [
+    {
+      "option": "Modificar el archivo Python de un DAG directamente en el servidor de producción usando un editor SSH como nano.",
+      "reason": "Genera desfases con el repositorio Git, destruye la trazabilidad histórica de versiones e impide las pruebas automatizadas."
+    },
+    {
+      "option": "Deshabilitar las pruebas automatizadas de CI para acelerar un despliegue de emergencia.",
+      "reason": "El 80% de los incidentes de interrupción de datos mayores se originan en parches urgentes que eludieron las pruebas de regresión."
+    }
+  ],
+  "keyPoints": [
+    "El código de datos y los esquemas deben tratarse como artefactos de software bajo control de versiones Git.",
+    "Las pruebas de parseo del DagBag en CI evitan que pipelines con errores sintácticos lleguen al cluster.",
+    "La automatización de despliegues elimina las discrepancias humanas entre desarrollo y producción."
+  ],
+  "checkQuestionId": "q-u5-04",
+  "trapSummary": "Hacer cambios de código SQL o DAGs directamente en producción sin pasar por linters, pruebas unitarias y Git PR.",
+  "activity": {
+    "type": "sort",
+    "prompt": "Identifica las etapas de un flujo de integración y despliegue continuo (CI/CD) para datos:",
+    "buckets": [
+      "Validación en CI (Pre-merge)",
+      "Despliegue CD (Post-merge)"
+    ],
+    "items": [
+      {
+        "text": "Verificación de sintaxis de DAGs con prueba de DagBag en Pytest",
+        "bucket": 0
+      },
+      {
+        "text": "Linter de consultas SQL con SQLFluff para cumplir normas de estilo y errores",
+        "bucket": 0
+      },
+      {
+        "text": "Sincronización automatizada de DAGs al bucket/cluster de Staging y Producción",
+        "bucket": 1
+      },
+      {
+        "text": "Ejecución de pruebas unitarias sobre transformaciones con datos sintéticos",
+        "bucket": 0
+      }
+    ]
+  },
+  "flashcards": [
+    {
+      "id": "fc-u5-l4-1",
+      "front": "¿Qué verifica la prueba test_dagbag_import_errors() en CI?",
+      "back": "Que todos los DAGs compilen limpiamente sin errores de sintaxis, dependencias circulares o imports rotos."
+    },
+    {
+      "id": "fc-u5-l4-2",
+      "front": "¿Qué herramienta open-source se utiliza como linter para dialectos SQL?",
+      "back": "SQLFluff."
+    },
+    {
+      "id": "fc-u5-l4-3",
+      "front": "¿Por qué los ingenieros no deben probar contra datos reales de clientes en desarrollo?",
+      "back": "Por riesgos de seguridad, privacidad (GDPR) e imposibilidad de garantizar pruebas reproducibles."
+    }
+  ],
+  "quickFacts": [
+    {
+      "statement": "DataOps adapta las mejores prácticas de DevOps (CI/CD, testing, monitoreo) a la ingeniería de datos.",
+      "answer": true
+    },
+    {
+      "statement": "Editar un archivo de DAG directamente en el servidor mediante SSH es la práctica estándar en empresas maduras.",
+      "answer": false
+    },
+    {
+      "statement": "Los tests de parseo de DAGs en CI detectan la gran mayoría de errores antes del despliegue.",
+      "answer": true
+    },
+    {
+      "statement": "Las migraciones de esquemas deben gestionarse bajo control de versiones como código.",
+      "answer": true
+    }
+  ]
+}

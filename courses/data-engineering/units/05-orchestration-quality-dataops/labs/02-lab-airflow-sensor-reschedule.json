@@ -1,0 +1,26 @@
+{
+  "$schema": "../../../../schemas/lab.schema.json",
+  "id": "lab-airflow-sensor-reschedule",
+  "title": "Configuración de Sensores Resilientes en Modo Reschedule",
+  "goal": "Configurar un sensor en Airflow para evaluar un archivo externo liberando los worker slots entre intentos.",
+  "level": "intermediate",
+  "estimatedMinutes": 15,
+  "icon": "clock",
+  "domainId": "orchestration-quality-dataops",
+  "lessonId": "sensores-reschedule-vs-poke-deadlocks",
+  "file": "lab02_sensor_reschedule.py",
+  "steps": [
+    "Define la estructura de un FileSensor o CustomSensor.",
+    "Asigna el parámetro mode='reschedule' y define un poke_interval de 300 segundos.",
+    "Configura un timeout estricto de 3600 segundos (1 hora).",
+    "Verifica la configuración del operador confirmando la liberación del slot."
+  ],
+  "code": "class MockSensor:\n    def __init__(self, task_id, mode, poke_interval, timeout):\n        self.task_id = task_id\n        self.mode = mode\n        self.poke_interval = poke_interval\n        self.timeout = timeout\n\nsensor = MockSensor(\n    task_id='wait_for_incoming_csv',\n    mode='reschedule',\n    poke_interval=300,\n    timeout=3600\n)\n\nprint(f'Sensor ID: {sensor.task_id}')\nprint(f'Modo configurado: {sensor.mode} (Libera slots entre sondeos)')\nprint(f'Timeout de seguridad: {sensor.timeout} segundos')\n",
+  "codeLanguage": "python",
+  "expectedOutput": "Sensor ID: wait_for_incoming_csv\nModo configurado: reschedule (Libera slots entre sondeos)\nTimeout de seguridad: 3600 segundos",
+  "verify": "El sensor está configurado en modo 'reschedule' evitando el acaparamiento prolongado de workers.",
+  "successCriteria": [
+    "Se utiliza el modo reschedule en lugar de poke.",
+    "Se incluye un timeout finito obligatorio."
+  ]
+}

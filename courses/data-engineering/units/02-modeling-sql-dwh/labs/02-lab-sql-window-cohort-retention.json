@@ -1,0 +1,25 @@
+{
+  "$schema": "../../../../schemas/lab.schema.json",
+  "id": "lab-sql-window-cohort-retention",
+  "title": "Cálculo de Retención y Variación con Funciones de Ventana",
+  "goal": "Utilizar la función analítica LAG y ROW_NUMBER en SQLite para calcular el crecimiento porcentual intermensual de ventas sin usar bucles ni auto-joins.",
+  "level": "intermediate",
+  "estimatedMinutes": 15,
+  "icon": "chart",
+  "domainId": "relational-modeling-sql-dwh",
+  "lessonId": "sql-analitico-funciones-ventana",
+  "file": "lab02_window_functions.py",
+  "steps": [
+    "Crea una tabla con ventas mensuales históricas de 4 meses.",
+    "Escribe la consulta analítica con LAG(ventas, 1) OVER (ORDER BY mes).",
+    "Calcula la diferencia absoluta y porcentual con respecto al mes previo."
+  ],
+  "code": "import sqlite3\n\nconn = sqlite3.connect(':memory:')\ncur = conn.cursor()\n\ncur.execute('CREATE TABLE ventas_mensuales (mes TEXT, total REAL);')\ncur.executemany('INSERT INTO ventas_mensuales VALUES (?, ?);', [\n    ('2026-01', 10000.0),\n    ('2026-02', 12500.0),\n    ('2026-03', 11000.0),\n    ('2026-04', 16500.0)\n])\n\nquery = '''\nSELECT \n    mes,\n    total,\n    LAG(total, 1) OVER (ORDER BY mes) AS mes_previo,\n    ROUND(total - LAG(total, 1) OVER (ORDER BY mes), 2) AS delta,\n    ROUND(((total - LAG(total, 1) OVER (ORDER BY mes)) / LAG(total, 1) OVER (ORDER BY mes)) * 100, 1) AS pct_cambio\nFROM ventas_mensuales;\n'''\n\nfor r in cur.execute(query):\n    print(f'Mes: {r[0]} | Actual: {r[1]:7.1f} | Previo: {str(r[2]):7} | Delta: {str(r[3]):7} | Crecimiento: {str(r[4])}%')\n",
+  "codeLanguage": "python",
+  "expectedOutput": "Mes: 2026-01 | Actual: 10000.0 | Previo: None    | Delta: None    | Crecimiento: None%\nMes: 2026-02 | Actual: 12500.0 | Previo: 10000.0 | Delta:  2500.0 | Crecimiento: 25.0%\nMes: 2026-03 | Actual: 11000.0 | Previo: 12500.0 | Delta: -1500.0 | Crecimiento: -12.0%\nMes: 2026-04 | Actual: 16500.0 | Previo: 11000.0 | Delta:  5500.0 | Crecimiento: 50.0%",
+  "verify": "La consulta calcula los deltas exactos entre periodos consecutivos en una sola pasada sobre los datos.",
+  "successCriteria": [
+    "Se emplea LAG() para el acceso temporal previo sin JOINs.",
+    "Los porcentajes de cambio coinciden exactamente con los valores de negocio."
+  ]
+}

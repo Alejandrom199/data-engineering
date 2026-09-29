@@ -1,0 +1,28 @@
+{
+  "$schema": "../../../../schemas/unit.schema.json",
+  "id": "06-streaming-realtime-cdc",
+  "title": "Streaming de Datos en Tiempo Real y Change Data Capture (CDC)",
+  "officialTitle": "Real-Time Streaming & Change Data Capture (CDC)",
+  "summary": "Fundamentos de arquitecturas basadas en eventos: registro distribuido inmutable con Apache Kafka, paralelismo mediante particiones y grupos de consumidores, semántica de entrega (At-least-once vs Exactly-once), tiempo de evento vs tiempo de procesamiento, ventanas temporales con Watermarks y replicación transaccional no invasiva con Debezium CDC.",
+  "icon": "bolt",
+  "color": "#ef4444",
+  "objectives": [
+    "Comprender el modelo de Commit Log inmutable distribuido de Apache Kafka y el escalado horizontal mediante particiones y grupos de consumidores.",
+    "Diferenciar las semánticas de entrega de mensajes (At-least-once, At-most-once, Exactly-once) y diseñar consumidores con deduplicación idempotente.",
+    "Procesar flujos continuos de datos utilizando tiempo de evento (Event Time) y Watermarks para absorber eventos con retraso de red.",
+    "Implementar arquitecturas Change Data Capture (CDC) no invasivas leyendo el Write-Ahead Log (WAL) con Debezium hacia el Lakehouse."
+  ],
+  "lessons": [
+    "kafka-commit-log-particiones-offset",
+    "garantias-entrega-exactly-once",
+    "event-time-watermarks-ventanas",
+    "change-data-capture-debezium-kappa"
+  ],
+  "labs": [
+    "lab-kafka-producer-consumer",
+    "lab-streaming-window-watermark",
+    "lab-cdc-wal-replication"
+  ],
+  "quizPassRatio": 0.7,
+  "quizQuestionCount": 10
+}

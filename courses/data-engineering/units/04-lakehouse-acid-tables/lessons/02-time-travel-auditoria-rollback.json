@@ -1,0 +1,187 @@
+{
+  "$schema": "../../../../../schemas/lesson.schema.json",
+  "id": "time-travel-auditoria-rollback",
+  "title": "Time Travel: Auditoría, Reproducibilidad y Rollback Instantáneo",
+  "estimatedMinutes": 12,
+  "domainIds": [
+    "lakehouse-acid-tables"
+  ],
+  "topics": [
+    "time-travel",
+    "versionado-tablas",
+    "auditoria-compliance",
+    "restauracion-datos"
+  ],
+  "hook": "Un pipeline nocturno ejecutó un UPDATE sin cláusula WHERE sobre la tabla maestra de clientes, sobreescribiendo 4 millones de correos electrónicos. En una base tradicional esto requiere restaurar backups de horas. En un Lakehouse se soluciona en 3 segundos con una sola línea de código. ¿Cómo funciona?",
+  "concept": {
+    "blocks": [
+      {
+        "type": "heading",
+        "text": "1. El Mecanismo de Inmutabilidad Temporal"
+      },
+      {
+        "type": "paragraph",
+        "text": "En formatos transaccionales como Delta Lake o Apache Iceberg, una operación de actualización o borrado **nunca sobrescribe físicamente** los archivos Parquet originales en el disco. En su lugar, escribe nuevos archivos con los datos actualizados y añade una entrada al Transaction Log que marca los archivos anteriores como 'eliminados lógicamente' para las versiones futuras."
+      },
+      {
+        "type": "heading",
+        "text": "2. Consultas Históricas y Rollback Instantáneo"
+      },
+      {
+        "type": "paragraph",
+        "text": "Gracias a esta inmutabilidad, puedes consultar la tabla en cualquier instante del pasado mediante la sintaxis **Time Travel**:"
+      },
+      {
+        "type": "code",
+        "language": "sql",
+        "code": "-- Consultar la tabla tal como estaba ayer a las 3:00 PM\nSELECT * FROM clientes TIMESTAMP AS OF '2026-03-27 15:00:00';\n\n-- Consultar una versión numérica específica\nSELECT * FROM clientes VERSION AS OF 42;\n\n-- Restaurar la tabla a un estado previo instantáneamente\nRESTORE TABLE clientes TO VERSION AS OF 41;"
+      },
+      {
+        "type": "heading",
+        "text": "3. Mantenimiento del Almacenamiento: El Comando VACUUM"
+      },
+      {
+        "type": "paragraph",
+        "text": "Mantener todas las versiones históricas de forma indefinida incrementa el costo de almacenamiento en S3. Para eliminar físicamente los archivos que ya no pertenezcan al snapshot activo, se utiliza el comando `VACUUM` con una ventana de retención (por defecto 7 días)."
+      },
+      {
+        "type": "callout",
+        "text": "Peligro con VACUUM RETAIN 0 HOURS: Ejecutar VACUUM con retención cero elimina todos los archivos antiguos inmediatamente, destruyendo la capacidad de hacer Time Travel y quebrando cualquier consulta analítica de larga duración que esté corriendo en ese momento.",
+        "tone": "warning"
+      }
+    ]
+  },
+  "diagram": {
+    "type": "flow",
+    "nodes": [
+      {
+        "icon": "file",
+        "label": "Versión 1 (Commit 0001)",
+        "sub": "etapa",
+        "detail": "Versión 1 (Commit 0001)",
+        "kind": "default"
+      },
+      {
+        "icon": "alert",
+        "label": "Versión 2 (UPDATE corrupto)",
+        "sub": "etapa",
+        "detail": "Versión 2 (UPDATE corrupto)",
+        "kind": "default"
+      },
+      {
+        "icon": "undo",
+        "label": "RESTORE TO VERSION 1",
+        "sub": "etapa",
+        "detail": "RESTORE TO VERSION 1",
+        "kind": "default"
+      },
+      {
+        "icon": "check",
+        "label": "Tabla Saludable en Segundos",
+        "sub": "etapa",
+        "detail": "Tabla Saludable en Segundos",
+        "kind": "default"
+      }
+    ]
+  },
+  "terms": [
+    {
+      "term": "Time Travel",
+      "definition": "Capacidad de un formato de tabla Lakehouse para consultar snapshots históricos pasados utilizando versiones de commit o marcas de tiempo.",
+      "translation": "Viaje en el tiempo (Time Travel)"
+    },
+    {
+      "term": "VACUUM",
+      "definition": "Comando de mantenimiento que elimina permanentemente del almacenamiento los archivos de datos que ya no son referenciados por versiones dentro del periodo de retención.",
+      "translation": "VACUUM"
+    },
+    {
+      "term": "RESTORE TABLE",
+      "definition": "Operación de metadata rápida que retrotrae el snapshot oficial de la tabla a una versión histórica previa.",
+      "translation": "RESTORE TABLE"
+    },
+    {
+      "term": "Append-Only Metadata",
+      "definition": "Estructura del log donde cada transacción se añade como un nuevo archivo JSON sin modificar jamás los logs anteriores.",
+      "translation": "Append-Only Metadata"
+    }
+  ],
+  "traps": [
+    {
+      "option": "Programar un VACUUM con retención de 1 minuto para ahorrar costes en S3.",
+      "reason": "Provocarás errores de FileNotFoundException en pipelines y lectores que requieran más de 1 minuto para completar sus consultas."
+    },
+    {
+      "option": "Pensar que Time Travel duplica el tamaño de los datos en cada nuevo commit.",
+      "reason": "Time Travel sólo escribe los archivos modificados; los archivos Parquet no afectados se reutilizan como punteros en las nuevas versiones."
+    }
+  ],
+  "keyPoints": [
+    "Time Travel permite auditar exactamente qué filas cambiaron entre dos ejecuciones de un pipeline.",
+    "Permite reproducir datasets de entrenamiento de Machine Learning con fidelidad matemática exacta.",
+    "El comando VACUUM debe calibrarse respetando el SLA de duración de las consultas analíticas más largas del negocio."
+  ],
+  "checkQuestionId": "q-u4-02",
+  "trapSummary": "Ejecutar VACUUM con retención de 0 horas en producción para ahorrar unos dólares de S3, quebrando consultas activas.",
+  "activity": {
+    "type": "sort",
+    "prompt": "Identifica las capacidades y precauciones operativas de Time Travel y VACUUM:",
+    "buckets": [
+      "Capacidad de Time Travel",
+      "Mantenimiento con VACUUM"
+    ],
+    "items": [
+      {
+        "text": "Consultar el estado de una tabla tal como estaba en un timestamp o commit pasado",
+        "bucket": 0
+      },
+      {
+        "text": "Eliminar físicamente los archivos huérfanos que ya no están en snapshots vigentes",
+        "bucket": 1
+      },
+      {
+        "text": "Restaurar instantáneamente una tabla tras un UPDATE erróneo con RESTORE TABLE",
+        "bucket": 0
+      },
+      {
+        "text": "Debe calibrarse con un periodo de retención superior a la consulta analítica más larga",
+        "bucket": 1
+      }
+    ]
+  },
+  "flashcards": [
+    {
+      "id": "fc-u4-l2-1",
+      "front": "¿Qué sintaxis SQL permite consultar una versión histórica en Delta Lake?",
+      "back": "SELECT * FROM tabla VERSION AS OF 10 (o TIMESTAMP AS OF '2026-03-27')."
+    },
+    {
+      "id": "fc-u4-l2-2",
+      "front": "¿Qué comando realiza el rollback instantáneo a una versión previa?",
+      "back": "RESTORE TABLE tabla TO VERSION AS OF N;"
+    },
+    {
+      "id": "fc-u4-l2-3",
+      "front": "¿Qué peligro tiene ejecutar VACUUM con retención menor al tiempo de consulta de los usuarios?",
+      "back": "Borrará archivos que lectores concurrentes están leyendo, provocando FileNotFoundException."
+    }
+  ],
+  "quickFacts": [
+    {
+      "statement": "Time Travel duplica físicamente todos los datos de la tabla en cada nuevo commit.",
+      "answer": false
+    },
+    {
+      "statement": "El comando VACUUM borra permanentemente del disco los archivos fuera de la ventana de retención.",
+      "answer": true
+    },
+    {
+      "statement": "La retención por defecto de VACUUM en Delta Lake es de 7 días.",
+      "answer": true
+    },
+    {
+      "statement": "RESTORE TABLE crea un nuevo commit en el log apuntando a los archivos de la versión histórica.",
+      "answer": true
+    }
+  ]
+}

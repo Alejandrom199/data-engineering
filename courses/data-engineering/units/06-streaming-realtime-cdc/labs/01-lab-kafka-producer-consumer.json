@@ -1,0 +1,26 @@
+{
+  "$schema": "../../../../schemas/lab.schema.json",
+  "id": "lab-kafka-producer-consumer",
+  "title": "Producción y Consumo Asíncrono de Eventos en Kafka",
+  "goal": "Implementar un productor y consumidor con gestión manual de offsets y clave de particionamiento.",
+  "level": "intermediate",
+  "estimatedMinutes": 15,
+  "icon": "bolt",
+  "domainId": "streaming-realtime-cdc",
+  "lessonId": "kafka-commit-log-particiones-offset",
+  "file": "lab01_kafka_pubsub.py",
+  "steps": [
+    "Configura un productor simulado que emita eventos asignando una clave de partición fija.",
+    "Simula la asignación a una partición específica mediante cálculo hash.",
+    "Construye un consumidor que procese el lote y confirme el offset explícitamente.",
+    "Verifica que todos los eventos de la misma entidad preservan su orden secuencial."
+  ],
+  "code": "import hashlib\n\ndef hash_partition(key, num_partitions=4):\n    return int(hashlib.md5(key.encode()).hexdigest(), 16) % num_partitions\n\nevents = [\n    {'key': 'user_10', 'seq': 1, 'action': 'login'},\n    {'key': 'user_20', 'seq': 1, 'action': 'login'},\n    {'key': 'user_10', 'seq': 2, 'action': 'add_to_cart'},\n    {'key': 'user_10', 'seq': 3, 'action': 'checkout'},\n]\n\n# Enrutar a particiones\npartition_queues = {i: [] for i in range(4)}\nfor ev in events:\n    p = hash_partition(ev['key'])\n    partition_queues[p].append(ev)\n\nprint('=== DISTRIBUCIÓN POR PARTICIONES ===')\nfor p, msgs in partition_queues.items():\n    if msgs:\n        print(f'Partición {p}: {[m[\"action\"] for m in msgs]} (Key={msgs[0][\"key\"]})')\n",
+  "codeLanguage": "python",
+  "expectedOutput": "=== DISTRIBUCIÓN POR PARTICIONES ===\nPartición 0: ['login', 'add_to_cart', 'checkout'] (Key=user_10)\nPartición 2: ['login'] (Key=user_20)",
+  "verify": "Todas las acciones de 'user_10' se asignan a la misma partición manteniendo su secuencia original intacta.",
+  "successCriteria": [
+    "La función de particionamiento asigna la misma clave a la misma partición.",
+    "Se preserva el orden secuencial de los eventos para cada clave."
+  ]
+}

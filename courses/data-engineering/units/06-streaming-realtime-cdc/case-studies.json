@@ -1,0 +1,19 @@
+{
+  "$schema": "../../../../schemas/case-studies.schema.json",
+  "caseStudies": [
+    {
+      "id": "cs-u6-01",
+      "title": "La caída de conectividad móvil que distorsionó las métricas en tiempo real",
+      "prompt": "Una aplicación de delivery agrupaba los pedidos en tiempo real por ventanas de 1 hora usando Processing Time. Durante un partido de fútbol, una antena de telecomunicaciones colapsó durante 90 minutos y decenas de miles de pedidos quedaron retenidos en los teléfonos de los usuarios. Al restablecerse la red, todos los pedidos ingresaron juntos a las 22:00. El dashboard reportó cero ventas a las 20:30 y un pico imposible a las 22:00. Explica la falla de diseño y la solución.",
+      "modelAnswer": "El pipeline utilizó Processing Time (la hora en que el servidor procesa el mensaje) en lugar de Event Time (la hora real en que el usuario realizó la compra en su teléfono). Cuando los mensajes acumulados llegaron de golpe, el servidor los agrupó en la ventana de las 22:00 falseando completamente la realidad histórica del negocio. Solución: Migrar a Event Time utilizando el timestamp original del cliente y definir un Watermark prudente para dar cabida a eventos tardíos, permitiendo imputar los pedidos a la ventana real de las 20:30.",
+      "sources": []
+    },
+    {
+      "id": "cs-u6-02",
+      "title": "El consumidor de pedidos que duplicó transacciones bancarias tras caerse el servidor",
+      "prompt": "Un servicio consumidor leía transacciones de Kafka, insertaba cobros bancarios en la base de datos de producción mediante un simple INSERT y, una vez por minuto, confirmaba los offsets a Kafka mediante auto.commit. Tras una desconexión abrupta del servidor a los 55 segundos de un ciclo, el consumidor se reinició y cobró de nuevo los 1,200 pagos procesados durante ese minuto. Analiza la causa y detalla la solución.",
+      "modelAnswer": "El incidente fue producto del uso de auto.commit en segundo plano desacoplado de la persistencia real. Al caer el servicio tras ejecutar los cobros pero antes del auto-commit, Kafka asumió que esos 1,200 mensajes no habían sido procesados y los re-entregó tras el reinicio. Al no haber control de duplicados en la base de datos, se aplicó un doble cobro a los usuarios. Solución: Deshabilitar auto.commit y utilizar consumo idempotente (ej. INSERT ... ON CONFLICT (transaccion_id) DO NOTHING o coordinar el commit del offset dentro de la misma transacción de base de datos) garantizando que un reintento no altere el estado financiero.",
+      "sources": []
+    }
+  ]
+}

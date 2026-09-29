@@ -1,0 +1,187 @@
+{
+  "$schema": "../../../../../schemas/lesson.schema.json",
+  "id": "optimizacion-layout-zordering-compaction",
+  "title": "Optimización de Layout: Compaction y Z-Ordering Multidimensional",
+  "estimatedMinutes": 12,
+  "domainIds": [
+    "lakehouse-acid-tables"
+  ],
+  "topics": [
+    "compaction-lakehouse",
+    "z-ordering",
+    "file-skipping",
+    "particionamiento-multidimensional"
+  ],
+  "hook": "Tu tabla tiene consultas frecuentes que filtran por `pais` y `fecha_alta`. Si particionas por ambas columnas, terminas con miles de directorios vacíos y el 'Small File Problem'. ¿Cómo permite el Z-Ordering filtrar por múltiples dimensiones a la vez sin fragmentar el almacenamiento?",
+  "concept": {
+    "blocks": [
+      {
+        "type": "heading",
+        "text": "1. El Problema del Hiper-Particionamiento"
+      },
+      {
+        "type": "paragraph",
+        "text": "El particionamiento tradicional por directorios (`/pais=ES/año=2026/mes=03/`) funciona bien para cardinalidades bajas. Pero cuando necesitas filtrar por atributos de alta cardinalidad (como `cliente_id`, `tienda` o `producto`), el almacenamiento se fragmenta en millones de archivos diminutos, destruyendo el rendimiento por sobrecarga de metadatos."
+      },
+      {
+        "type": "heading",
+        "text": "2. Compaction con OPTIMIZE"
+      },
+      {
+        "type": "paragraph",
+        "text": "Las ingestas en micro-batches o streaming producen miles de ficheros de pocos megabytes. El comando `OPTIMIZE` fusiona de forma transparente estos archivos pequeños en archivos consolidados ideales de 512 MB a 1 GB, sin interrumpir a los lectores concurrentes gracias a una transacción atómica en el log."
+      },
+      {
+        "type": "heading",
+        "text": "3. Z-Ordering: Localidad Espacial Multidimensional"
+      },
+      {
+        "type": "paragraph",
+        "text": "**Z-Ordering** (curva de Morton) reorganiza los datos dentro de los archivos Parquet para mantener la cercanía física entre múltiples dimensiones simultáneamente. El optimizador almacena los valores mínimos y máximos (`min/max stats`) de cada columna en los metadatos. Al ejecutar una consulta con filtros WHERE, el motor puede aplicar **File Skipping** y saltarse el 95% de los archivos sin abrirlos."
+      },
+      {
+        "type": "code",
+        "language": "sql",
+        "code": "-- Compactar y aplicar Z-Order por dos columnas analíticas clave\nOPTIMIZE ventas\nZORDER BY (pais, fecha_venta);"
+      },
+      {
+        "type": "callout",
+        "text": "No apliques Z-Order a más de 3 o 4 columnas: Cuantas más dimensiones añadas a la curva Z, menor será la efectividad de agrupamiento de cada columna individual (la maldición de la dimensionalidad).",
+        "tone": "warning"
+      }
+    ]
+  },
+  "diagram": {
+    "type": "flow",
+    "nodes": [
+      {
+        "icon": "bolt",
+        "label": "OPTIMIZE + Z-ORDER",
+        "sub": "etapa",
+        "detail": "OPTIMIZE + Z-ORDER",
+        "kind": "default"
+      },
+      {
+        "icon": "file",
+        "label": "Tamaño Óptimo (1 GB)",
+        "sub": "etapa",
+        "detail": "Tamaño Óptimo (1 GB)",
+        "kind": "default"
+      },
+      {
+        "icon": "chart",
+        "label": "Estadísticas Min/Max",
+        "sub": "etapa",
+        "detail": "Estadísticas Min/Max",
+        "kind": "default"
+      },
+      {
+        "icon": "route",
+        "label": "File Skipping > 90%",
+        "sub": "etapa",
+        "detail": "File Skipping > 90%",
+        "kind": "default"
+      }
+    ]
+  },
+  "terms": [
+    {
+      "term": "OPTIMIZE",
+      "definition": "Comando en Delta Lake que consolida y reempaqueta archivos pequeños en ficheros de tamaño óptimo para lectura analítica.",
+      "translation": "OPTIMIZE"
+    },
+    {
+      "term": "Z-Ordering",
+      "definition": "Técnica de ordenamiento multidimensional que mapea datos multidimensionales a una dimensión preservando la localidad de los puntos cercanos.",
+      "translation": "Agrupamiento multidimensional Z-Order"
+    },
+    {
+      "term": "File Skipping",
+      "definition": "Capacidad de un motor de consulta para omitir la lectura de archivos enteros basándose en los rangos mínimos y máximos guardados en los metadatos.",
+      "translation": "Omisión de archivos por metadatos"
+    },
+    {
+      "term": "Morton Space-Filling Curve",
+      "definition": "Función matemática utilizada por Z-Ordering para transformar coordenadas multidimensionales intercalando sus bits binarios.",
+      "translation": "Morton Space-Filling Curve"
+    }
+  ],
+  "traps": [
+    {
+      "option": "Aplicar Z-Ordering sobre una columna que ya es la clave de partición del directorio.",
+      "reason": "Es un desperdicio completo de cómputo; los datos ya están físicamente segregados en directorios distintos por esa columna."
+    },
+    {
+      "option": "Ejecutar OPTIMIZE cada 2 minutos en un pipeline de streaming.",
+      "reason": "La sobrecarga computacional de reescribir archivos superará el beneficio; compaction debe programarse cada varias horas o diario."
+    }
+  ],
+  "keyPoints": [
+    "OPTIMIZE resuelve el Small File Problem fusionando micro-archivos de streaming en bloques de 512 MB - 1 GB.",
+    "Z-Ordering permite acelerar consultas que filtran por múltiples atributos de negocio sin sufrir hiper-particionamiento.",
+    "El File Skipping drástico reduce el escaneo de bytes en la nube, abaratando el coste de consultas masivas."
+  ],
+  "checkQuestionId": "q-u4-04",
+  "trapSummary": "Aplicar Z-Ordering sobre 15 columnas o sobre una columna que ya es la clave de partición del directorio.",
+  "activity": {
+    "type": "sort",
+    "prompt": "Clasifica las técnicas de optimización física de layout en el Lakehouse:",
+    "buckets": [
+      "Compaction (OPTIMIZE)",
+      "Z-Ordering Multidimensional"
+    ],
+    "items": [
+      {
+        "text": "Fusiona miles de archivos pequeños generados por micro-batches en archivos de ~1 GB",
+        "bucket": 0
+      },
+      {
+        "text": "Reorganiza los datos mapeando múltiples dimensiones a una curva continua de espacio",
+        "bucket": 1
+      },
+      {
+        "text": "Resuelve directamente el Small File Problem en el almacenamiento de objetos",
+        "bucket": 0
+      },
+      {
+        "text": "Maximiza el File Skipping mediante estadísticas min/max en múltiples columnas",
+        "bucket": 1
+      }
+    ]
+  },
+  "flashcards": [
+    {
+      "id": "fc-u4-l1-1",
+      "front": "¿Qué comando realiza la compasión de archivos en Delta Lake?",
+      "back": "OPTIMIZE nombre_tabla;"
+    },
+    {
+      "id": "fc-u4-l1-2",
+      "front": "¿Qué problema resuelve Z-Ordering frente al particionamiento de carpetas?",
+      "back": "Permite clustering multidimensional por atributos de alta cardinalidad sin crear millones de carpetas vacías."
+    },
+    {
+      "id": "fc-u4-l1-3",
+      "front": "¿Cuántas columnas se recomienda incluir como máximo en ZORDER BY?",
+      "back": "De 2 a 4 columnas clave (más columnas diluyen la efectividad de la curva espacial)."
+    }
+  ],
+  "quickFacts": [
+    {
+      "statement": "OPTIMIZE y Z-Ordering se ejecutan como una transacción ACID sin detener a los lectores concurrentes.",
+      "answer": true
+    },
+    {
+      "statement": "Z-Ordering debe aplicarse sobre columnas que ya son particiones físicas del directorio.",
+      "answer": false
+    },
+    {
+      "statement": "El File Skipping aprovecha los valores min/max almacenados en los metadatos para omitir archivos.",
+      "answer": true
+    },
+    {
+      "statement": "Es recomendable correr OPTIMIZE cada 30 segundos en un pipeline continuo de streaming.",
+      "answer": false
+    }
+  ]
+}

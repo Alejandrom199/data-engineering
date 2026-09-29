@@ -1,0 +1,177 @@
+{
+  "$schema": "../../../../../schemas/lesson.schema.json",
+  "id": "oltp-vs-olap-arquitectura",
+  "title": "OLTP vs OLAP: Por qué nunca debes correr analítica en PostgreSQL de producción",
+  "estimatedMinutes": 12,
+  "domainIds": [
+    "relational-modeling-sql-dwh"
+  ],
+  "topics": [
+    "oltp-vs-olap",
+    "motores-transaccionales",
+    "bloqueos-acid",
+    "lecturas-analiticas"
+  ],
+  "hook": "Un analista de negocio lanza un SELECT con 5 JOINs y agregaciones sobre la tabla transaccional de pedidos. Minutos después, los clientes en la tienda online no pueden pagar y el checkout colapsa por bloqueos de fila. ¿Qué falló a nivel arquitectónico?",
+  "concept": {
+    "blocks": [
+      {
+        "type": "heading",
+        "text": "1. Dos Cargas de Trabajo Diametralmente Opuestas"
+      },
+      {
+        "type": "paragraph",
+        "text": "Los sistemas OLTP (Online Transaction Processing) están diseñados para millones de operaciones rápidas de escritura y lectura puntual (buscar un cliente por ID, registrar un pago). Los sistemas OLAP (Online Analytical Processing) están optimizados para escanear cientos de millones de filas agregando métricas de negocio."
+      },
+      {
+        "type": "table",
+        "headers": [
+          "Dimensión",
+          "OLTP (ej. PostgreSQL, MySQL)",
+          "OLAP (ej. Snowflake, ClickHouse, DuckDB)"
+        ],
+        "rows": [
+          [
+            "Objetivo",
+            "Operación del negocio en tiempo real",
+            "Toma de decisiones y reportería histórica"
+          ],
+          [
+            "Patrón de lectura",
+            "Filas individuales por clave primaria",
+            "Escaneo masivo de pocas columnas"
+          ],
+          [
+            "Patrón de escritura",
+            "INSERT/UPDATE/DELETE concurrentes continuos",
+            "Cargas masivas en lote (Append/Batch)"
+          ],
+          [
+            "Disposición de datos",
+            "Por filas (Row-oriented) con índices B-Tree",
+            "Por columnas (Columnar) con compresión extrema"
+          ]
+        ],
+        "caption": "Matriz de diferencias arquitectónicas entre OLTP y OLAP."
+      },
+      {
+        "type": "callout",
+        "tone": "warning",
+        "title": "La trampa de los bloqueos de fila",
+        "text": "Consultas analíticas pesadas en OLTP mantienen transacciones abiertas por minutos. Aunque el nivel de aislamiento use MVCC, saturan los buffers compartidos de memoria y compiten por bloqueos en cascada contra las transacciones críticas del negocio."
+      }
+    ]
+  },
+  "keyPoints": [
+    "OLTP procesa transacciones individuales fila por fila; OLAP escanea miles de millones de filas columna por columna.",
+    "Ejecutar reportes analíticos pesados en bases OLTP degrada o bloquea la operación transaccional de producción.",
+    "Los almacenes de datos analíticos desacoplan el cómputo de consulta de la base operativa transaccional."
+  ],
+  "terms": [
+    {
+      "term": "OLTP",
+      "translation": "Procesamiento Transaccional en Línea",
+      "definition": "Sistemas de bases de datos relacionales optimizados para transacciones concurrentes rápidas y atómicas."
+    },
+    {
+      "term": "OLAP",
+      "translation": "Procesamiento Analítico en Línea",
+      "definition": "Sistemas de almacenamiento optimizados para procesar consultas complejas de agregación sobre grandes volúmenes de datos históricos."
+    }
+  ],
+  "diagram": {
+    "type": "flow",
+    "nodes": [
+      {
+        "icon": "server",
+        "label": "Origen Transaccional (OLTP)",
+        "sub": "etapa",
+        "detail": "Origen Transaccional (OLTP)",
+        "kind": "default"
+      },
+      {
+        "icon": "route",
+        "label": "Pipeline Desacoplado (CDC/ETL)",
+        "sub": "etapa",
+        "detail": "Pipeline Desacoplado (CDC/ETL)",
+        "kind": "default"
+      },
+      {
+        "icon": "chart",
+        "label": "Data Warehouse Columnar (OLAP)",
+        "sub": "etapa",
+        "detail": "Data Warehouse Columnar (OLAP)",
+        "kind": "default"
+      }
+    ]
+  },
+  "traps": [
+    {
+      "option": "Agregar una réplica de solo lectura (Read Replica) en PostgreSQL resuelve el 100% de las necesidades analíticas a cualquier escala.",
+      "reason": "Una réplica protege al master de bloqueos, pero sigue teniendo almacenamiento por filas: al llegar a cientos de millones de registros, escanear filas completas es órdenes de magnitud más lento y caro que un motor columnar analítico."
+    }
+  ],
+  "checkQuestionId": "q-u2-01",
+  "trapSummary": "Tratar la base PostgreSQL transaccional como Data Warehouse ejecutando queries analíticas con múltiples agregaciones pesadas.",
+  "activity": {
+    "type": "sort",
+    "prompt": "Clasifica cada caso de uso según el motor adecuado (OLTP vs OLAP):",
+    "buckets": [
+      "Motor OLTP (Fila)",
+      "Motor OLAP (Columna)"
+    ],
+    "items": [
+      {
+        "text": "Actualizar el saldo de un cliente tras pasar su tarjeta bancaria",
+        "bucket": 0
+      },
+      {
+        "text": "Calcular la media de compras mensuales agrupada por categoría en los últimos 5 años",
+        "bucket": 1
+      },
+      {
+        "text": "Búsqueda puntual de un pedido por su clave primaria indexada",
+        "bucket": 0
+      },
+      {
+        "text": "Escanear 50 millones de filas para calcular el ratio de churn de suscriptores",
+        "bucket": 1
+      }
+    ]
+  },
+  "flashcards": [
+    {
+      "id": "fc-u2-l1-1",
+      "front": "¿Qué significa OLTP y en qué se enfoca?",
+      "back": "Online Transaction Processing; optimizado para miles de transacciones de lectura/escritura puntuales y ACID."
+    },
+    {
+      "id": "fc-u2-l1-2",
+      "front": "¿Qué significa OLAP y en qué se enfoca?",
+      "back": "Online Analytical Processing; optimizado para agregaciones masivas y escaneos de grandes volúmenes sobre pocas columnas."
+    },
+    {
+      "id": "fc-u2-l1-3",
+      "front": "¿Por qué las bases OLTP sufren con consultas analíticas?",
+      "back": "Porque deben leer páginas completas de filas con todos sus atributos no utilizados y los bloqueos afectan a los usuarios de la app."
+    }
+  ],
+  "quickFacts": [
+    {
+      "statement": "Los motores columnares OLAP comprimen mejor los datos porque los valores contiguos comparten el mismo tipo de dato.",
+      "answer": true
+    },
+    {
+      "statement": "Una base de datos relacional OLTP normalizada (3NF) es óptima para dashboards ejecutivos directos.",
+      "answer": false
+    },
+    {
+      "statement": "Las consultas analíticas en motores OLTP pueden provocar bloqueos y timeouts en operaciones de checkout.",
+      "answer": true
+    },
+    {
+      "statement": "ClickHouse, Snowflake y DuckDB son ejemplos de motores con arquitectura columnar OLAP.",
+      "answer": true
+    }
+  ]
+}

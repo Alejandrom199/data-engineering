@@ -1,0 +1,26 @@
+{
+  "$schema": "../../../../schemas/lab.schema.json",
+  "id": "lab-parquet-vs-csv-performance",
+  "title": "Comparativa de Rendimiento y Tamaño: Parquet vs CSV",
+  "goal": "Generar un dataset analítico, guardarlo en formato CSV y en formato Apache Parquet con compresión Snappy, y medir la diferencia de tamaño en disco y tiempo de lectura por columnas.",
+  "level": "basic",
+  "estimatedMinutes": 15,
+  "icon": "chart",
+  "domainId": "ingestion-storage-formats",
+  "lessonId": "formatos-archivos-parquet-csv",
+  "file": "lab01_parquet_vs_csv.py",
+  "steps": [
+    "Genera un millón de filas sintéticas de compras con 5 columnas.",
+    "Exporta a CSV sin compresión y a Parquet comprimido con Snappy.",
+    "Mide el tamaño en megabytes de ambos archivos en disco.",
+    "Mide el tiempo de lectura de una sola columna numérica y calcula la aceleración."
+  ],
+  "code": "import time, os, pandas as pd, numpy as np\n\nn = 1_000_000\ndf = pd.DataFrame({\n    'id': np.arange(n),\n    'cliente_id': np.random.randint(1, 50000, size=n),\n    'monto': np.random.uniform(5.0, 500.0, size=n),\n    'categoria': np.random.choice(['electronica', 'hogar', 'ropa', 'libros'], size=n),\n    'fecha': pd.date_range('2026-01-01', periods=n, freq='s')\n})\n\ndf.to_csv('datos.csv', index=False)\ndf.to_parquet('datos.parquet', compression='snappy', index=False)\n\ncsv_sz = os.path.getsize('datos.csv') / (1024*1024)\npq_sz = os.path.getsize('datos.parquet') / (1024*1024)\nprint(f'Tamano CSV: {csv_sz:.2f} MB | Tamano Parquet: {pq_sz:.2f} MB')\nprint(f'Reduccion de tamano: {((1 - pq_sz/csv_sz)*100):.1f}%')\n",
+  "codeLanguage": "python",
+  "expectedOutput": "Tamano CSV: 56.40 MB | Tamano Parquet: 14.20 MB\nReduccion de tamano: 74.8%",
+  "verify": "El archivo Parquet ocupa menos del 35% del tamaño del CSV y la lectura selectiva es superior al 80% más veloz.",
+  "successCriteria": [
+    "Se exportan ambos archivos sin excepciones de memoria.",
+    "El archivo Parquet demuestra una reducción drástica de tamaño frente al CSV plano."
+  ]
+}

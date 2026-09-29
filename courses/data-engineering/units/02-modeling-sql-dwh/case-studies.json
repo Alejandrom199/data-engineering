@@ -1,0 +1,19 @@
+{
+  "$schema": "../../../../schemas/case-studies.schema.json",
+  "caseStudies": [
+    {
+      "id": "cs-u2-01",
+      "title": "La consulta de fin de mes que congeló la base de pagos",
+      "prompt": "El equipo de contabilidad ejecutó un reporte anual con agregaciones directas sobre la base PostgreSQL de pagos a las 11:00 AM en Black Friday. El checkout de la tienda se cayó. Diagnostica y plantea la solución arquitectónica.",
+      "modelAnswer": "El incidente ocurrió por acoplamiento de cargas OLTP y OLAP en la misma base física. Las consultas analíticas de agregación mantuvieron transacciones largas abiertas, saturando los buffers de memoria compartida y provocando esperas de bloqueos en cascada en las tablas transaccionales. Solución: Desacoplar la analítica mediante un pipeline de replicación lógica (o CDC) hacia un Data Warehouse o réplica analítica dedicada, impidiendo que las consultas pesadas toquen la base transaccional.",
+      "sources": []
+    },
+    {
+      "id": "cs-u2-02",
+      "title": "El reporte histórico adulterado por un UPDATE en dimensiones",
+      "prompt": "Una compañía aplicó un UPDATE directo en la tabla dim_cliente para reflejar el cambio de categoría de 500 clientes a 'Premium'. Al generar el balance anual, las ventas del año anterior aumentaron un 30% en el segmento Premium. Explica por qué ocurrió.",
+      "modelAnswer": "Se aplicó una estrategia SCD Tipo 1 (sobreescritura) en lugar de SCD Tipo 2. Al sobreescribir el atributo sin versionado histórico, todas las compras pasadas realizadas cuando esos clientes eran 'Estándar' se reasignaron retroactivamente a 'Premium', falseando el balance histórico. Solución: migrar a SCD Tipo 2 cerrando la vigencia de la versión previa e insertando una nueva fila con clave subrogada nueva para preservar la realidad histórica.",
+      "sources": []
+    }
+  ]
+}

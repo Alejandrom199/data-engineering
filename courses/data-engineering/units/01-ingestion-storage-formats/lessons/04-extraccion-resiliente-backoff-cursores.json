@@ -1,0 +1,154 @@
+{
+  "$schema": "../../../../../schemas/lesson.schema.json",
+  "id": "extraccion-resiliente-backoff-cursores",
+  "title": "Ingestión Resiliente de APIs: Paginación por Cursores y Backoff",
+  "estimatedMinutes": 12,
+  "domainIds": [
+    "ingestion-storage-formats"
+  ],
+  "topics": [
+    "paginacion-cursores",
+    "backoff-exponencial",
+    "jitter",
+    "circuit-breaker"
+  ],
+  "hook": "Un script extrae 1 millón de registros de una API con `offset=500000` y tarda 15 segundos por página hasta que la API devuelve 429 Too Many Requests y bloquea tu IP por 24 horas. ¿Cómo se diseña un extractor profesional?",
+  "concept": {
+    "blocks": [
+      {
+        "type": "heading",
+        "text": "1. Paginación por Offset vs Paginación por Cursor (Keyset)"
+      },
+      {
+        "type": "paragraph",
+        "text": "La paginación con `OFFSET` obliga a la base de datos de la API a escanear y descartar todas las filas previas. La paginación por **Cursor** usa un puntero (`after=cursor_id`), permitiendo saltos directos indexados en tiempo O(1)."
+      },
+      {
+        "type": "heading",
+        "text": "2. Backoff Exponencial con Jitter"
+      },
+      {
+        "type": "paragraph",
+        "text": "Cuando una API devuelve `429 (Rate Limit)` o `503 (Unavailable)`, reintentar inmediatamente en bucle saturará el servidor. Se debe aplicar **Backoff Exponencial** incrementando el tiempo de espera, sumado a un factor de aleatoriedad (**Jitter**) para evitar que múltiples procesos reintenten al mismo milisegundo (Thundering Herd)."
+      },
+      {
+        "type": "code",
+        "language": "python",
+        "code": "import time, random, requests\n\ndef fetch_with_backoff(url, max_retries=5):\n    base_delay = 1.0\n    for attempt in range(max_retries):\n        response = requests.get(url)\n        if response.status_code == 200:\n            return response.json()\n        elif response.status_code in (429, 500, 502, 503, 504):\n            # Backoff exponencial con Jitter completo\n            sleep_time = (base_delay * (2 ** attempt)) + random.uniform(0, 1)\n            print(f'Reintentando en {sleep_time:.2f}s...')\n            time.sleep(sleep_time)\n        else:\n            response.raise_for_status()\n    raise Exception('Límite de reintentos excedido')",
+        "caption": "Patrón de reintentos con Backoff Exponencial y Jitter."
+      }
+    ]
+  },
+  "keyPoints": [
+    "La paginación por cursor es mucho más rápida y estable que OFFSET para grandes volúmenes de datos.",
+    "Ante errores 429 y 5xx, el backoff exponencial evita saturar servicios externos.",
+    "El Jitter desincroniza clientes concurrentes evitando el efecto de 'rebaño atronador' (Thundering Herd)."
+  ],
+  "terms": [
+    {
+      "term": "Cursor Pagination",
+      "translation": "Paginación por Cursor",
+      "definition": "Mecanismo de paginación que utiliza el identificador único del último registro obtenido para solicitar la página siguiente sin costo de OFFSET."
+    },
+    {
+      "term": "Jitter",
+      "translation": "Fluctuación Aleatoria",
+      "definition": "Introducción deliberada de una variación aleatoria en los tiempos de espera para evitar colisiones entre procesos concurrentes."
+    }
+  ],
+  "diagram": {
+    "type": "flow",
+    "nodes": [
+      {
+        "icon": "route",
+        "label": "Petición HTTP",
+        "sub": "etapa",
+        "detail": "Petición HTTP",
+        "kind": "default"
+      },
+      {
+        "icon": "alert",
+        "label": "HTTP 429 Rate Limit",
+        "sub": "etapa",
+        "detail": "HTTP 429 Rate Limit",
+        "kind": "default"
+      },
+      {
+        "icon": "clock",
+        "label": "Backoff + Jitter",
+        "sub": "etapa",
+        "detail": "Backoff + Jitter",
+        "kind": "default"
+      }
+    ]
+  },
+  "traps": [
+    {
+      "option": "Ante un código de error HTTP 400 o 401 se debe reintentar con backoff exponencial.",
+      "reason": "Los errores 400 (Bad Request) y 401 (Unauthorized) son errores de cliente deterministas: reintentar la misma petición sin corregir el token o payload fallará siempre."
+    }
+  ],
+  "checkQuestionId": "q-u1-04",
+  "trapSummary": "Reintentar peticiones inmediatamente sin pausa (thundering herd) o paginar con offset fijo sobre colecciones mutables.",
+  "activity": {
+    "type": "sort",
+    "prompt": "Distingue entre técnicas resilientes de extracción de APIs y prácticas frágiles:",
+    "buckets": [
+      "Práctica Resiliente",
+      "Práctica Frágil"
+    ],
+    "items": [
+      {
+        "text": "Paginación basada en cursor opaco transmitido por el servidor",
+        "bucket": 0
+      },
+      {
+        "text": "Paginación por offset/limit numérico que sufre saltos al insertarse nuevos registros",
+        "bucket": 1
+      },
+      {
+        "text": "Backoff exponencial con adición de factor aleatorio (Jitter)",
+        "bucket": 0
+      },
+      {
+        "text": "Reintentos en bucle sin espera al recibir código HTTP 429 Too Many Requests",
+        "bucket": 1
+      }
+    ]
+  },
+  "flashcards": [
+    {
+      "id": "fc-u1-l4-1",
+      "front": "¿Por qué es indispensable añadir Jitter al Backoff Exponencial?",
+      "back": "Para dispersar aleatoriamente los reintentos y evitar que miles de clientes sincronizados saturen la API en oleadas repetidas."
+    },
+    {
+      "id": "fc-u1-l4-2",
+      "front": "¿Qué ventaja tiene la paginación por Cursor frente a Offset/Limit?",
+      "back": "Evita registros duplicados u omitidos cuando se insertan nuevas filas mientras el pipeline está paginando."
+    },
+    {
+      "id": "fc-u1-l4-3",
+      "front": "¿Qué código de estado HTTP indica que se excedió la cuota de peticiones?",
+      "back": "HTTP 429 Too Many Requests."
+    }
+  ],
+  "quickFacts": [
+    {
+      "statement": "El header Retry-After en una respuesta 429 indica cuántos segundos esperar antes de reintentar.",
+      "answer": true
+    },
+    {
+      "statement": "La paginación con offset es más eficiente que la de cursor en tablas con millones de filas.",
+      "answer": false
+    },
+    {
+      "statement": "Un Circuit Breaker previene seguir enviando peticiones a un servicio que está completamente caído.",
+      "answer": true
+    },
+    {
+      "statement": "El jitter consiste en duplicar exactamente el tiempo de espera en cada reintento.",
+      "answer": false
+    }
+  ]
+}

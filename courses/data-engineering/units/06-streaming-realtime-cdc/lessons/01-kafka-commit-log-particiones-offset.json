@@ -1,0 +1,211 @@
+{
+  "$schema": "../../../../../schemas/lesson.schema.json",
+  "id": "kafka-commit-log-particiones-offset",
+  "title": "Apache Kafka: El Commit Log Distribuido, Particiones y Consumidores",
+  "estimatedMinutes": 12,
+  "domainIds": [
+    "streaming-realtime-cdc"
+  ],
+  "topics": [
+    "kafka-arquitectura",
+    "commit-log-distribuido",
+    "particiones-paralelismo",
+    "consumer-groups-offset"
+  ],
+  "hook": "Una cola tradicional de mensajes como RabbitMQ borra cada mensaje en cuanto un consumidor lo procesa. Si necesitas que Finanzas, Prevención de Fraude y Auditoría lean la misma transacción a ritmos distintos, la cola colapsa. ¿Por qué el commit log inmutable de Kafka cambió las reglas del juego?",
+  "concept": {
+    "blocks": [
+      {
+        "type": "heading",
+        "text": "1. Kafka no es una Cola: Es un Commit Log Distribuido"
+      },
+      {
+        "type": "paragraph",
+        "text": "A diferencia de las colas de mensajes destructivas tradicionales, Apache Kafka está diseñado como un **registro de solo anexado (append-only commit log)** inmutable y particionado. Los mensajes permanecen guardados en el broker según una política de retención temporal (ej. 7 días o infinito), permitiendo que múltiples sistemas lean el mismo flujo a su propio ritmo sin interferir entre sí."
+      },
+      {
+        "type": "table",
+        "headers": [
+          "Concepto",
+          "Definición",
+          "Regla de Escalabilidad"
+        ],
+        "rows": [
+          [
+            "Topic",
+            "Categoría o flujo lógico de datos (ej. `pedidos_completados`)",
+            "Un cluster puede albergar miles de tópicos independientes"
+          ],
+          [
+            "Partición",
+            "Unidad física de paralelismo y orden dentro de un tópico",
+            "El orden estricto de eventos se garantiza únicamente DENTRO de una partición"
+          ],
+          [
+            "Offset",
+            "Identificador entero secuencial e inmutable asignado a cada mensaje",
+            "Avanza monótonamente (0, 1, 2, ... N)"
+          ],
+          [
+            "Consumer Group",
+            "Conjunto de instancias de consumidores que cooperan para procesar un tópico",
+            "Cada partición es consumida por exactamente UN consumidor activo del grupo"
+          ]
+        ]
+      },
+      {
+        "type": "heading",
+        "text": "2. La Regla del Paralelismo en Consumer Groups"
+      },
+      {
+        "type": "paragraph",
+        "text": "Si un tópico tiene **4 particiones**, tu Consumer Group puede tener hasta 4 consumidores procesando en paralelo. Si agregas un quinto consumidor al grupo, ese quinto consumidor quedará **completamente ocioso** (idle), porque Kafka nunca asigna una misma partición a dos consumidores del mismo grupo simultáneamente para evitar lecturas duplicadas desordenadas."
+      },
+      {
+        "type": "callout",
+        "text": "Diseño de la Clave (Message Key): Los mensajes con la misma clave (ej. id_cliente) siempre se envían a la misma partición mediante una función hash (murmur2), asegurando orden causal para ese cliente.",
+        "tone": "warning"
+      }
+    ]
+  },
+  "diagram": {
+    "type": "flow",
+    "nodes": [
+      {
+        "icon": "bolt",
+        "label": "Producer (Key: C10)",
+        "sub": "etapa",
+        "detail": "Producer (Key: C10)",
+        "kind": "default"
+      },
+      {
+        "icon": "layers",
+        "label": "Topic: Partición 0",
+        "sub": "etapa",
+        "detail": "Topic: Partición 0",
+        "kind": "default"
+      },
+      {
+        "icon": "layers",
+        "label": "Topic: Partición 1",
+        "sub": "etapa",
+        "detail": "Topic: Partición 1",
+        "kind": "default"
+      },
+      {
+        "icon": "shield",
+        "label": "Consumer Group: Fraude",
+        "sub": "etapa",
+        "detail": "Consumer Group: Fraude",
+        "kind": "default"
+      },
+      {
+        "icon": "server",
+        "label": "Consumer Group: DWH",
+        "sub": "etapa",
+        "detail": "Consumer Group: DWH",
+        "kind": "default"
+      }
+    ]
+  },
+  "terms": [
+    {
+      "term": "Commit Log",
+      "definition": "Estructura de datos persistente y de solo anexado que conserva registros ordenados cronológicamente sin borrarlos tras su lectura.",
+      "translation": "Commit Log"
+    },
+    {
+      "term": "Topic Partition",
+      "definition": "Subdivisión ordenada e inmutable de un tópico de Kafka que actúa como la unidad fundamental de escalamiento y paralelismo.",
+      "translation": "Topic Partition"
+    },
+    {
+      "term": "Consumer Offset",
+      "definition": "Puntero que registra la posición del último mensaje procesado y confirmado por un grupo de consumidores sobre una partición.",
+      "translation": "Consumer Offset"
+    },
+    {
+      "term": "Consumer Lag",
+      "definition": "Diferencia numérica entre el último mensaje producido en una partición y el último mensaje consumido por una aplicación.",
+      "translation": "Consumer Lag"
+    }
+  ],
+  "traps": [
+    {
+      "option": "Añadir 20 pods de un servicio consumidor sobre un tópico que solo tiene 4 particiones esperando acelerar el consumo 5x.",
+      "reason": "16 de los pods quedarán completamente ociosos sin consumir ningún mensaje porque una partición solo se asigna a un miembro del grupo."
+    },
+    {
+      "option": "Publicar mensajes sin clave (null key) cuando el orden de eventos por usuario es crítico.",
+      "reason": "Kafka distribuirá los mensajes por round-robin entre todas las particiones, rompiendo la secuencia cronológica de ese usuario."
+    }
+  ],
+  "keyPoints": [
+    "Kafka conserva los mensajes en disco de forma inmutable, permitiendo múltiples consumidores a velocidades distintas.",
+    "El número de particiones define el techo máximo de paralelismo para un grupo de consumidores.",
+    "El orden temporal garantizado en Kafka es estrictamente local a nivel de partición, no global entre tópicos."
+  ],
+  "checkQuestionId": "q-u6-01",
+  "trapSummary": "Desplegar 10 pods consumidores sobre un tópico de 4 particiones, esperando que consuman más rápido cuando 6 están ociosos.",
+  "activity": {
+    "type": "sort",
+    "prompt": "Clasifica los componentes de la arquitectura de Apache Kafka:",
+    "buckets": [
+      "Estructura del Broker / Tópico",
+      "Mecanismo del Consumidor"
+    ],
+    "items": [
+      {
+        "text": "Partición: unidad física inmutable de orden y paralelismo",
+        "bucket": 0
+      },
+      {
+        "text": "Consumer Lag: retraso medido en cantidad de mensajes no procesados",
+        "bucket": 1
+      },
+      {
+        "text": "Commit Log en disco con política de retención temporal",
+        "bucket": 0
+      },
+      {
+        "text": "Offset: puntero que marca la posición del último mensaje confirmado",
+        "bucket": 1
+      }
+    ]
+  },
+  "flashcards": [
+    {
+      "id": "fc-u6-l1-1",
+      "front": "¿Por qué Kafka no elimina los mensajes tras su lectura?",
+      "back": "Porque es un commit log persistente de solo anexado; los mensajes se retienen por tiempo o tamaño permitiendo múltiples lectores."
+    },
+    {
+      "id": "fc-u6-l1-2",
+      "front": "¿Cuál es el paralelismo máximo dentro de un mismo Consumer Group?",
+      "back": "El número total de particiones que tenga el tópico asignado."
+    },
+    {
+      "id": "fc-u6-l1-3",
+      "front": "¿Cómo asegura Kafka que los eventos de un mismo cliente se procesen en orden?",
+      "back": "Asignando la clave del cliente (Message Key) para que el hash siempre dirija sus eventos a la misma partición."
+    }
+  ],
+  "quickFacts": [
+    {
+      "statement": "El orden cronológico en Kafka se garantiza de forma estricta dentro de cada partición, no entre particiones.",
+      "answer": true
+    },
+    {
+      "statement": "Un tópico con 3 particiones puede asignar activamente trabajo a 10 consumidores del mismo grupo.",
+      "answer": false
+    },
+    {
+      "statement": "El Consumer Lag alto indica que la aplicación consumidora no da abasto con la tasa de producción.",
+      "answer": true
+    },
+    {
+      "statement": "Los mensajes sin clave (null key) se distribuyen por round-robin entre las particiones disponibles.",
+      "answer": true
+    }
+  ]
+}

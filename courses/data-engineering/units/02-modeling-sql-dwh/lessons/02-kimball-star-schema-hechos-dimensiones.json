@@ -1,0 +1,174 @@
+{
+  "$schema": "../../../../../schemas/lesson.schema.json",
+  "id": "kimball-star-schema-hechos-dimensiones",
+  "title": "Modelado Dimensional de Kimball: Tablas de Hechos y Dimensiones",
+  "estimatedMinutes": 14,
+  "domainIds": [
+    "relational-modeling-sql-dwh"
+  ],
+  "topics": [
+    "star-schema",
+    "tablas-hechos",
+    "tablas-dimensiones",
+    "claves-subrogadas"
+  ],
+  "hook": "¿Por qué un Data Warehouse casi nunca usa la Tercera Forma Normal (3NF) que nos enseñan en la universidad? Porque en analítica masiva, hacer 15 JOINs relacionales para saber cuánto vendió una categoría de producto tarda 20 minutos y agota la CPU. La metodología de Ralph Kimball resuelve este cuello de botella.",
+  "concept": {
+    "blocks": [
+      {
+        "type": "heading",
+        "text": "1. El Esquema en Estrella (Star Schema)"
+      },
+      {
+        "type": "paragraph",
+        "text": "El modelado dimensional desnormaliza intencionalmente los datos para minimizar los JOINs en tiempo de consulta. La estructura se divide en dos tipos de tablas:"
+      },
+      {
+        "type": "list",
+        "style": "bullet",
+        "items": [
+          "**Tablas de Hechos (Fact Tables):** Almacenan mediciones numéricas de eventos de negocio ocurridos en un punto del tiempo (ej. ventas, clics, transacciones). Tienen muchas filas (millones o miles de millones) y pocas columnas (claves foráneas y métricas cuantitativas).",
+          "**Tablas de Dimensiones (Dimension Tables):** Proveen el contexto descriptivo de negocio ('quién', 'dónde', 'qué', 'cuándo'). Tienen menos filas y muchas columnas ricas en texto (ej. nombre del cliente, categoría del producto, región)."
+        ]
+      },
+      {
+        "type": "heading",
+        "text": "2. Claves Subrogadas vs Claves Naturales"
+      },
+      {
+        "type": "paragraph",
+        "text": "Las tablas de dimensiones NUNCA deben usar la clave primaria del sistema origen (Clave Natural o de Negocio) como clave primaria del warehouse. Deben usar una **Clave Subrogada** (Surrogate Key), típicamente un entero autoincremental sin significado comercial."
+      },
+      {
+        "type": "callout",
+        "tone": "exam",
+        "title": "Por qué la clave subrogada es obligatoria",
+        "text": "(1) Aísla al warehouse de cambios de formato en los sistemas origen; (2) Permite almacenar múltiples versiones del mismo cliente a lo largo del tiempo (SCD2); (3) Las claves enteras de 4 u 8 bytes aceleran los JOINs drásticamente frente a UUIDs de texto."
+      }
+    ]
+  },
+  "keyPoints": [
+    "El esquema en estrella reduce los JOINs al conectar directamente una tabla central de hechos con tablas de dimensiones desnormalizadas.",
+    "Las tablas de hechos contienen métricas aditivas y claves foráneas; las dimensiones contienen atributos descriptivos.",
+    "Las claves subrogadas (enteros sintéticos) son obligatorias para independizar el warehouse y permitir historial."
+  ],
+  "terms": [
+    {
+      "term": "Fact Table",
+      "translation": "Tabla de Hechos",
+      "definition": "Tabla central de un modelo dimensional que almacena métricas cuantitativas generadas por eventos del negocio."
+    },
+    {
+      "term": "Dimension Table",
+      "translation": "Tabla de Dimensión",
+      "definition": "Tabla que almacena atributos contextuales y descriptivos utilizados para filtrar, agrupar y segmentar hechos analíticos."
+    },
+    {
+      "term": "Surrogate Key",
+      "translation": "Clave Subrogada",
+      "definition": "Identificador entero sintético asignado por el Data Warehouse que actúa como clave primaria independiente de la clave natural del sistema origen."
+    }
+  ],
+  "diagram": {
+    "type": "flow",
+    "nodes": [
+      {
+        "icon": "layers",
+        "label": "Fact Ventas",
+        "sub": "etapa",
+        "detail": "Fact Ventas",
+        "kind": "default"
+      },
+      {
+        "icon": "users",
+        "label": "Dim Cliente",
+        "sub": "etapa",
+        "detail": "Dim Cliente",
+        "kind": "default"
+      },
+      {
+        "icon": "bag",
+        "label": "Dim Producto",
+        "sub": "etapa",
+        "detail": "Dim Producto",
+        "kind": "default"
+      },
+      {
+        "icon": "calendar",
+        "label": "Dim Tiempo",
+        "sub": "etapa",
+        "detail": "Dim Tiempo",
+        "kind": "default"
+      }
+    ]
+  },
+  "traps": [
+    {
+      "option": "Normalizar al máximo las dimensiones (Esquema Snowflake) siempre mejora el rendimiento analítico de consultas.",
+      "reason": "La normalización en copo de nieve (Snowflake) ahorra poco espacio en disco y obliga a ejecutar JOINs adicionales entre dimensiones, ralentizando las consultas de los usuarios."
+    }
+  ],
+  "checkQuestionId": "q-u2-02",
+  "trapSummary": "Usar claves naturales del sistema de origen en la tabla de hechos en vez de claves subrogadas sintéticas de la dimensión.",
+  "activity": {
+    "type": "sort",
+    "prompt": "Clasifica los siguientes elementos del modelado de Kimball:",
+    "buckets": [
+      "Tabla de Hechos (Fact)",
+      "Tabla de Dimensión (Dim)"
+    ],
+    "items": [
+      {
+        "text": "Almacena métricas numéricas aditivas (importe_total, cantidad_items, descuento)",
+        "bucket": 0
+      },
+      {
+        "text": "Contiene atributos descriptivos y textuales de filtrado (nombre, región, categoría)",
+        "bucket": 1
+      },
+      {
+        "text": "Utiliza Claves Subrogadas (Surrogate Keys) enteras para el grano de negocio",
+        "bucket": 1
+      },
+      {
+        "text": "Crece rápidamente con millones de registros transaccionales diarios",
+        "bucket": 0
+      }
+    ]
+  },
+  "flashcards": [
+    {
+      "id": "fc-u2-l2-1",
+      "front": "¿Qué es el Grano (Grain) en una tabla de hechos de Kimball?",
+      "back": "El nivel exacto de detalle que representa una sola fila de la tabla de hechos (ej. una línea de ticket de compra)."
+    },
+    {
+      "id": "fc-u2-l2-2",
+      "front": "¿Qué es una Clave Subrogada (Surrogate Key)?",
+      "back": "Un entero secuencial sintético asignado por el DWH independiente de las claves del sistema operacional."
+    },
+    {
+      "id": "fc-u2-l2-3",
+      "front": "¿Qué es una Dimensión Conformada?",
+      "back": "Una dimensión coherente y única que es compartida por múltiples tablas de hechos en el Data Warehouse."
+    }
+  ],
+  "quickFacts": [
+    {
+      "statement": "Un Esquema en Estrella desnormaliza intencionalmente las dimensiones para simplificar las consultas analíticas y acelerar joins.",
+      "answer": true
+    },
+    {
+      "statement": "El Esquema Copo de Nieve (Snowflake) normaliza totalmente las dimensiones pero complica los JOINs.",
+      "answer": true
+    },
+    {
+      "statement": "Las métricas no aditivas pueden sumarse libremente a través de todas las dimensiones sin error.",
+      "answer": false
+    },
+    {
+      "statement": "Las claves subrogadas protegen al Data Warehouse de cambios o reciclaje de IDs en los sistemas origen.",
+      "answer": true
+    }
+  ]
+}

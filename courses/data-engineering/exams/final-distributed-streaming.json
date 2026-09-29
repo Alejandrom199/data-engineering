@@ -1,18 +1,20 @@
 {
   "$schema": "../../../schemas/exam.schema.json",
   "id": "final-distributed-streaming",
-  "title": "Examen Final: Big Data, DataOps y Streaming en Tiempo Real",
-  "subtitle": "Examen de maestría para los Bloques 4, 5 y 6 (Sistemas distribuidos, Spark, Airflow y Kafka)",
+  "title": "Examen Final: Lakehouse, DataOps y Streaming en Tiempo Real",
+  "subtitle": "Examen de certificación para los Bloques 4, 5 y 6 (Delta Lake, Airflow y Apache Kafka)",
   "badge": "FIN",
-  "durationMinutes": 120,
-  "langs": ["es"],
+  "durationMinutes": 90,
+  "langs": [
+    "es"
+  ],
   "selection": {
     "mode": "pool",
     "domainIds": [
-      "distributed-systems-bigdata",
+      "lakehouse-acid-tables",
       "orchestration-quality-dataops",
-      "streaming-real-time"
+      "streaming-realtime-cdc"
     ],
-    "count": 30
+    "count": 12
   }
 }

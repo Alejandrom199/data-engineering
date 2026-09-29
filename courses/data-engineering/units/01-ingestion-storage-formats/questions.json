@@ -1,0 +1,137 @@
+{
+  "$schema": "../../../../schemas/questions.schema.json",
+  "questions": [
+    {
+      "id": "q-u1-01",
+      "type": "single",
+      "domainId": "ingestion-storage-formats",
+      "skill": "Formatos de Archivo y Compresión (Parquet/Snappy)",
+      "topic": "formatos-columnares",
+      "stem": "¿Cuál es la ventaja principal de un formato de almacenamiento columnar como Apache Parquet al consultar pocas columnas de una tabla ancha?",
+      "options": [
+        {
+          "key": "A",
+          "text": "Permite inserciones individuales de filas más rápidas que una base transaccional."
+        },
+        {
+          "key": "B",
+          "text": "Lee exclusivamente los bytes de las columnas solicitadas, reduciendo drásticamente la transferencia de I/O desde el disco."
+        },
+        {
+          "key": "C",
+          "text": "Elimina la necesidad de definir tipos de datos para las columnas."
+        },
+        {
+          "key": "D",
+          "text": "Permite editar registros existentes sin reescribir bloques."
+        }
+      ],
+      "correct": [
+        "B"
+      ],
+      "explanation": "En un formato columnar, los datos de cada columna se guardan de forma contigua. Si una consulta solo necesita 2 de 50 columnas, el motor omite la lectura de las otras 48, ahorrando hasta un 95% de I/O. Las otras opciones son falsas porque Parquet es de escritura en batch (no OLTP), requiere tipado estricto e inmutable.",
+      "sources": [
+        "https://parquet.apache.org/docs/"
+      ]
+    },
+    {
+      "id": "q-u1-02",
+      "type": "single",
+      "domainId": "ingestion-storage-formats",
+      "skill": "Object Storage y Particionamiento (S3/GCS)",
+      "topic": "small-file-problem",
+      "stem": "¿Por qué tener millones de archivos pequeños de pocos kilobytes en un bucket S3 perjudica gravemente el rendimiento analítico?",
+      "options": [
+        {
+          "key": "A",
+          "text": "Porque S3 no soporta más de 10,000 archivos por bucket."
+        },
+        {
+          "key": "B",
+          "text": "Porque la compresión Snappy no funciona en archivos de menos de 1 MB."
+        },
+        {
+          "key": "C",
+          "text": "Porque la sobrecarga de listar metadatos y realizar llamadas HTTP GET individuales domina el tiempo total de consulta."
+        },
+        {
+          "key": "D",
+          "text": "Porque los archivos pequeños corrompen automáticamente el footer de Parquet."
+        }
+      ],
+      "correct": [
+        "C"
+      ],
+      "explanation": "El overhead de red y metadatos (listado HTTP, establecimiento de conexiones TLS y lectura de headers) se vuelve órdenes de magnitud más lento que el procesamiento de los datos reales. La solución estándar es compactar en archivos de 128 MB a 512 MB.",
+      "sources": [
+        "https://aws.amazon.com/blogs/big-data/top-10-performance-tuning-tips-for-amazon-athena/"
+      ]
+    },
+    {
+      "id": "q-u1-03",
+      "type": "single",
+      "domainId": "ingestion-storage-formats",
+      "skill": "Ingestión Resiliente y Optimización en Memoria",
+      "topic": "generadores-yield",
+      "stem": "¿Qué propiedad clave aporta una función generadora con `yield` en Python al procesar un archivo de 50 GB de logs?",
+      "options": [
+        {
+          "key": "A",
+          "text": "Acelera el cálculo ejecutándolo automáticamente en la GPU."
+        },
+        {
+          "key": "B",
+          "text": "Mantiene el uso de memoria RAM en O(1) al emitir un registro a la vez bajo demanda sin acumular la colección completa."
+        },
+        {
+          "key": "C",
+          "text": "Comprime automáticamente el archivo en formato gzip durante la lectura."
+        },
+        {
+          "key": "D",
+          "text": "Garantiza la concurrencia multihilo sin el bloqueo del GIL."
+        }
+      ],
+      "correct": [
+        "B"
+      ],
+      "explanation": "Un generador evalúa perezosamente cada elemento bajo el protocolo de iteración: en memoria solo reside el elemento actual en procesamiento, logrando un uso de memoria constante e independiente del tamaño del archivo.",
+      "sources": [
+        "https://docs.python.org/3/howto/functional.html#generators"
+      ]
+    },
+    {
+      "id": "q-u1-04",
+      "type": "single",
+      "domainId": "ingestion-storage-formats",
+      "skill": "Ingestión Resiliente y Optimización en Memoria",
+      "topic": "backoff-exponencial",
+      "stem": "¿Por qué es fundamental añadir un factor de aleatoriedad (Jitter) a un algoritmo de Backoff Exponencial al extraer datos de APIs?",
+      "options": [
+        {
+          "key": "A",
+          "text": "Para cifrar el payload de la petición HTTP."
+        },
+        {
+          "key": "B",
+          "text": "Para evitar que múltiples clientes que fallaron al mismo tiempo vuelvan a reintentar simultáneamente en oleadas sincronizadas."
+        },
+        {
+          "key": "C",
+          "text": "Para forzar a la API a omitir la validación de certificados SSL."
+        },
+        {
+          "key": "D",
+          "text": "Para reducir el tiempo total de procesamiento a cero."
+        }
+      ],
+      "correct": [
+        "B"
+      ],
+      "explanation": "Sin jitter, todos los procesos que fallaron con 429 reintentan exactamente a los 2s, 4s, 8s, provocando picos repetidos de saturación (Thundering Herd). El jitter distribuye los reintentos uniformemente en el tiempo.",
+      "sources": [
+        "https://aws.amazon.com/blogs/architecture/exponential-backoff-and-jitter/"
+      ]
+    }
+  ]
+}

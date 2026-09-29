@@ -1,0 +1,33 @@
+{
+  "$schema": "../../../../schemas/project.schema.json",
+  "title": "Pipeline de Ingestión Masiva de Logs hacia Almacenamiento Columnar en S3",
+  "context": "Una plataforma fintech procesa 50 millones de eventos diarios emitidos en formato JSON crudo por microservicios. El almacenamiento actual en JSON colapsa las consultas de Athena y genera una factura de $3,000 USD mensuales en S3 por escaneo de petabytes. Diseñarás e implementarás un pipeline de ingesta resiliente que convierta el flujo a Apache Parquet particionado.",
+  "requirements": [
+    "Ingerir el flujo de eventos utilizando generadores en Python para no superar 50 MB de memoria RAM.",
+    "Validar y estructurar el esquema agregando columnas temporales derivadas (year, month, day).",
+    "Guardar el output en Apache Parquet comprimido con Snappy organizado en prefijos Hive.",
+    "Demostrar una reducción de almacenamiento superior al 70% frente al JSON original."
+  ],
+  "deliverables": [
+    "Script del pipeline de ingestión y conversión en streaming.",
+    "Módulo de exportación con particionamiento Hive.",
+    "Reporte de comparación de espacio y tiempos de consulta."
+  ],
+  "rubric": [
+    {
+      "criterion": "Eficiencia de Memoria",
+      "weight": 35,
+      "description": "El pipeline mantiene un uso de memoria constante O(1) independientemente del volumen de entrada."
+    },
+    {
+      "criterion": "Estructura de Almacenamiento",
+      "weight": 35,
+      "description": "El formato Parquet está correctamente generado con compresión Snappy y particionamiento Hive."
+    },
+    {
+      "criterion": "Resiliencia y Manejo de Errores",
+      "weight": 30,
+      "description": "Se manejan registros malformados sin interrumpir el proceso de streaming."
+    }
+  ]
+}

@@ -1,0 +1,184 @@
+{
+  "$schema": "../../../../../schemas/lesson.schema.json",
+  "id": "dimensiones-cambio-lento-scd2",
+  "title": "Dimensiones de Cambio Lento (SCD Tipo 2): Trazabilidad Histórica",
+  "estimatedMinutes": 12,
+  "domainIds": [
+    "relational-modeling-sql-dwh"
+  ],
+  "topics": [
+    "scd-tipo-2",
+    "historicos-dimensiones",
+    "vigencia-fechas",
+    "is-current"
+  ],
+  "hook": "Un cliente VIP se muda de Madrid a Barcelona en junio. Si el Data Warehouse actualiza simplemente la columna ciudad con un UPDATE (SCD Tipo 1), las ventas históricas de enero a mayo ahora aparecerán atribuidas a Barcelona, alterando las comisiones comerciales del primer trimestre. ¿Cómo se resuelve?",
+  "concept": {
+    "blocks": [
+      {
+        "type": "heading",
+        "text": "1. Tipos de Dimensiones de Cambio Lento"
+      },
+      {
+        "type": "paragraph",
+        "text": "En el mundo real los atributos de las entidades cambian con el tiempo (dirección de un cliente, precio de lista de un producto, puesto de un empleado). Existen tres enfoques clásicos de gestión:"
+      },
+      {
+        "type": "table",
+        "headers": [
+          "Tipo SCD",
+          "Estrategia",
+          "Impacto Histórico",
+          "Caso de uso"
+        ],
+        "rows": [
+          [
+            "SCD Tipo 1",
+            "Sobreescribe el valor existente (UPDATE)",
+            "Pierde el historial pasado por completo",
+            "Corrección de errores tipográficos en nombres"
+          ],
+          [
+            "SCD Tipo 2",
+            "Inserta una nueva fila con fechas de validez",
+            "Conserva el historial completo de forma inmutable",
+            "Cambios de categoría, dirección o nivel VIP"
+          ],
+          [
+            "SCD Tipo 3",
+            "Agrega columnas 'anterior' y 'actual'",
+            "Solo recuerda un cambio previo",
+            "Casos muy limitados de doble comparación"
+          ]
+        ],
+        "caption": "Estrategias de gestión de cambios en dimensiones según Kimball."
+      },
+      {
+        "type": "heading",
+        "text": "2. Estructura de Columnas en SCD Tipo 2"
+      },
+      {
+        "type": "paragraph",
+        "text": "Una tabla de dimensión implementando SCD Tipo 2 requiere obligatoriamente cuatro columnas técnicas de control:"
+      },
+      {
+        "type": "code",
+        "language": "sql",
+        "code": "SELECT \n    cliente_sk,          -- Clave subrogada unica por version\n    cliente_id,          -- Clave natural del sistema origen\n    nombre,\n    ciudad,\n    valid_from,          -- Timestamp exacto en que entro en vigencia\n    valid_to,            -- Timestamp de expiracion (o '9999-12-31' si esta activo)\n    is_current           -- Booleano TRUE si es el registro vigente actual\nFROM dim_cliente\nWHERE cliente_id = 1042;",
+        "caption": "Estructura de trazabilidad histórica en dimensión SCD Tipo 2."
+      }
+    ]
+  },
+  "keyPoints": [
+    "SCD Tipo 1 sobreescribe y pierde el pasado; SCD Tipo 2 inserta nuevas filas preservando la verdad histórica.",
+    "SCD Tipo 2 exige columnas de control: `valid_from`, `valid_to` y bandera `is_current`.",
+    "Las compras históricas se vinculan con la clave subrogada correspondiente a la versión vigente en el momento exacto de la compra."
+  ],
+  "terms": [
+    {
+      "term": "SCD Type 2",
+      "translation": "Dimensión de Cambio Lento Tipo 2",
+      "definition": "Patrón de modelado que preserva el historial completo insertando una nueva fila con fechas de vigencia cada vez que un atributo cambia."
+    },
+    {
+      "term": "Point-in-Time Query",
+      "translation": "Consulta en Punto Temporal",
+      "definition": "Consulta analítica que evalúa el estado exacto de una entidad en una fecha histórica filtrando entre valid_from y valid_to."
+    }
+  ],
+  "diagram": {
+    "type": "flow",
+    "nodes": [
+      {
+        "icon": "user",
+        "label": "Versión 1: Madrid",
+        "sub": "etapa",
+        "detail": "Versión 1: Madrid",
+        "kind": "default"
+      },
+      {
+        "icon": "route",
+        "label": "Evento de Mudanza",
+        "sub": "etapa",
+        "detail": "Evento de Mudanza",
+        "kind": "default"
+      },
+      {
+        "icon": "check",
+        "label": "Versión 2: Barcelona",
+        "sub": "etapa",
+        "detail": "Versión 2: Barcelona",
+        "kind": "default"
+      }
+    ]
+  },
+  "traps": [
+    {
+      "option": "Para saber la versión actual de un cliente en SCD 2 siempre se debe buscar con MAX(valid_from) en lugar de una bandera is_current.",
+      "reason": "Calcular MAX(valid_from) por cada cliente en tablas de millones de registros obliga a realizar agrupaciones y ordenamientos lentos; la bandera booleana indexada is_current = TRUE permite accesos instantáneos O(1)."
+    }
+  ],
+  "checkQuestionId": "q-u2-03",
+  "trapSummary": "Aplicar SCD Tipo 1 (sobrescritura) sobre atributos que afectan balances históricos, falseando reportes pasados.",
+  "activity": {
+    "type": "sort",
+    "prompt": "Identifica qué tipo de SCD corresponde a cada comportamiento:",
+    "buckets": [
+      "SCD Tipo 1 (Sobrescritura)",
+      "SCD Tipo 2 (Versionado Histórico)"
+    ],
+    "items": [
+      {
+        "text": "Corrige un error ortográfico en el apellido de un cliente sin preservar el error",
+        "bucket": 0
+      },
+      {
+        "text": "Cierra la vigencia de la fila previa con fecha fin e inserta una fila nueva con clave subrogada nueva",
+        "bucket": 1
+      },
+      {
+        "text": "Preserva la fidelidad histórica de compras realizadas cuando el cliente vivía en otra ciudad",
+        "bucket": 1
+      },
+      {
+        "text": "Reasigna retroactivamente todas las ventas del año anterior a la nueva dirección del cliente",
+        "bucket": 0
+      }
+    ]
+  },
+  "flashcards": [
+    {
+      "id": "fc-u2-l3-1",
+      "front": "¿Cuáles son las 3 columnas de control estándar en una dimensión SCD Tipo 2?",
+      "back": "valid_from (fecha inicio), valid_to (fecha fin) e is_current (bandera de versión activa)."
+    },
+    {
+      "id": "fc-u2-l3-2",
+      "front": "¿Qué valor se suele asignar a valid_to en el registro activo de un SCD2?",
+      "back": "NULL o una fecha lejana centinela como '9999-12-31'."
+    },
+    {
+      "id": "fc-u2-l3-3",
+      "front": "¿Qué problema grave provoca aplicar SCD Tipo 1 en un cambio de categoría de cliente?",
+      "back": "Reclasifica retroactivamente todas las ventas históricas de ese cliente, distorsionando balances de años anteriores."
+    }
+  ],
+  "quickFacts": [
+    {
+      "statement": "En SCD Tipo 2, una misma entidad de negocio puede tener múltiples registros en la tabla de dimensión.",
+      "answer": true
+    },
+    {
+      "statement": "SCD Tipo 0 permite modificar los datos libremente en cualquier momento.",
+      "answer": false
+    },
+    {
+      "statement": "La columna is_current permite filtrar la foto actual sin requerir subconsultas MAX(valid_to).",
+      "answer": true
+    },
+    {
+      "statement": "La tabla de hechos vincula sus transacciones con la clave subrogada de la dimensión que estaba vigente en la fecha del hecho.",
+      "answer": true
+    }
+  ]
+}

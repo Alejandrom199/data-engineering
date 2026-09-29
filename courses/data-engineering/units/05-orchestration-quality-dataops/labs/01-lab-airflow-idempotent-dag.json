@@ -1,0 +1,26 @@
+{
+  "$schema": "../../../../schemas/lab.schema.json",
+  "id": "lab-airflow-idempotent-dag",
+  "title": "Construcción de DAG Idempotente con Parámetros Contextuales",
+  "goal": "Diseñar un DAG de Airflow que utilice variables de contexto (data_interval_start) para garantizar que los backfills históricos no dupliquen datos.",
+  "level": "intermediate",
+  "estimatedMinutes": 15,
+  "icon": "route",
+  "domainId": "orchestration-quality-dataops",
+  "lessonId": "airflow-principios-dags-idempotencia",
+  "file": "lab01_idempotent_dag.py",
+  "steps": [
+    "Crea la definición de un DAG con schedule_interval diario.",
+    "Define una tarea PythonOperator que reciba el contexto de ejecución (**context).",
+    "Extrae data_interval_start y simula una inserción basada en partición temporal.",
+    "Comprueba que invocar la función con la misma fecha sobreescribe la partición en lugar de acumular duplicados."
+  ],
+  "code": "def process_daily_sales(**context):\n    date_str = context['data_interval_start'].strftime('%Y-%m-%d')\n    print(f'Procesando particion idempotente para fecha: {date_str}')\n    # Simulación de delete-insert atómico sobre la partición\n    query = f\"DELETE FROM ventas WHERE fecha = '{date_str}'; INSERT INTO ventas SELECT * FROM staging WHERE fecha = '{date_str}';\"\n    return query\n\n# Simulamos dos ejecuciones para la misma fecha (Backfill)\nfrom datetime import datetime\nctx = {'data_interval_start': datetime(2026, 3, 28)}\nres1 = process_daily_sales(**ctx)\nres2 = process_daily_sales(**ctx)\n\nprint('=== CONSULTA GENERADA ===')\nprint(res1)\nprint(f'¿Son ambas consultas exactamente identicas? {res1 == res2}')\n",
+  "codeLanguage": "python",
+  "expectedOutput": "Procesando particion idempotente para fecha: 2026-03-28\nProcesando particion idempotente para fecha: 2026-03-28\n=== CONSULTA GENERADA ===\nDELETE FROM ventas WHERE fecha = '2026-03-28'; INSERT INTO ventas SELECT * FROM staging WHERE fecha = '2026-03-28';\n¿Son ambas consultas exactamente identicas? True",
+  "verify": "El código genera una operación atómica y determinista vinculada a la fecha de intervalo sin recurrir a datetime.now().",
+  "successCriteria": [
+    "Se implementa el patrón de particionamiento idempotente.",
+    "El resultado es completamente determinista e independiente de la hora del sistema."
+  ]
+}
