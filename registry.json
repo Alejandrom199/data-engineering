@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 1,
+  "name": "OpenLearn Courses",
+  "description": "Official community registry of OpenLearn courses. Add it to your instance and install any course with one click.",
+  "courses": [
+    {
+      "id": "data-engineering",
+      "version": "1.0.0",
+      "locale": "es",
+      "title": "Mentor de Ingeniería de Datos (Nivel 0 → Experto)",
+      "shortTitle": "Data Engineering",
+      "provider": "OpenLearn Community · Data Engineering Mentor",
+      "description": "Roadmap integral y de élite en Ingeniería de Datos desde nivel 0: fundamentos de ciencias de la computación, sistemas operativos, programación robusta, SQL/OLTP/OLAP, sistemas distribuidos con Spark y Lakehouses, DataOps con Airflow y streaming en tiempo real con Kafka y CDC.",
+      "level": "beginner",
+      "estimatedHours": 240,
+      "icon": "server",
+      "color": "#0284c7",
+      "certificationCode": "DE-01",
+      "stats": {
+        "units": 6,
+        "lessons": 17,
+        "labs": 17,
+        "questions": 24,
+        "exams": 3,
+        "achievements": 12
+      },
+      "archive": {
+        "path": "archives/data-engineering-1.0.0.zip",
+        "sha256": "96e80559fe6b279a37e69412b41dd7d9fa7ec065153ba3854a3536559c31b31d",
+        "bytes": 176561
+      }
+    }
+  ]
+}
