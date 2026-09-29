@@ -26,7 +26,6 @@
       },
       "archive": {
         "path": "archives/data-engineering-1.0.0.zip",
-        "url": "https://raw.githubusercontent.com/Alejandrom199/data-engineering/main/archives/data-engineering-1.0.0.zip",
         "sha256": "508fb5a7995d85b83bad867f82a4cc39a43244239d8e519c89c32468e7278843",
         "bytes": 134789
       }
