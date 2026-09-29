@@ -11,7 +11,8 @@
     "event-time-vs-processing-time",
     "ventanas-tumbling-sliding",
     "watermarks-late-data",
-    "hyperloglog-probabilistico"
+    "hyperloglog-probabilistico",
+    "watermarks-streaming"
   ],
   "hook": "¿Cómo calculas el total de transacciones bancarias ocurridas a las 10:00 AM si a las 10:15 AM llega un lote retrasado desde una terminal móvil sin señal? En flujos infinitos de datos en vivo, el tiempo no es una simple marca de reloj: es un dominio matemático con retraso, desorden y memoria de estado acotada.",
   "concept": {

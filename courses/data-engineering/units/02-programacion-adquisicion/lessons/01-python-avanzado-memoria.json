@@ -11,7 +11,8 @@
     "protocolo-iteradores",
     "tipado-estatico",
     "pruebas-pytest",
-    "solid-datos"
+    "solid-datos",
+    "generadores-python"
   ],
   "hook": "Un analista escribe `df = pd.read_csv('huge.csv')` en un servidor y todo colapsa. ¿Por qué el código de juguete en Python falla en producción? Porque los ingenieros de software construyen con generadores, tipos estáticos y contratos inmutables.",
   "concept": {

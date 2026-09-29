@@ -11,7 +11,8 @@
     "formatos-columnares",
     "apache-parquet",
     "predicate-pushdown",
-    "object-storage-s3"
+    "object-storage-s3",
+    "parquet-pushdown"
   ],
   "hook": "Guardar un Terabyte de datos en archivos CSV es una sentencia de muerte para el rendimiento y la factura en la nube: leer una sola columna obliga a escanear el Terabyte entero. ¿Por qué el formato Apache Parquet y el Teorema CAP son las leyes fundamentales que gobiernan el almacenamiento moderno a escala masiva?",
   "concept": {

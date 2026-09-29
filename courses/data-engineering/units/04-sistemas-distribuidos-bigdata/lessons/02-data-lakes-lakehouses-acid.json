@@ -11,7 +11,8 @@
     "lakehouse-architecture",
     "delta-lake",
     "apache-iceberg",
-    "time-travel-acid"
+    "time-travel-acid",
+    "lakehouse-acid"
   ],
   "hook": "Un job de Spark que escribía 500GB en un Data Lake de S3 falla al 99% por un timeout de red. El resultado: la mitad de los archivos quedaron escritos en el bucket y las consultas analíticas leen datos duplicados e incompletos. ¿Por qué el Data Lake clásico falló y cómo la arquitectura Lakehouse trajo las garantías ACID a los archivos?",
   "concept": {

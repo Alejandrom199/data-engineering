@@ -10,7 +10,8 @@
     "ctes-with",
     "funciones-de-ventana",
     "lag-lead-rownumber",
-    "analitica-in-engine"
+    "analitica-in-engine",
+    "funciones-ventana"
   ],
   "hook": "Un analista tarda 45 minutos descargando 10 millones de filas a Python para calcular el crecimiento de ventas intermensual con bucles `for`. Una sola consulta SQL con `LAG()` y `OVER()` lo resuelve en el motor en 300 milisegundos. ¿Por qué delegar el cómputo al motor SQL es la habilidad reina del ingeniero de datos?",
   "concept": {

@@ -11,7 +11,8 @@
     "logs-distribuidos",
     "consumer-groups",
     "offsets-rebalance",
-    "semanticas-de-entrega"
+    "semanticas-de-entrega",
+    "kafka-particiones"
   ],
   "hook": "Cien microservicios consultan una base de datos PostgreSQL cada 500 milisegundos para detectar qué pedidos cambiaron de estado. La base de datos colapsa por exceso de conexiones concurrentes y bloqueos de fila. ¿Cómo Apache Kafka transforma una arquitectura monolítica saturada en un sistema distribuido impulsado por eventos?",
   "concept": {

@@ -10,7 +10,8 @@
     "terraform-iac",
     "docker-containers",
     "github-actions-cicd",
-    "linters-sqlfluff-ruff"
+    "linters-sqlfluff-ruff",
+    "terraform-state"
   ],
   "hook": "Un administrador crea manualmente un clúster en la consola web de AWS haciendo clic en 40 botones. Al año siguiente ocurre un desastre en la región y nadie sabe qué permisos de IAM, firewalls o configuraciones se usaron para crearlo. ¿Por qué el 'ClickOps' está prohibido en equipos de datos de élite y cómo Terraform y CI/CD garantizan la reproducibilidad total?",
   "concept": {

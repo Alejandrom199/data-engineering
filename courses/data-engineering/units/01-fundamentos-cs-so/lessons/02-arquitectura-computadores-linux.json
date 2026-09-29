@@ -10,7 +10,8 @@
     "arquitectura-hardware",
     "jerarquia-memoria",
     "io-bound-cpu-bound",
-    "linux-bash-awk"
+    "linux-bash-awk",
+    "linux-streaming"
   ],
   "hook": "Un servidor en la nube de $4,000 USD al mes con 128 núcleos colapsa procesando un archivo de 20GB mientras una laptop modesta lo resuelve en 30 segundos. ¿Cómo es posible? Por no entender la diferencia física entre memoria caché, RAM y velocidad de E/S en disco.",
   "concept": {

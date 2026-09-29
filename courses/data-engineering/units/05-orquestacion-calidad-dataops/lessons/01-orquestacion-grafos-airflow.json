@@ -11,7 +11,9 @@
     "dags-operadores",
     "logical-date-ds",
     "sensores-reschedule",
-    "backfilling-idempotencia"
+    "backfilling-idempotencia",
+    "airflow-logical-date",
+    "airflow-sensors"
   ],
   "hook": "Programar tus tareas de datos con el comando `cron` de Linux es una receta segura para el desastre en producción: `cron` es ciego a dependencias, no reintenta de forma inteligente y si la Tarea A tarda 5 minutos más de lo usual, la Tarea B arranca con datos incompletos. ¿Cómo resuelve Apache Airflow este caos usando teoría de grafos y determinismo temporal?",
   "concept": {

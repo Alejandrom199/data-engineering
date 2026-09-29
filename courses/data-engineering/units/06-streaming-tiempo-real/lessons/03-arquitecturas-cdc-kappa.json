@@ -10,7 +10,9 @@
     "change-data-capture-cdc",
     "debezium-postgresql-wal",
     "arquitectura-kappa-vs-lambda",
-    "event-driven-data-pipelines"
+    "event-driven-data-pipelines",
+    "cdc-debezium",
+    "arquitectura-kappa"
   ],
   "hook": "Ejecutar `SELECT * FROM orders WHERE updated_at > last_sync` cada 10 minutos para sincronizar analítica destruye el rendimiento del OLTP y no detecta cuando alguien hace `DELETE`. ¿Cómo la captura de cambios directamente desde el Write-Ahead Log (WAL) con Debezium y la Arquitectura Kappa crearon el estándar de datos en tiempo real moderno?",
   "concept": {
