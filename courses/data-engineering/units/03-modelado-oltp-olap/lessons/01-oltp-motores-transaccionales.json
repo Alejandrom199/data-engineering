@@ -3,8 +3,16 @@
   "id": "oltp-motores-transaccionales",
   "title": "OLTP y Motores Transaccionales Relacionales",
   "estimatedMinutes": 25,
-  "domainIds": ["relational-modeling-olap"],
-  "topics": ["normalizacion-1nf-3nf", "propiedades-acid", "bloqueos-aislamiento", "indices-btree-hash", "explain-analyze"],
+  "domainIds": [
+    "relational-modeling-olap"
+  ],
+  "topics": [
+    "normalizacion-1nf-3nf",
+    "propiedades-acid",
+    "bloqueos-aislamiento",
+    "indices-btree-hash",
+    "explain-analyze"
+  ],
   "hook": "Un desarrollador novato crea una tabla única con 90 columnas para 'hacerlo más rápido'. En una semana, los pedidos se duplican, actualizar la dirección de un cliente requiere modificar 50,000 filas y la base de datos se congela por bloqueos de fila. ¿Por qué la normalización y las garantías ACID salvan los sistemas vivos?",
   "concept": {
     "blocks": [
@@ -35,11 +43,27 @@
       },
       {
         "type": "table",
-        "headers": ["Forma Normal", "Requisito Estricto", "Problema que Elimina"],
+        "headers": [
+          "Forma Normal",
+          "Requisito Estricto",
+          "Problema que Elimina"
+        ],
         "rows": [
-          ["1NF (Primera)", "Valores atómicos en cada celda; sin listas ni arrays repetidos.", "Columnas con valores múltiples que impiden indexación."],
-          ["2NF (Segunda)", "Cumple 1NF y todo atributo no-clave depende de la clave primaria completa.", "Dependencias parciales en claves compuestas."],
-          ["3NF (Tercera)", "Cumple 2NF y ningún atributo no-clave depende transitivamente de otro no-clave.", "Anomalías de actualización: cambiar un dato redundante en un solo lugar."]
+          [
+            "1NF (Primera)",
+            "Valores atómicos en cada celda; sin listas ni arrays repetidos.",
+            "Columnas con valores múltiples que impiden indexación."
+          ],
+          [
+            "2NF (Segunda)",
+            "Cumple 1NF y todo atributo no-clave depende de la clave primaria completa.",
+            "Dependencias parciales en claves compuestas."
+          ],
+          [
+            "3NF (Tercera)",
+            "Cumple 2NF y ningún atributo no-clave depende transitivamente de otro no-clave.",
+            "Anomalías de actualización: cambiar un dato redundante en un solo lugar."
+          ]
         ],
         "caption": "Las tres primeras formas normales de Codd."
       },
@@ -131,12 +155,12 @@
   "checkQuestionId": "q-sql-acid-isolation",
   "traps": [
     {
-      "pitfall": "Desnormalizar prematuramente una base OLTP 'para que los reportes salgan más rápido'.",
-      "reality": "Esto introduce duplicación destructiva e inconsistencias de datos en la aplicación transaccional viva; la analítica debe enviarse a un Data Warehouse separado."
+      "option": "Desnormalizar prematuramente una base OLTP 'para que los reportes salgan más rápido'.",
+      "reason": "Esto introduce duplicación destructiva e inconsistencias de datos en la aplicación transaccional viva; la analítica debe enviarse a un Data Warehouse separado."
     },
     {
-      "pitfall": "Crear índices B-Tree en cada una de las columnas de una tabla transaccional.",
-      "reality": "Cada índice adicional ralentiza drásticamente las operaciones de INSERT, UPDATE y DELETE, porque el motor debe actualizar todos los árboles B-Tree en cada escritura."
+      "option": "Crear índices B-Tree en cada una de las columnas de una tabla transaccional.",
+      "reason": "Cada índice adicional ralentiza drásticamente las operaciones de INSERT, UPDATE y DELETE, porque el motor debe actualizar todos los árboles B-Tree en cada escritura."
     }
   ],
   "trapSummary": "La tentación de desnormalizar el OLTP o sobreindexar sin medir con EXPLAIN ANALYZE arruina las escrituras; el orden formal 3NF y los índices medidos son la regla de oro.",

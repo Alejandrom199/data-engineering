@@ -3,8 +3,16 @@
   "id": "computo-distribuido-spark",
   "title": "Procesamiento Distribuido con Apache Spark",
   "estimatedMinutes": 30,
-  "domainIds": ["distributed-systems-bigdata"],
-  "topics": ["apache-spark-internals", "driver-executors-dag", "spark-shuffles", "data-skew-mitigation", "salting-broadcast-joins"],
+  "domainIds": [
+    "distributed-systems-bigdata"
+  ],
+  "topics": [
+    "apache-spark-internals",
+    "driver-executors-dag",
+    "spark-shuffles",
+    "data-skew-mitigation",
+    "salting-broadcast-joins"
+  ],
   "hook": "Tienes 500 máquinas en un clúster de Spark para procesar un petabyte. 499 máquinas terminan su trabajo en 2 minutos; una sola máquina se queda calculando sola durante 6 horas hasta que colapsa con OutOfMemory. ¿Qué es el infame Data Skew y cómo los ingenieros senior lo neutralizan con Salting y Broadcast Joins?",
   "concept": {
     "blocks": [
@@ -35,10 +43,22 @@
       },
       {
         "type": "table",
-        "headers": ["Tipo de Transformación", "Ejemplos", "Impacto en Red y Rendimiento"],
+        "headers": [
+          "Tipo de Transformación",
+          "Ejemplos",
+          "Impacto en Red y Rendimiento"
+        ],
         "rows": [
-          ["Narrow Transformation (Estrecha)", "`map`, `filter`, `withColumn`", "Sin Shuffle. Cada partición se procesa localmente en su ejecutor sin tocar la red."],
-          ["Wide Transformation (Ancha)", "`groupBy`, `join`, `distinct`, `repartition`", "Requiere SHUFFLE. Los datos se serializan, vuelcan a disco local y se envían por la red física."]
+          [
+            "Narrow Transformation (Estrecha)",
+            "`map`, `filter`, `withColumn`",
+            "Sin Shuffle. Cada partición se procesa localmente en su ejecutor sin tocar la red."
+          ],
+          [
+            "Wide Transformation (Ancha)",
+            "`groupBy`, `join`, `distinct`, `repartition`",
+            "Requiere SHUFFLE. Los datos se serializan, vuelcan a disco local y se envían por la red física."
+          ]
         ],
         "caption": "Transformaciones estrechas vs anchas en Spark."
       },
@@ -128,12 +148,12 @@
   "checkQuestionId": "q-dist-spark-shuffle-cost",
   "traps": [
     {
-      "pitfall": "Ejecutar `df.collect()` sobre un DataFrame de 100 millones de registros.",
-      "reality": "Esto intenta transferir los 100 millones de registros a través de la red hacia el Driver único, colapsándolo instantáneamente con un error de memoria Java heap."
+      "option": "Ejecutar `df.collect()` sobre un DataFrame de 100 millones de registros.",
+      "reason": "Esto intenta transferir los 100 millones de registros a través de la red hacia el Driver único, colapsándolo instantáneamente con un error de memoria Java heap."
     },
     {
-      "pitfall": "Confiar ciegamente en el auto-broadcast join para tablas de gigabytes.",
-      "reality": "Hacer broadcast de una tabla demasiado pesada saturará la RAM de todos los ejecutores provocando fallos OOM generalizados; solo usa broadcast con dimensiones pequeñas comprobadas."
+      "option": "Confiar ciegamente en el auto-broadcast join para tablas de gigabytes.",
+      "reason": "Hacer broadcast de una tabla demasiado pesada saturará la RAM de todos los ejecutores provocando fallos OOM generalizados; solo usa broadcast con dimensiones pequeñas comprobadas."
     }
   ],
   "trapSummary": "El poder de Apache Spark radica en la distribución equitativa; descuidar los shuffles de red y el Data Skew convierte un clúster masivo en un sistema inútil y estrangulado.",

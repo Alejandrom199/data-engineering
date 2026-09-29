@@ -3,8 +3,15 @@
   "id": "logica-conjuntos-grafos",
   "title": "Lógica Formal, Conjuntos y Grafos (DAGs)",
   "estimatedMinutes": 20,
-  "domainIds": ["cs-fundamentals-os"],
-  "topics": ["logica-formal", "teoria-conjuntos", "algebra-relacional", "grafos-dag"],
+  "domainIds": [
+    "cs-fundamentals-os"
+  ],
+  "topics": [
+    "logica-formal",
+    "teoria-conjuntos",
+    "algebra-relacional",
+    "grafos-dag"
+  ],
   "hook": "¿Por qué un JOIN en SQL devuelve millones de filas duplicadas y un pipeline programado en cron se bloquea aleatoriamente? Ambas catástrofes ocurren cuando el ingeniero desconoce el álgebra relacional y la teoría de grafos.",
   "concept": {
     "blocks": [
@@ -41,12 +48,37 @@
       },
       {
         "type": "table",
-        "headers": ["Operador Formal", "Nombre", "Equivalente SQL", "Impacto en Rendimiento"],
+        "headers": [
+          "Operador Formal",
+          "Nombre",
+          "Equivalente SQL",
+          "Impacto en Rendimiento"
+        ],
         "rows": [
-          ["σ (sigma)", "Selección", "WHERE", "Filtra filas. Puede aprovechar índices B-Tree para saltar lecturas de disco."],
-          ["π (pi)", "Proyección", "SELECT columnas", "Filtra columnas. En motores columnares (Parquet) reduce E/S drásticamente."],
-          ["⨝ (bowtie)", "Join Natural / Theta", "INNER JOIN ON ...", "Combina tuplas que satisfacen un predicado; sensible a la cardinalidad."],
-          ["ρ (rho)", "Renombramiento", "AS alias", "Operación puramente lógica de metadatos, costo casi nulo."]
+          [
+            "σ (sigma)",
+            "Selección",
+            "WHERE",
+            "Filtra filas. Puede aprovechar índices B-Tree para saltar lecturas de disco."
+          ],
+          [
+            "π (pi)",
+            "Proyección",
+            "SELECT columnas",
+            "Filtra columnas. En motores columnares (Parquet) reduce E/S drásticamente."
+          ],
+          [
+            "⨝ (bowtie)",
+            "Join Natural / Theta",
+            "INNER JOIN ON ...",
+            "Combina tuplas que satisfacen un predicado; sensible a la cardinalidad."
+          ],
+          [
+            "ρ (rho)",
+            "Renombramiento",
+            "AS alias",
+            "Operación puramente lógica de metadatos, costo casi nulo."
+          ]
         ],
         "caption": "Mapeo de operadores de álgebra relacional a primitivas SQL."
       },
@@ -134,12 +166,12 @@
   "checkQuestionId": "q-cs-dag-properties",
   "traps": [
     {
-      "pitfall": "Pensar que un pipeline lineal programado con sleep o cron equivale a un DAG.",
-      "reality": "Un script con sleep no maneja fallas intermedias; si una etapa falla, las etapas posteriores procesan datos incompletos o corruptos."
+      "option": "Pensar que un pipeline lineal programado con sleep o cron equivale a un DAG.",
+      "reason": "Un script con sleep no maneja fallas intermedias; si una etapa falla, las etapas posteriores procesan datos incompletos o corruptos."
     },
     {
-      "pitfall": "Usar UNION en SQL de forma indiscriminada en lugar de UNION ALL.",
-      "reality": "UNION ejecuta internamente un sort o hash set para deducir duplicados, consumiendo CPU y memoria masiva de forma innecesaria cuando se sabe que los conjuntos son disjuntos."
+      "option": "Usar UNION en SQL de forma indiscriminada en lugar de UNION ALL.",
+      "reason": "UNION ejecuta internamente un sort o hash set para deducir duplicados, consumiendo CPU y memoria masiva de forma innecesaria cuando se sabe que los conjuntos son disjuntos."
     }
   ],
   "trapSummary": "No diseñar pipelines sobre bases formales de grafos produce deadlocks silenciosos y scripts frágiles; abusar de operaciones conjuntistas sin filtrar cardinalidad destruye el hardware.",

@@ -3,8 +3,16 @@
   "id": "data-lakes-lakehouses-acid",
   "title": "Data Lakes, Lakehouses y Transaccionalidad ACID (Delta / Iceberg)",
   "estimatedMinutes": 30,
-  "domainIds": ["distributed-systems-bigdata"],
-  "topics": ["data-lake-vs-warehouse", "lakehouse-architecture", "delta-lake", "apache-iceberg", "time-travel-acid"],
+  "domainIds": [
+    "distributed-systems-bigdata"
+  ],
+  "topics": [
+    "data-lake-vs-warehouse",
+    "lakehouse-architecture",
+    "delta-lake",
+    "apache-iceberg",
+    "time-travel-acid"
+  ],
   "hook": "Un job de Spark que escribía 500GB en un Data Lake de S3 falla al 99% por un timeout de red. El resultado: la mitad de los archivos quedaron escritos en el bucket y las consultas analíticas leen datos duplicados e incompletos. ¿Por qué el Data Lake clásico falló y cómo la arquitectura Lakehouse trajo las garantías ACID a los archivos?",
   "concept": {
     "blocks": [
@@ -120,12 +128,12 @@
   "checkQuestionId": "q-dist-lakehouse-acid",
   "traps": [
     {
-      "pitfall": "Ejecutar VACUUM agresivamente con retención de 0 horas en producción.",
-      "reality": "Esto borra todos los archivos previos del log de transacciones, rompiendo consultas largas en vuelo que dependían de snapshots anteriores e impidiendo el Time Travel."
+      "option": "Ejecutar VACUUM agresivamente con retención de 0 horas en producción.",
+      "reason": "Esto borra todos los archivos previos del log de transacciones, rompiendo consultas largas en vuelo que dependían de snapshots anteriores e impidiendo el Time Travel."
     },
     {
-      "pitfall": "Escribir directamente archivos Parquet con herramientas no compatibles con Delta en la carpeta de la tabla.",
-      "reality": "La tabla Lakehouse solo reconoce archivos referenciados en el Transaction Log; cualquier archivo añadido 'a mano' será ignorado por completo o corromperá el metastore."
+      "option": "Escribir directamente archivos Parquet con herramientas no compatibles con Delta en la carpeta de la tabla.",
+      "reason": "La tabla Lakehouse solo reconoce archivos referenciados en el Transaction Log; cualquier archivo añadido 'a mano' será ignorado por completo o corromperá el metastore."
     }
   ],
   "trapSummary": "Tratar un Lakehouse como un simple sistema de archivos borra sus garantías; el Transaction Log es la única fuente de verdad canónica para lecturas consistentes y Time Travel.",

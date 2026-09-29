@@ -3,8 +3,16 @@
   "id": "motores-mensajeria-kafka",
   "title": "Motores de Mensajería y Semánticas de Entrega con Apache Kafka",
   "estimatedMinutes": 30,
-  "domainIds": ["streaming-real-time"],
-  "topics": ["apache-kafka-core", "logs-distribuidos", "consumer-groups", "offsets-rebalance", "semanticas-de-entrega"],
+  "domainIds": [
+    "streaming-real-time"
+  ],
+  "topics": [
+    "apache-kafka-core",
+    "logs-distribuidos",
+    "consumer-groups",
+    "offsets-rebalance",
+    "semanticas-de-entrega"
+  ],
   "hook": "Cien microservicios consultan una base de datos PostgreSQL cada 500 milisegundos para detectar qué pedidos cambiaron de estado. La base de datos colapsa por exceso de conexiones concurrentes y bloqueos de fila. ¿Cómo Apache Kafka transforma una arquitectura monolítica saturada en un sistema distribuido impulsado por eventos?",
   "concept": {
     "blocks": [
@@ -49,11 +57,27 @@
       },
       {
         "type": "table",
-        "headers": ["Semántica", "Cómo se Logra", "Riesgo / Costo"],
+        "headers": [
+          "Semántica",
+          "Cómo se Logra",
+          "Riesgo / Costo"
+        ],
         "rows": [
-          ["At-most-once (A lo sumo una vez)", "Confirmar el offset ANTES de procesar el mensaje.", "Si el worker colapsa procesando, el mensaje se pierde para siempre."],
-          ["At-least-once (Al menos una vez)", "Confirmar el offset DESPUÉS de persistir el mensaje.", "Si el worker cae tras persistir pero antes de confirmar el offset, el mensaje se reprocesará (duplicado)."],
-          ["Exactly-once (Exactamente una vez)", "Productores idempotentes (`enable.idempotence=true`) y transacciones entre Kafka y el almacenamiento.", "Garantía estricta matemática sin duplicados ni pérdidas a cambio de mayor latencia de commit."]
+          [
+            "At-most-once (A lo sumo una vez)",
+            "Confirmar el offset ANTES de procesar el mensaje.",
+            "Si el worker colapsa procesando, el mensaje se pierde para siempre."
+          ],
+          [
+            "At-least-once (Al menos una vez)",
+            "Confirmar el offset DESPUÉS de persistir el mensaje.",
+            "Si el worker cae tras persistir pero antes de confirmar el offset, el mensaje se reprocesará (duplicado)."
+          ],
+          [
+            "Exactly-once (Exactamente una vez)",
+            "Productores idempotentes (`enable.idempotence=true`) y transacciones entre Kafka y el almacenamiento.",
+            "Garantía estricta matemática sin duplicados ni pérdidas a cambio de mayor latencia de commit."
+          ]
         ],
         "caption": "Las tres semánticas de entrega en arquitecturas orientadas a eventos."
       }
@@ -127,12 +151,12 @@
   "checkQuestionId": "q-stream-kafka-partitions-concurrency",
   "traps": [
     {
-      "pitfall": "Crear más instancias de consumidores que particiones en el tópico esperando mayor velocidad.",
-      "reality": "Las instancias sobrantes quedarán completamente ociosas sin consumir datos; el paralelismo de consumo está físicamente acotado por el número de particiones del tópico."
+      "option": "Crear más instancias de consumidores que particiones en el tópico esperando mayor velocidad.",
+      "reason": "Las instancias sobrantes quedarán completamente ociosas sin consumir datos; el paralelismo de consumo está físicamente acotado por el número de particiones del tópico."
     },
     {
-      "pitfall": "Hacer commit de offset antes de guardar los datos en la base de datos de destino.",
-      "reality": "Si el proceso colapsa durante la escritura a la base de datos, el offset ya avanzó y el mensaje se pierde de forma irrecuperable (At-most-once no deseado)."
+      "option": "Hacer commit de offset antes de guardar los datos en la base de datos de destino.",
+      "reason": "Si el proceso colapsa durante la escritura a la base de datos, el offset ya avanzó y el mensaje se pierde de forma irrecuperable (At-most-once no deseado)."
     }
   ],
   "trapSummary": "Tratar a Kafka como una cola efímera o descuidar la relación partición-consumidor causa cuellos de botella; dominar los offsets, los logs inmutables y el PageCache es el corazón del streaming.",

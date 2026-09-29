@@ -3,8 +3,16 @@
   "id": "calidad-datos-observabilidad",
   "title": "Calidad de Datos, Data Contracts y Observabilidad (Data SRE)",
   "estimatedMinutes": 30,
-  "domainIds": ["orchestration-quality-dataops"],
-  "topics": ["data-contracts", "great-expectations", "data-observability", "data-downtime", "circuit-breakers"],
+  "domainIds": [
+    "orchestration-quality-dataops"
+  ],
+  "topics": [
+    "data-contracts",
+    "great-expectations",
+    "data-observability",
+    "data-downtime",
+    "circuit-breakers"
+  ],
   "hook": "El pipeline terminó en estado verde ('Success'), pero los reportes de ventas de la empresa amanecieron con ingresos negativos y un 98% de valores nulos porque un microservicio cambió el esquema de JSON sin avisar. ¿Por qué el código que 'no arroja error' puede ser más destructivo que uno que colapsa y cómo los Contratos de Datos detienen la corrupción en seco?",
   "concept": {
     "blocks": [
@@ -22,13 +30,37 @@
       },
       {
         "type": "table",
-        "headers": ["Pilar", "Pregunta que Resuelve", "Ejemplo de Detección"],
+        "headers": [
+          "Pilar",
+          "Pregunta que Resuelve",
+          "Ejemplo de Detección"
+        ],
         "rows": [
-          ["Frescura (Freshness)", "¿Cuándo fue la última vez que llegaron datos nuevos?", "Alerta si la tabla de hechos no recibe eventos en más de 2 horas."],
-          ["Distribución (Distribution)", "¿Los valores numéricos y categóricos están dentro de lo esperado?", "Detección de montos negativos o porcentajes mayores a 100%."],
-          ["Volumen (Volume)", "¿Llegó la cantidad de datos esperada?", "Alerta de anomalía si un día festivo entran solo 50 filas en lugar de 500,000."],
-          ["Esquema (Schema)", "¿Se modificaron tipos de datos o se eliminaron columnas?", "Detección de una columna renombrada de 'price' a 'cost_usd'."],
-          ["Linaje (Lineage)", "¿Qué tablas y dashboards se verán afectados por esta tabla?", "Rastreo de impacto desde el origen hasta el reporte de PowerBI."]
+          [
+            "Frescura (Freshness)",
+            "¿Cuándo fue la última vez que llegaron datos nuevos?",
+            "Alerta si la tabla de hechos no recibe eventos en más de 2 horas."
+          ],
+          [
+            "Distribución (Distribution)",
+            "¿Los valores numéricos y categóricos están dentro de lo esperado?",
+            "Detección de montos negativos o porcentajes mayores a 100%."
+          ],
+          [
+            "Volumen (Volume)",
+            "¿Llegó la cantidad de datos esperada?",
+            "Alerta de anomalía si un día festivo entran solo 50 filas en lugar de 500,000."
+          ],
+          [
+            "Esquema (Schema)",
+            "¿Se modificaron tipos de datos o se eliminaron columnas?",
+            "Detección de una columna renombrada de 'price' a 'cost_usd'."
+          ],
+          [
+            "Linaje (Lineage)",
+            "¿Qué tablas y dashboards se verán afectados por esta tabla?",
+            "Rastreo de impacto desde el origen hasta el reporte de PowerBI."
+          ]
         ],
         "caption": "Los cinco pilares de la observabilidad de datos (Monte Carlo Data)."
       },
@@ -117,12 +149,12 @@
   "checkQuestionId": "q-ops-data-circuit-breaker",
   "traps": [
     {
-      "pitfall": "Configurar las validaciones de calidad de datos para que envíen un correo de advertencia pero dejen continuar el pipeline.",
-      "reality": "Nadie lee los correos de advertencia hasta que los tableros de gerencia están arruinados; los contratos de datos deben detener físicamente el pipeline (Circuit Breaker) ante fallos críticos."
+      "option": "Configurar las validaciones de calidad de datos para que envíen un correo de advertencia pero dejen continuar el pipeline.",
+      "reason": "Nadie lee los correos de advertencia hasta que los tableros de gerencia están arruinados; los contratos de datos deben detener físicamente el pipeline (Circuit Breaker) ante fallos críticos."
     },
     {
-      "pitfall": "Asumir que las pruebas de software en pytest sustituyen a las pruebas de datos en Great Expectations.",
-      "reality": "pytest prueba que tu código Python funciona lógicamente; Great Expectations prueba que los datos que produce un tercero externo cumplen los supuestos del negocio."
+      "option": "Asumir que las pruebas de software en pytest sustituyen a las pruebas de datos en Great Expectations.",
+      "reason": "pytest prueba que tu código Python funciona lógicamente; Great Expectations prueba que los datos que produce un tercero externo cumplen los supuestos del negocio."
     }
   ],
   "trapSummary": "La negligencia en la calidad de datos destruye la confianza del negocio en minutos; los contratos de datos declarativos y los Circuit Breakers en tiempo de ingesta son el escudo del ingeniero.",

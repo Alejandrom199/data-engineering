@@ -14,7 +14,14 @@
   "color": "#0284c7",
   "certification": {
     "code": "DE-01",
-    "name": "Mentor de Ingeniería de Datos (Nivel 0 → Experto)"
+    "name": "Mentor de Ingeniería de Datos (Nivel 0 → Experto)",
+    "provider": "OpenLearn Community · Data Engineering Mentor",
+    "questionCount": 60,
+    "durationMinutes": 120,
+    "passingScore": 700,
+    "scaleMin": 100,
+    "scaleMax": 1000,
+    "format": "Opción múltiple y casos prácticos"
   },
   "domains": [
     {

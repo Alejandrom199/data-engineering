@@ -3,8 +3,16 @@
   "id": "python-avanzado-memoria",
   "title": "Python Avanzado y Gestión de Memoria en Datos",
   "estimatedMinutes": 25,
-  "domainIds": ["robust-programming-ingestion"],
-  "topics": ["generadores-yield", "protocolo-iteradores", "tipado-estatico", "pruebas-pytest", "solid-datos"],
+  "domainIds": [
+    "robust-programming-ingestion"
+  ],
+  "topics": [
+    "generadores-yield",
+    "protocolo-iteradores",
+    "tipado-estatico",
+    "pruebas-pytest",
+    "solid-datos"
+  ],
   "hook": "Un analista escribe `df = pd.read_csv('huge.csv')` en un servidor y todo colapsa. ¿Por qué el código de juguete en Python falla en producción? Porque los ingenieros de software construyen con generadores, tipos estáticos y contratos inmutables.",
   "concept": {
     "blocks": [
@@ -121,12 +129,12 @@
   "checkQuestionId": "q-prog-generators-memory",
   "traps": [
     {
-      "pitfall": "Convertir un generador en lista inmediatamente con `list(mi_generador)`.",
-      "reality": "Hacer `list()` fuerza la evaluación completa y materializa todos los elementos en RAM a la vez, destruyendo por completo el beneficio del generador y causando OOM."
+      "option": "Convertir un generador en lista inmediatamente con `list(mi_generador)`.",
+      "reason": "Hacer `list()` fuerza la evaluación completa y materializa todos los elementos en RAM a la vez, destruyendo por completo el beneficio del generador y causando OOM."
     },
     {
-      "pitfall": "Usar `except Exception: pass` para que el pipeline 'no se caiga'.",
-      "reality": "Esto oculta errores graves de corrupción de datos y claves ausentes, introduciendo valores nulos silenciosos que arruinan la analítica del negocio."
+      "option": "Usar `except Exception: pass` para que el pipeline 'no se caiga'.",
+      "reason": "Esto oculta errores graves de corrupción de datos y claves ausentes, introduciendo valores nulos silenciosos que arruinan la analítica del negocio."
     }
   ],
   "trapSummary": "Materializar listas innecesarias y silenciar excepciones convierte a los scripts de datos en bombas de tiempo; el código robusto utiliza streaming perezoso y tipos estrictos.",

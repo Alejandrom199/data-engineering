@@ -3,8 +3,16 @@
   "id": "redes-apis-resiliencia",
   "title": "Redes, APIs y Tolerancia a Fallos en Extracción",
   "estimatedMinutes": 25,
-  "domainIds": ["robust-programming-ingestion"],
-  "topics": ["protocolos-http-tcp", "paginacion-cursores", "rate-limiting", "backoff-exponencial", "circuit-breaker"],
+  "domainIds": [
+    "robust-programming-ingestion"
+  ],
+  "topics": [
+    "protocolos-http-tcp",
+    "paginacion-cursores",
+    "rate-limiting",
+    "backoff-exponencial",
+    "circuit-breaker"
+  ],
   "hook": "Un pipeline de extracción de 5 horas que descarga 10 millones de pedidos se cae en el minuto 299 por un corte de red de 2 segundos. Al reiniciar, el script vuelve a empezar desde el registro cero y duplica las ventas en el almacén. ¿Por qué la red es inherentemente hostil y cómo se diseña para tolerar fallos?",
   "concept": {
     "blocks": [
@@ -22,11 +30,27 @@
       },
       {
         "type": "table",
-        "headers": ["Criterio", "Paginación por Offset (`?offset=N`)", "Paginación por Cursor (`?after_id=X`)"],
+        "headers": [
+          "Criterio",
+          "Paginación por Offset (`?offset=N`)",
+          "Paginación por Cursor (`?after_id=X`)"
+        ],
         "rows": [
-          ["Rendimiento", "O(N) - El servidor escanea y descarta todas las filas previas.", "O(log n) - Salta directamente a la clave usando el índice B-Tree."],
-          ["Consistencia", "Inestable: Si se insertan filas mientras extraes, hay saltos o duplicados.", "Estricta: La posición es inmutable respecto al último identificador."],
-          ["Escalabilidad", "Colapsa en páginas profundas (> 100,000 registros).", "Escala linealmente a billones de registros sin degradación."]
+          [
+            "Rendimiento",
+            "O(N) - El servidor escanea y descarta todas las filas previas.",
+            "O(log n) - Salta directamente a la clave usando el índice B-Tree."
+          ],
+          [
+            "Consistencia",
+            "Inestable: Si se insertan filas mientras extraes, hay saltos o duplicados.",
+            "Estricta: La posición es inmutable respecto al último identificador."
+          ],
+          [
+            "Escalabilidad",
+            "Colapsa en páginas profundas (> 100,000 registros).",
+            "Escala linealmente a billones de registros sin degradación."
+          ]
         ],
         "caption": "Comparativa técnica entre estrategias de paginación en APIs."
       },
@@ -113,12 +137,12 @@
   "checkQuestionId": "q-prog-backoff-jitter",
   "traps": [
     {
-      "pitfall": "Hacer reintentos infinitos inmediatos (`while True: try request()`) sin tiempo de espera.",
-      "reality": "Esto genera un ataque de denegación de servicio involuntario sobre la API, garantizando que tu IP sea bloqueada indefinidamente."
+      "option": "Hacer reintentos infinitos inmediatos (`while True: try request()`) sin tiempo de espera.",
+      "reason": "Esto genera un ataque de denegación de servicio involuntario sobre la API, garantizando que tu IP sea bloqueada indefinidamente."
     },
     {
-      "pitfall": "No guardar checkpoints del cursor y reiniciar toda la extracción desde cero ante un fallo.",
-      "reality": "En datasets de gigabytes o terabytes, un script sin checkpoints nunca completará su ejecución si la ventana libre de fallas es menor a la duración del job."
+      "option": "No guardar checkpoints del cursor y reiniciar toda la extracción desde cero ante un fallo.",
+      "reason": "En datasets de gigabytes o terabytes, un script sin checkpoints nunca completará su ejecución si la ventana libre de fallas es menor a la duración del job."
     }
   ],
   "trapSummary": "Asumir que las llamadas de red siempre responden con éxito es la causa principal de pipelines caídos a mitad de la noche; diseñar con cursores, reintentos con jitter y checkpoints es obligatorio.",

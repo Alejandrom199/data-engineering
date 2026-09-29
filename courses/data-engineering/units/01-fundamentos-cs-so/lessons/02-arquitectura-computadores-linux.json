@@ -3,8 +3,15 @@
   "id": "arquitectura-computadores-linux",
   "title": "Arquitectura de Computadores y Línea de Comandos (Linux)",
   "estimatedMinutes": 25,
-  "domainIds": ["cs-fundamentals-os"],
-  "topics": ["arquitectura-hardware", "jerarquia-memoria", "io-bound-cpu-bound", "linux-bash-awk"],
+  "domainIds": [
+    "cs-fundamentals-os"
+  ],
+  "topics": [
+    "arquitectura-hardware",
+    "jerarquia-memoria",
+    "io-bound-cpu-bound",
+    "linux-bash-awk"
+  ],
   "hook": "Un servidor en la nube de $4,000 USD al mes con 128 núcleos colapsa procesando un archivo de 20GB mientras una laptop modesta lo resuelve en 30 segundos. ¿Cómo es posible? Por no entender la diferencia física entre memoria caché, RAM y velocidad de E/S en disco.",
   "concept": {
     "blocks": [
@@ -18,14 +25,42 @@
       },
       {
         "type": "table",
-        "headers": ["Nivel de Memoria", "Tiempo de Acceso Típico", "Escala Relativa (Si L1 fuera 1 seg)"],
+        "headers": [
+          "Nivel de Memoria",
+          "Tiempo de Acceso Típico",
+          "Escala Relativa (Si L1 fuera 1 seg)"
+        ],
         "rows": [
-          ["Registro de CPU", "0.5 nanosegundos", "0.5 segundos"],
-          ["Caché L1", "1 nanosegundo", "1 segundo"],
-          ["Caché L2 / L3", "3 - 10 nanosegundos", "3 - 10 segundos"],
-          ["Memoria Principal (RAM)", "50 - 100 nanosegundos", "1 a 2 minutos"],
-          ["NVMe SSD (Acceso Secuencial)", "10 - 50 microsegundos", "3 a 14 horas"],
-          ["Disco HDD / Red Local", "1 - 10 milisegundos", "Semana a meses"]
+          [
+            "Registro de CPU",
+            "0.5 nanosegundos",
+            "0.5 segundos"
+          ],
+          [
+            "Caché L1",
+            "1 nanosegundo",
+            "1 segundo"
+          ],
+          [
+            "Caché L2 / L3",
+            "3 - 10 nanosegundos",
+            "3 - 10 segundos"
+          ],
+          [
+            "Memoria Principal (RAM)",
+            "50 - 100 nanosegundos",
+            "1 a 2 minutos"
+          ],
+          [
+            "NVMe SSD (Acceso Secuencial)",
+            "10 - 50 microsegundos",
+            "3 a 14 horas"
+          ],
+          [
+            "Disco HDD / Red Local",
+            "1 - 10 milisegundos",
+            "Semana a meses"
+          ]
         ],
         "caption": "Jerarquía de memoria y su impacto brutal en latencia (Números de Latencia de Peter Norvig)."
       },
@@ -124,12 +159,12 @@
   "checkQuestionId": "q-cs-linux-pipes-memory",
   "traps": [
     {
-      "pitfall": "Creer que procesar un archivo de 10GB en Bash requiere un servidor con 16GB de RAM.",
-      "reality": "Si se usan tuberías (|) y comandos en streaming (awk, grep, sed), el consumo de memoria se mantiene constante en pocos megabytes sin importar el tamaño del archivo."
+      "option": "Creer que procesar un archivo de 10GB en Bash requiere un servidor con 16GB de RAM.",
+      "reason": "Si se usan tuberías (|) y comandos en streaming (awk, grep, sed), el consumo de memoria se mantiene constante en pocos megabytes sin importar el tamaño del archivo."
     },
     {
-      "pitfall": "Pensar que un pipeline I/O bound se arregla simplemente escalando a una máquina con el doble de CPUs.",
-      "reality": "Si el cuello de botella es la lectura del disco o el ancho de banda de red, más núcleos solo estarán ociosos esperando datos."
+      "option": "Pensar que un pipeline I/O bound se arregla simplemente escalando a una máquina con el doble de CPUs.",
+      "reason": "Si el cuello de botella es la lectura del disco o el ancho de banda de red, más núcleos solo estarán ociosos esperando datos."
     }
   ],
   "trapSummary": "Ignorar la jerarquía de memoria lleva a pagar miles de dólares en servidores sobredimensionados; el streaming y el control de E/S son la esencia del alto rendimiento.",

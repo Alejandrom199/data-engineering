@@ -3,8 +3,16 @@
   "id": "orquestacion-grafos-airflow",
   "title": "Orquestación Basada en Grafos con Apache Airflow",
   "estimatedMinutes": 30,
-  "domainIds": ["orchestration-quality-dataops"],
-  "topics": ["apache-airflow-core", "dags-operadores", "logical-date-ds", "sensores-reschedule", "backfilling-idempotencia"],
+  "domainIds": [
+    "orchestration-quality-dataops"
+  ],
+  "topics": [
+    "apache-airflow-core",
+    "dags-operadores",
+    "logical-date-ds",
+    "sensores-reschedule",
+    "backfilling-idempotencia"
+  ],
   "hook": "Programar tus tareas de datos con el comando `cron` de Linux es una receta segura para el desastre en producción: `cron` es ciego a dependencias, no reintenta de forma inteligente y si la Tarea A tarda 5 minutos más de lo usual, la Tarea B arranca con datos incompletos. ¿Cómo resuelve Apache Airflow este caos usando teoría de grafos y determinismo temporal?",
   "concept": {
     "blocks": [
@@ -118,12 +126,12 @@
   "checkQuestionId": "q-ops-airflow-logical-date",
   "traps": [
     {
-      "pitfall": "Hacer procesamiento pesado de gigabytes de datos en la memoria del Worker de Airflow mediante PythonOperator.",
-      "reality": "Airflow es un orquestador, no un motor de cómputo distribuido. Si cargas millones de filas en el worker, provocarás OOMs en el scheduler; delega el trabajo pesado a Spark, Trino o Snowflake."
+      "option": "Hacer procesamiento pesado de gigabytes de datos en la memoria del Worker de Airflow mediante PythonOperator.",
+      "reason": "Airflow es un orquestador, no un motor de cómputo distribuido. Si cargas millones de filas en el worker, provocarás OOMs en el scheduler; delega el trabajo pesado a Spark, Trino o Snowflake."
     },
     {
-      "pitfall": "Usar sensores con `mode='poke'` que esperan durante horas.",
-      "reality": "En modo poke, el sensor secuestra un hilo del worker indefinidamente, impidiendo que otras tareas prioritarias puedan arrancar (slot starvation)."
+      "option": "Usar sensores con `mode='poke'` que esperan durante horas.",
+      "reason": "En modo poke, el sensor secuestra un hilo del worker indefinidamente, impidiendo que otras tareas prioritarias puedan arrancar (slot starvation)."
     }
   ],
   "trapSummary": "Usar Airflow como motor de procesamiento en lugar de orquestador o programar tareas dependientes del reloj actual destruye su valor; el código limpio usa logical_date y reschedule.",

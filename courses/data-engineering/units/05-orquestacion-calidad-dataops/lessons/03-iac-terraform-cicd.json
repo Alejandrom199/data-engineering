@@ -3,8 +3,15 @@
   "id": "iac-terraform-cicd",
   "title": "Infraestructura como Código (Terraform, Docker) y CI/CD en Datos",
   "estimatedMinutes": 30,
-  "domainIds": ["orchestration-quality-dataops"],
-  "topics": ["terraform-iac", "docker-containers", "github-actions-cicd", "linters-sqlfluff-ruff"],
+  "domainIds": [
+    "orchestration-quality-dataops"
+  ],
+  "topics": [
+    "terraform-iac",
+    "docker-containers",
+    "github-actions-cicd",
+    "linters-sqlfluff-ruff"
+  ],
   "hook": "Un administrador crea manualmente un clúster en la consola web de AWS haciendo clic en 40 botones. Al año siguiente ocurre un desastre en la región y nadie sabe qué permisos de IAM, firewalls o configuraciones se usaron para crearlo. ¿Por qué el 'ClickOps' está prohibido en equipos de datos de élite y cómo Terraform y CI/CD garantizan la reproducibilidad total?",
   "concept": {
     "blocks": [
@@ -43,12 +50,32 @@
       },
       {
         "type": "table",
-        "headers": ["Herramienta", "Área de Validación", "Beneficio en Producción"],
+        "headers": [
+          "Herramienta",
+          "Área de Validación",
+          "Beneficio en Producción"
+        ],
         "rows": [
-          ["Ruff / Flake8", "Código Python (ETL / DAGs)", "Detecta variables no usadas, errores de sintaxis y código muerto."],
-          ["SQLFluff", "Modelos y Consultas SQL", "Garantiza un dialecto uniforme, legibilidad y previene antipatrones analíticos."],
-          ["Airflow DAG Integrity", "Grafos de Orquestación", "Comprueba que los DAGs compilen sin ciclos ni colisiones de IDs."],
-          ["Terraform Validate", "Infraestructura Cloud", "Verifica la sintaxis HCL antes de aplicar cambios a los buckets."]
+          [
+            "Ruff / Flake8",
+            "Código Python (ETL / DAGs)",
+            "Detecta variables no usadas, errores de sintaxis y código muerto."
+          ],
+          [
+            "SQLFluff",
+            "Modelos y Consultas SQL",
+            "Garantiza un dialecto uniforme, legibilidad y previene antipatrones analíticos."
+          ],
+          [
+            "Airflow DAG Integrity",
+            "Grafos de Orquestación",
+            "Comprueba que los DAGs compilen sin ciclos ni colisiones de IDs."
+          ],
+          [
+            "Terraform Validate",
+            "Infraestructura Cloud",
+            "Verifica la sintaxis HCL antes de aplicar cambios a los buckets."
+          ]
         ],
         "caption": "Pila de verificación estática de calidad en CI/CD."
       }
@@ -123,12 +150,12 @@
   "checkQuestionId": "q-ops-terraform-state-locking",
   "traps": [
     {
-      "pitfall": "Hacer modificaciones 'rápidas' a mano en la consola de AWS sin registrarlas en el código de Terraform.",
-      "reality": "Esto genera 'Config Drift' (deriva de configuración). La siguiente vez que alguien ejecute `terraform apply`, Terraform detectará la discrepancia y podría revertir o destruir tus cambios inesperadamente."
+      "option": "Hacer modificaciones 'rápidas' a mano en la consola de AWS sin registrarlas en el código de Terraform.",
+      "reason": "Esto genera 'Config Drift' (deriva de configuración). La siguiente vez que alguien ejecute `terraform apply`, Terraform detectará la discrepancia y podría revertir o destruir tus cambios inesperadamente."
     },
     {
-      "pitfall": "Guardar el archivo `terraform.tfstate` en el repositorio público de Git.",
-      "reality": "El archivo de estado contiene metadatos sensibles y contraseñas en texto plano; debe residir exclusivamente en un backend remoto cifrado (S3 + KMS) con acceso restringido."
+      "option": "Guardar el archivo `terraform.tfstate` en el repositorio público de Git.",
+      "reason": "El archivo de estado contiene metadatos sensibles y contraseñas en texto plano; debe residir exclusivamente en un backend remoto cifrado (S3 + KMS) con acceso restringido."
     }
   ],
   "trapSummary": "La reproducibilidad es el pilar de la ingeniería moderna; construir plataformas con Terraform, Docker y CI/CD previene desastres y profesionaliza la entrega de valor.",

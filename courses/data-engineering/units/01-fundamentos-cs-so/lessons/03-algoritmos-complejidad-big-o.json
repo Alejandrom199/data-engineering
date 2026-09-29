@@ -3,8 +3,15 @@
   "id": "algoritmos-complejidad-big-o",
   "title": "Algoritmos y Complejidad (Big-O) en Ingeniería de Datos",
   "estimatedMinutes": 25,
-  "domainIds": ["cs-fundamentals-os"],
-  "topics": ["notacion-big-o", "tablas-hash", "arboles-b-plus", "ordenamiento-externo"],
+  "domainIds": [
+    "cs-fundamentals-os"
+  ],
+  "topics": [
+    "notacion-big-o",
+    "tablas-hash",
+    "arboles-b-plus",
+    "ordenamiento-externo"
+  ],
   "hook": "Tu pipeline procesa 10,000 registros en 0.5 segundos durante pruebas locales. Cuando entra a producción con 10 millones de registros, tarda 14 días en terminar. ¿Qué pasó? Caíste en una trampa de complejidad asintótica O(n^2).",
   "concept": {
     "blocks": [
@@ -18,13 +25,43 @@
       },
       {
         "type": "table",
-        "headers": ["Notación", "Nombre", "Ejemplo en Datos", "Para n = 1,000,000"],
+        "headers": [
+          "Notación",
+          "Nombre",
+          "Ejemplo en Datos",
+          "Para n = 1,000,000"
+        ],
         "rows": [
-          ["O(1)", "Constante", "Búsqueda por clave en Hash Table", "1 operación"],
-          ["O(log n)", "Logarítmico", "Búsqueda en índice B+ Tree de PostgreSQL", "~20 operaciones"],
-          ["O(n)", "Lineal", "Full Table Scan / Filtrado secuencial de logs", "1,000,000 operaciones"],
-          ["O(n log n)", "Lineal-Logarítmico", "Ordenamiento (Merge Sort / Spark Shuffle Sort)", "~20,000,000 operaciones"],
-          ["O(n^2)", "Cuadrático", "JOIN anidado ingenuo (Nested Loop Join sin índice)", "1,000,000,000,000 operaciones (Catástrofe)"]
+          [
+            "O(1)",
+            "Constante",
+            "Búsqueda por clave en Hash Table",
+            "1 operación"
+          ],
+          [
+            "O(log n)",
+            "Logarítmico",
+            "Búsqueda en índice B+ Tree de PostgreSQL",
+            "~20 operaciones"
+          ],
+          [
+            "O(n)",
+            "Lineal",
+            "Full Table Scan / Filtrado secuencial de logs",
+            "1,000,000 operaciones"
+          ],
+          [
+            "O(n log n)",
+            "Lineal-Logarítmico",
+            "Ordenamiento (Merge Sort / Spark Shuffle Sort)",
+            "~20,000,000 operaciones"
+          ],
+          [
+            "O(n^2)",
+            "Cuadrático",
+            "JOIN anidado ingenuo (Nested Loop Join sin índice)",
+            "1,000,000,000,000 operaciones (Catástrofe)"
+          ]
         ],
         "caption": "Escala de impacto de complejidad asintótica para un millón de filas."
       },
@@ -124,12 +161,12 @@
   "checkQuestionId": "q-cs-external-merge-sort",
   "traps": [
     {
-      "pitfall": "Asumir que porque una consulta SQL corre en 10 milisegundos en desarrollo escalará igual en producción.",
-      "reality": "En desarrollo una tabla tiene 500 filas (donde O(n^2) tarda 0.001s). En producción con 10,000,000 de filas la misma consulta colapsará la base de datos por horas."
+      "option": "Asumir que porque una consulta SQL corre en 10 milisegundos en desarrollo escalará igual en producción.",
+      "reason": "En desarrollo una tabla tiene 500 filas (donde O(n^2) tarda 0.001s). En producción con 10,000,000 de filas la misma consulta colapsará la base de datos por horas."
     },
     {
-      "pitfall": "Intentar hacer ordenamientos masivos cargando dataframes completos con sort_values() en Pandas.",
-      "reality": "Pandas carga todo en memoria sin soporte nativo de External Sort; colapsará con OOM de inmediato cuando el dataset supere la RAM."
+      "option": "Intentar hacer ordenamientos masivos cargando dataframes completos con sort_values() en Pandas.",
+      "reason": "Pandas carga todo en memoria sin soporte nativo de External Sort; colapsará con OOM de inmediato cuando el dataset supere la RAM."
     }
   ],
   "trapSummary": "La intuición humana sobre rendimiento falla con números grandes; únicamente el análisis asintótico formal Big-O predice si tu pipeline sobrevivirá al crecer a escala de producción.",

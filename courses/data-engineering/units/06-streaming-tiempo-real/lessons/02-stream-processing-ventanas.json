@@ -3,8 +3,16 @@
   "id": "stream-processing-ventanas",
   "title": "Stream Processing: Matemáticas del Tiempo, Ventanas y Watermarks",
   "estimatedMinutes": 30,
-  "domainIds": ["streaming-real-time"],
-  "topics": ["stream-processing-core", "event-time-vs-processing-time", "ventanas-tumbling-sliding", "watermarks-late-data", "hyperloglog-probabilistico"],
+  "domainIds": [
+    "streaming-real-time"
+  ],
+  "topics": [
+    "stream-processing-core",
+    "event-time-vs-processing-time",
+    "ventanas-tumbling-sliding",
+    "watermarks-late-data",
+    "hyperloglog-probabilistico"
+  ],
   "hook": "¿Cómo calculas el total de transacciones bancarias ocurridas a las 10:00 AM si a las 10:15 AM llega un lote retrasado desde una terminal móvil sin señal? En flujos infinitos de datos en vivo, el tiempo no es una simple marca de reloj: es un dominio matemático con retraso, desorden y memoria de estado acotada.",
   "concept": {
     "blocks": [
@@ -18,11 +26,27 @@
       },
       {
         "type": "table",
-        "headers": ["Dimensión Temporal", "Definición Física", "Propósito en Analítica"],
+        "headers": [
+          "Dimensión Temporal",
+          "Definición Física",
+          "Propósito en Analítica"
+        ],
         "rows": [
-          ["Event-Time (Tiempo de Evento)", "El instante exacto en que ocurrió la acción en el dispositivo emisor (embebido en el payload).", "La única métrica válida para cálculos contables, cohortes y auditoría del negocio."],
-          ["Ingestion-Time (Tiempo de Ingesta)", "El instante en que el mensaje fue recibido y almacenado en el broker de Kafka.", "Útil como aproximación intermedia si el dispositivo emisor tiene un reloj descalibrado."],
-          ["Processing-Time (Tiempo de Procesamiento)", "La hora del reloj local del nodo del clúster que ejecuta la transformación.", "Fácil de implementar pero sensible a latencias de red y pausas por Garbage Collection."]
+          [
+            "Event-Time (Tiempo de Evento)",
+            "El instante exacto en que ocurrió la acción en el dispositivo emisor (embebido en el payload).",
+            "La única métrica válida para cálculos contables, cohortes y auditoría del negocio."
+          ],
+          [
+            "Ingestion-Time (Tiempo de Ingesta)",
+            "El instante en que el mensaje fue recibido y almacenado en el broker de Kafka.",
+            "Útil como aproximación intermedia si el dispositivo emisor tiene un reloj descalibrado."
+          ],
+          [
+            "Processing-Time (Tiempo de Procesamiento)",
+            "La hora del reloj local del nodo del clúster que ejecuta la transformación.",
+            "Fácil de implementar pero sensible a latencias de red y pausas por Garbage Collection."
+          ]
         ],
         "caption": "Las tres dimensiones temporales en sistemas de streaming."
       },
@@ -127,12 +151,12 @@
   "checkQuestionId": "q-stream-watermark-definition",
   "traps": [
     {
-      "pitfall": "Configurar un Watermark de 0 segundos creyendo que 'hace el streaming más en tiempo real'.",
-      "reality": "Un watermark de cero segundos descarta cualquier evento que sufra un microsegundo de latencia de red, provocando una pérdida masiva de datos en producción."
+      "option": "Configurar un Watermark de 0 segundos creyendo que 'hace el streaming más en tiempo real'.",
+      "reason": "Un watermark de cero segundos descarta cualquier evento que sufra un microsegundo de latencia de red, provocando una pérdida masiva de datos en producción."
     },
     {
-      "pitfall": "Configurar un Watermark de 7 días 'por si acaso los datos se demoran'.",
-      "reality": "Esto obliga al motor de streaming a mantener el estado en memoria de millones de ventanas abiertas durante 7 días, provocando invariablemente el colapso por OutOfMemory en el clúster."
+      "option": "Configurar un Watermark de 7 días 'por si acaso los datos se demoran'.",
+      "reason": "Esto obliga al motor de streaming a mantener el estado en memoria de millones de ventanas abiertas durante 7 días, provocando invariablemente el colapso por OutOfMemory en el clúster."
     }
   ],
   "trapSummary": "No calibrar el Watermark y confundir Processing-Time con Event-Time arruina las métricas en tiempo real; el streaming profesional gestiona el desorden con rigor matemático.",

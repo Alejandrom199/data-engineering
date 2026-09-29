@@ -3,8 +3,15 @@
   "id": "sql-analitico-funciones-ventana",
   "title": "SQL Analítico Avanzado, CTEs y Funciones de Ventana",
   "estimatedMinutes": 25,
-  "domainIds": ["relational-modeling-olap"],
-  "topics": ["ctes-with", "funciones-de-ventana", "lag-lead-rownumber", "analitica-in-engine"],
+  "domainIds": [
+    "relational-modeling-olap"
+  ],
+  "topics": [
+    "ctes-with",
+    "funciones-de-ventana",
+    "lag-lead-rownumber",
+    "analitica-in-engine"
+  ],
   "hook": "Un analista tarda 45 minutos descargando 10 millones de filas a Python para calcular el crecimiento de ventas intermensual con bucles `for`. Una sola consulta SQL con `LAG()` y `OVER()` lo resuelve en el motor en 300 milisegundos. ¿Por qué delegar el cómputo al motor SQL es la habilidad reina del ingeniero de datos?",
   "concept": {
     "blocks": [
@@ -40,13 +47,37 @@
       },
       {
         "type": "table",
-        "headers": ["Función", "Propósito Típico", "Ejemplo Práctico"],
+        "headers": [
+          "Función",
+          "Propósito Típico",
+          "Ejemplo Práctico"
+        ],
         "rows": [
-          ["ROW_NUMBER()", "Deduplicación / Top-N por categoría", "Obtener la última transacción de cada usuario."],
-          ["RANK() / DENSE_RANK()", "Rankings competitivos con empates", "Clasificar productos por volumen de ventas."],
-          ["LAG(col, offset)", "Acceder a la fila anterior en la ventana", "Calcular deltas de crecimiento día a día o mes a mes."],
-          ["LEAD(col, offset)", "Acceder a la fila siguiente en la ventana", "Calcular tiempo transcurrido hasta el próximo evento."],
-          ["SUM() / AVG() OVER()", "Totales acumulados y proporciones", "Calcular qué porcentaje representa la venta respecto al total."]
+          [
+            "ROW_NUMBER()",
+            "Deduplicación / Top-N por categoría",
+            "Obtener la última transacción de cada usuario."
+          ],
+          [
+            "RANK() / DENSE_RANK()",
+            "Rankings competitivos con empates",
+            "Clasificar productos por volumen de ventas."
+          ],
+          [
+            "LAG(col, offset)",
+            "Acceder a la fila anterior en la ventana",
+            "Calcular deltas de crecimiento día a día o mes a mes."
+          ],
+          [
+            "LEAD(col, offset)",
+            "Acceder a la fila siguiente en la ventana",
+            "Calcular tiempo transcurrido hasta el próximo evento."
+          ],
+          [
+            "SUM() / AVG() OVER()",
+            "Totales acumulados y proporciones",
+            "Calcular qué porcentaje representa la venta respecto al total."
+          ]
         ],
         "caption": "Principales funciones de ventana en SQL analítico."
       }
@@ -120,12 +151,12 @@
   "checkQuestionId": "q-sql-window-functions-lag",
   "traps": [
     {
-      "pitfall": "Usar un SELF-JOIN reflexivo para comparar una fila con su anterior en lugar de LAG().",
-      "reality": "Un self-join tiene complejidad cuadrática O(n^2) y destruye el rendimiento; LAG() resuelve la comparación en un único pase ordenado O(n log n)."
+      "option": "Usar un SELF-JOIN reflexivo para comparar una fila con su anterior en lugar de LAG().",
+      "reason": "Un self-join tiene complejidad cuadrática O(n^2) y destruye el rendimiento; LAG() resuelve la comparación en un único pase ordenado O(n log n)."
     },
     {
-      "pitfall": "Intentar usar una función de ventana directamente en la cláusula WHERE.",
-      "reality": "SQL prohíbe funciones de ventana en WHERE porque los filtros se evalúan antes que las ventanas. Se debe encapsular en una CTE o subconsulta primero."
+      "option": "Intentar usar una función de ventana directamente en la cláusula WHERE.",
+      "reason": "SQL prohíbe funciones de ventana en WHERE porque los filtros se evalúan antes que las ventanas. Se debe encapsular en una CTE o subconsulta primero."
     }
   ],
   "trapSummary": "Usar bucles en Python o auto-joins en lugar de funciones de ventana sobrecarga el clúster; dominar la cláusula OVER() es obligatorio para todo analista e ingeniero de datos.",

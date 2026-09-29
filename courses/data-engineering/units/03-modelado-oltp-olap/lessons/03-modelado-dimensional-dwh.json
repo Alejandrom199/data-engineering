@@ -3,8 +3,16 @@
   "id": "modelado-dimensional-dwh",
   "title": "Modelado Dimensional y Data Warehousing (Kimball)",
   "estimatedMinutes": 30,
-  "domainIds": ["relational-modeling-olap"],
-  "topics": ["olap-vs-oltp", "esquema-en-estrella", "tablas-de-hechos", "tablas-de-dimensiones", "scd-tipo-2"],
+  "domainIds": [
+    "relational-modeling-olap"
+  ],
+  "topics": [
+    "olap-vs-oltp",
+    "esquema-en-estrella",
+    "tablas-de-hechos",
+    "tablas-de-dimensiones",
+    "scd-tipo-2"
+  ],
   "hook": "¿Por qué un Data Warehouse nunca usa tercera forma normal (3NF)? Porque en analítica masiva, hacer 15 JOINs normalizados para responder una pregunta de negocio tarda minutos y quema la CPU. La metodología dimensional de Ralph Kimball revoluciona la velocidad de lectura estructurando el negocio en Hechos y Dimensiones.",
   "concept": {
     "blocks": [
@@ -14,13 +22,37 @@
       },
       {
         "type": "table",
-        "headers": ["Característica", "OLTP (Transaccional)", "OLAP / Data Warehouse (Analítico)"],
+        "headers": [
+          "Característica",
+          "OLTP (Transaccional)",
+          "OLAP / Data Warehouse (Analítico)"
+        ],
         "rows": [
-          ["Objetivo Principal", "Operación diaria del negocio (escrituras rápidas)", "Toma de decisiones estratégicas (lecturas masivas)"],
-          ["Estructura de Datos", "Altamente normalizada (3NF) sin redundancia", "Desnormalizada dimensionalmente (Esquema en Estrella)"],
-          ["Tipo de Consulta", "Búsquedas puntuales por ID (`WHERE id = ?`)", "Grandes agregaciones históricas (`SUM`, `AVG`, `GROUP BY`)"],
-          ["Volumen por Consulta", "Decenas o cientos de filas", "Millones o billones de registros"],
-          ["Orientación de Almacenamiento", "Por filas (Row-oriented: PostgreSQL, MySQL)", "Columnar (Columnar: Snowflake, BigQuery, Redshift, ClickHouse)"]
+          [
+            "Objetivo Principal",
+            "Operación diaria del negocio (escrituras rápidas)",
+            "Toma de decisiones estratégicas (lecturas masivas)"
+          ],
+          [
+            "Estructura de Datos",
+            "Altamente normalizada (3NF) sin redundancia",
+            "Desnormalizada dimensionalmente (Esquema en Estrella)"
+          ],
+          [
+            "Tipo de Consulta",
+            "Búsquedas puntuales por ID (`WHERE id = ?`)",
+            "Grandes agregaciones históricas (`SUM`, `AVG`, `GROUP BY`)"
+          ],
+          [
+            "Volumen por Consulta",
+            "Decenas o cientos de filas",
+            "Millones o billones de registros"
+          ],
+          [
+            "Orientación de Almacenamiento",
+            "Por filas (Row-oriented: PostgreSQL, MySQL)",
+            "Columnar (Columnar: Snowflake, BigQuery, Redshift, ClickHouse)"
+          ]
         ],
         "caption": "Diferencias estructurales entre sistemas OLTP y OLAP."
       },
@@ -127,12 +159,12 @@
   "checkQuestionId": "q-sql-scd2-keys",
   "traps": [
     {
-      "pitfall": "Usar el UUID o ID transaccional del OLTP como Primary Key en una dimensión SCD2.",
-      "reality": "Al cambiar una dimensión SCD2, el mismo usuario tendrá 2 o más filas. Si usas su ID como PK, la base de datos lanzará un error de clave duplicada."
+      "option": "Usar el UUID o ID transaccional del OLTP como Primary Key en una dimensión SCD2.",
+      "reason": "Al cambiar una dimensión SCD2, el mismo usuario tendrá 2 o más filas. Si usas su ID como PK, la base de datos lanzará un error de clave duplicada."
     },
     {
-      "pitfall": "Guardar métricas numéricas agregadas (como promedios) en la tabla de hechos en lugar de datos atómicos.",
-      "reality": "Los promedios no son aditivos. Siempre guarda métricas atómicas aditivas (suma de importes y conteo de eventos) para que puedan reagruparse libremente en cualquier nivel de jerarquía."
+      "option": "Guardar métricas numéricas agregadas (como promedios) en la tabla de hechos en lugar de datos atómicos.",
+      "reason": "Los promedios no son aditivos. Siempre guarda métricas atómicas aditivas (suma de importes y conteo de eventos) para que puedan reagruparse libremente en cualquier nivel de jerarquía."
     }
   ],
   "trapSummary": "Modelar un Data Warehouse como si fuera un OLTP normalizado arruina las consultas analíticas; el modelado dimensional de Kimball con claves subrogadas y SCD2 es el estándar universal.",

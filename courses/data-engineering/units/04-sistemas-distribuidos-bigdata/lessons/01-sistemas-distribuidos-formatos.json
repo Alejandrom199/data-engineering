@@ -3,8 +3,16 @@
   "id": "sistemas-distribuidos-formatos",
   "title": "Teoría de Sistemas Distribuidos y Formatos Columnares",
   "estimatedMinutes": 30,
-  "domainIds": ["distributed-systems-bigdata"],
-  "topics": ["teorema-cap", "formatos-columnares", "apache-parquet", "predicate-pushdown", "object-storage-s3"],
+  "domainIds": [
+    "distributed-systems-bigdata"
+  ],
+  "topics": [
+    "teorema-cap",
+    "formatos-columnares",
+    "apache-parquet",
+    "predicate-pushdown",
+    "object-storage-s3"
+  ],
   "hook": "Guardar un Terabyte de datos en archivos CSV es una sentencia de muerte para el rendimiento y la factura en la nube: leer una sola columna obliga a escanear el Terabyte entero. ¿Por qué el formato Apache Parquet y el Teorema CAP son las leyes fundamentales que gobiernan el almacenamiento moderno a escala masiva?",
   "concept": {
     "blocks": [
@@ -41,13 +49,37 @@
       },
       {
         "type": "table",
-        "headers": ["Característica", "Formatos por Filas (CSV / JSON / Avro)", "Formatos Columnares (Parquet / ORC)"],
+        "headers": [
+          "Característica",
+          "Formatos por Filas (CSV / JSON / Avro)",
+          "Formatos Columnares (Parquet / ORC)"
+        ],
         "rows": [
-          ["Organización en Disco", "Fila tras fila consecutiva", "Columnas contiguas dentro de cada Row Group"],
-          ["E/S al leer pocas columnas", "Lee el 100% de los bytes del archivo", "Lee únicamente los bytes de las columnas solicitadas"],
-          ["Ratio de Compresión", "Pobre (5% a 20%) debido a mezcla de tipos", "Excelente (70% a 90%) por datos homogéneos continuos"],
-          ["Tipado", "Débil (texto plano en CSV) o parsing pesado (JSON)", "Esquema binario estricto embebido en metadatos"],
-          ["Predicate Pushdown", "No soportado; requiere escanear cada línea", "Soportado mediante estadísticas min/max en el footer"]
+          [
+            "Organización en Disco",
+            "Fila tras fila consecutiva",
+            "Columnas contiguas dentro de cada Row Group"
+          ],
+          [
+            "E/S al leer pocas columnas",
+            "Lee el 100% de los bytes del archivo",
+            "Lee únicamente los bytes de las columnas solicitadas"
+          ],
+          [
+            "Ratio de Compresión",
+            "Pobre (5% a 20%) debido a mezcla de tipos",
+            "Excelente (70% a 90%) por datos homogéneos continuos"
+          ],
+          [
+            "Tipado",
+            "Débil (texto plano en CSV) o parsing pesado (JSON)",
+            "Esquema binario estricto embebido en metadatos"
+          ],
+          [
+            "Predicate Pushdown",
+            "No soportado; requiere escanear cada línea",
+            "Soportado mediante estadísticas min/max en el footer"
+          ]
         ],
         "caption": "Comparativa técnica entre almacenamiento por filas y columnar."
       },
@@ -129,12 +161,12 @@
   "checkQuestionId": "q-dist-parquet-pushdown",
   "traps": [
     {
-      "pitfall": "Guardar un Data Lake en archivos CSV o JSON crudos creyendo que la nube escalará mágicamente.",
-      "reality": "Las consultas en Athena, Spark o Snowflake cobrarán por Terabytes escaneados y tardarán órdenes de magnitud más tiempo; Parquet es el estándar innegociable."
+      "option": "Guardar un Data Lake en archivos CSV o JSON crudos creyendo que la nube escalará mágicamente.",
+      "reason": "Las consultas en Athena, Spark o Snowflake cobrarán por Terabytes escaneados y tardarán órdenes de magnitud más tiempo; Parquet es el estándar innegociable."
     },
     {
-      "pitfall": "Crear millones de archivos Parquet de 1MB en un bucket S3.",
-      "reality": "Esto provoca el 'Small Files Problem', saturando las llamadas HTTP de metadatos en S3 y arruinando el beneficio de los Row Groups (que deben medir entre 128MB y 512MB)."
+      "option": "Crear millones de archivos Parquet de 1MB en un bucket S3.",
+      "reason": "Esto provoca el 'Small Files Problem', saturando las llamadas HTTP de metadatos en S3 y arruinando el beneficio de los Row Groups (que deben medir entre 128MB y 512MB)."
     }
   ],
   "trapSummary": "Ignorar los formatos columnares en Big Data multiplica por diez los costos de computación y red; Parquet junto a Predicate Pushdown es la base de la eficiencia analítica.",

@@ -3,8 +3,15 @@
   "id": "arquitecturas-cdc-kappa",
   "title": "Arquitecturas Modernas: Change Data Capture (CDC) y Arquitectura Kappa",
   "estimatedMinutes": 30,
-  "domainIds": ["streaming-real-time"],
-  "topics": ["change-data-capture-cdc", "debezium-postgresql-wal", "arquitectura-kappa-vs-lambda", "event-driven-data-pipelines"],
+  "domainIds": [
+    "streaming-real-time"
+  ],
+  "topics": [
+    "change-data-capture-cdc",
+    "debezium-postgresql-wal",
+    "arquitectura-kappa-vs-lambda",
+    "event-driven-data-pipelines"
+  ],
   "hook": "Ejecutar `SELECT * FROM orders WHERE updated_at > last_sync` cada 10 minutos para sincronizar analítica destruye el rendimiento del OLTP y no detecta cuando alguien hace `DELETE`. ¿Cómo la captura de cambios directamente desde el Write-Ahead Log (WAL) con Debezium y la Arquitectura Kappa crearon el estándar de datos en tiempo real moderno?",
   "concept": {
     "blocks": [
@@ -43,12 +50,32 @@
       },
       {
         "type": "table",
-        "headers": ["Criterio de Diseño", "Arquitectura Lambda", "Arquitectura Kappa (Jay Kreps)"],
+        "headers": [
+          "Criterio de Diseño",
+          "Arquitectura Lambda",
+          "Arquitectura Kappa (Jay Kreps)"
+        ],
         "rows": [
-          ["Filosofía Central", "Dual: Capa Batch separada de la Capa Speed", "Unificada: TODO es un flujo de eventos (Streaming First)"],
-          ["Mantenimiento de Código", "Doble (duplicación de lógica en Batch y Streaming)", "Único: La misma lógica de streaming procesa en vivo y en reprocesamiento"],
-          ["Reprocesamiento Histórico", "Vuelve a ejecutar el pipeline Batch nocturno", "Relee el log inmutable de Kafka o Lakehouse desde el offset 0"],
-          ["Consistencia de Resultados", "Propensa a discrepancias entre la capa Batch y la capa Speed", "Consistencia total garantizada por usar el mismo motor"]
+          [
+            "Filosofía Central",
+            "Dual: Capa Batch separada de la Capa Speed",
+            "Unificada: TODO es un flujo de eventos (Streaming First)"
+          ],
+          [
+            "Mantenimiento de Código",
+            "Doble (duplicación de lógica en Batch y Streaming)",
+            "Único: La misma lógica de streaming procesa en vivo y en reprocesamiento"
+          ],
+          [
+            "Reprocesamiento Histórico",
+            "Vuelve a ejecutar el pipeline Batch nocturno",
+            "Relee el log inmutable de Kafka o Lakehouse desde el offset 0"
+          ],
+          [
+            "Consistencia de Resultados",
+            "Propensa a discrepancias entre la capa Batch y la capa Speed",
+            "Consistencia total garantizada por usar el mismo motor"
+          ]
         ],
         "caption": "Comparativa entre Arquitectura Lambda y Arquitectura Kappa."
       }
@@ -122,12 +149,12 @@
   "checkQuestionId": "q-stream-cdc-vs-polling",
   "traps": [
     {
-      "pitfall": "Configurar una clave de partición aleatoria en Kafka para eventos de CDC.",
-      "reality": "Esto enviará las actualizaciones y borrados de un mismo registro a diferentes particiones, destruyendo el orden cronológico de las mutaciones. Siempre usa la Primary Key de la tabla como clave de particionado en Kafka."
+      "option": "Configurar una clave de partición aleatoria en Kafka para eventos de CDC.",
+      "reason": "Esto enviará las actualizaciones y borrados de un mismo registro a diferentes particiones, destruyendo el orden cronológico de las mutaciones. Siempre usa la Primary Key de la tabla como clave de particionado en Kafka."
     },
     {
-      "pitfall": "Construir una Arquitectura Lambda compleja cuando la lógica se puede resolver limpiamente con Arquitectura Kappa.",
-      "reality": "Mantener dos sistemas de código duplicados (uno en batch y otro en streaming) multiplica por dos el costo de desarrollo y crea bugs de inconsistencia permanentes."
+      "option": "Construir una Arquitectura Lambda compleja cuando la lógica se puede resolver limpiamente con Arquitectura Kappa.",
+      "reason": "Mantener dos sistemas de código duplicados (uno en batch y otro en streaming) multiplica por dos el costo de desarrollo y crea bugs de inconsistencia permanentes."
     }
   ],
   "trapSummary": "El sondeo por SELECT es obsoleto y frágil; el CDC basado en logs y la Arquitectura Kappa son el estándar supremo para analítica reactiva e integrada.",
