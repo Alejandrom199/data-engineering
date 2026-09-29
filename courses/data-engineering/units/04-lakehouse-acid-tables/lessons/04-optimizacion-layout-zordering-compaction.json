@@ -151,17 +151,17 @@
   },
   "flashcards": [
     {
-      "id": "fc-u4-l1-1",
+      "id": "fc-u4-l4-1",
       "front": "¿Qué comando realiza la compasión de archivos en Delta Lake?",
       "back": "OPTIMIZE nombre_tabla;"
     },
     {
-      "id": "fc-u4-l1-2",
+      "id": "fc-u4-l4-2",
       "front": "¿Qué problema resuelve Z-Ordering frente al particionamiento de carpetas?",
       "back": "Permite clustering multidimensional por atributos de alta cardinalidad sin crear millones de carpetas vacías."
     },
     {
-      "id": "fc-u4-l1-3",
+      "id": "fc-u4-l4-3",
       "front": "¿Cuántas columnas se recomienda incluir como máximo en ZORDER BY?",
       "back": "De 2 a 4 columnas clave (más columnas diluyen la efectividad de la curva espacial)."
     }
