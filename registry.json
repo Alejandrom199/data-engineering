@@ -15,6 +15,7 @@
       "estimatedHours": 240,
       "icon": "server",
       "color": "#0284c7",
+      "certificationCode": "DE-01",
       "stats": {
         "units": 6,
         "lessons": 17,
@@ -25,8 +26,8 @@
       },
       "archive": {
         "path": "archives/data-engineering-1.0.0.zip",
-        "sha256": "4797a21325ab26cca6002255de09a769adffe49238d60f0e74ef46d4626a5a4a",
-        "bytes": 151273
+        "sha256": "0158b478be55aff25f0c409f450f0dbf909eb4ab8516e0e632c838f4393fd504",
+        "bytes": 151292
       }
     }
   ]

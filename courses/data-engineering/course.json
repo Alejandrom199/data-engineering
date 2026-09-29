@@ -12,6 +12,10 @@
   "estimatedHours": 240,
   "icon": "server",
   "color": "#0284c7",
+  "certification": {
+    "code": "DE-01",
+    "name": "Mentor de Ingeniería de Datos (Nivel 0 → Experto)"
+  },
   "domains": [
     {
       "id": "cs-fundamentals-os",
