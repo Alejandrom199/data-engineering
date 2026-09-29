@@ -1,0 +1,24 @@
+{
+  "$schema": "../../../../schemas/lab.schema.json",
+  "id": "lab-duckdb-in-process-analytics",
+  "title": "Laboratorio: Análisis Vectorizado Directo sobre Parquet con DuckDB",
+  "goal": "Consultar y agregar millones de registros directamente desde archivos Parquet usando DuckDB sin necesidad de importar a una base de datos.",
+  "level": "intermediate",
+  "estimatedMinutes": 25,
+  "icon": "bolt",
+  "domainId": "ingestion-formatos-motores-locales",
+  "lessonId": "motores-analiticos-locales-duckdb-polars",
+  "code": "import duckdb\n\ncon = duckdb.connect()\nres = con.execute('''\n    WITH data AS (\n        SELECT \n            range % 5 AS categoria_id,\n            (range * 10.5) AS monto\n        FROM range(500000)\n    )\n    SELECT \n        categoria_id,\n        COUNT(*) AS total_ventas,\n        ROUND(AVG(monto), 2) AS ticket_promedio\n    FROM data\n    GROUP BY categoria_id\n    ORDER BY categoria_id;\n''').fetchall()\n\nprint(f'Categorias procesadas: {len(res)}')\nfor row in res:\n    print(f'Cat {row[0]}: {row[1]} ventas')",
+  "codeLanguage": "python",
+  "expectedOutput": "Categorias procesadas: 5\nCat 0: 100000 ventas\nCat 1: 100000 ventas\nCat 2: 100000 ventas\nCat 3: 100000 ventas\nCat 4: 100000 ventas",
+  "successCriteria": [
+    "Se procesan 500,000 registros en memoria de forma vectorizada en milisegundos.",
+    "Las agregaciones por categoría coinciden con los valores esperados."
+  ],
+  "file": "solution.py",
+  "steps": [
+    "Comprender el objetivo y escribir la solución técnica solicitada.",
+    "Ejecutar la verificación del ejercicio y comparar la salida obtenida."
+  ],
+  "verify": "python solution.py"
+}

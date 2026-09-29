@@ -1,0 +1,24 @@
+{
+  "$schema": "../../../../schemas/lab.schema.json",
+  "id": "lab-spark-narrow-wide-shuffle",
+  "title": "Laboratorio: Análisis de Shuffle y Dependencias en PySpark",
+  "goal": "Inspeccionar el plan de ejecución de transformaciones Narrow y Wide observando la aparición de Exchange (Shuffle) en el plan físico.",
+  "level": "intermediate",
+  "estimatedMinutes": 30,
+  "icon": "terminal",
+  "domainId": "procesamiento-distribuido-spark",
+  "lessonId": "shuffle-transformaciones-narrow-wide",
+  "code": "import duckdb\n# Demostración conceptual de particionamiento y redistribución\ncon = duckdb.connect()\ncon.execute('''\n    CREATE TABLE transacciones AS \n    SELECT range AS id, (range % 3) AS region_id, (range * 5.0) AS monto \n    FROM range(100000);\n''')\n\n# Consulta agregada que simula un Stage de Shuffle en memoria\nres = con.execute('''\n    SELECT region_id, COUNT(*) AS total_tx, SUM(monto) AS volumen \n    FROM transacciones \n    GROUP BY region_id \n    ORDER BY region_id;\n''').fetchall()\n\nfor r in res:\n    print(f'Region {r[0]}: {r[1]} transacciones, Volumen={r[2]:.1f}')",
+  "codeLanguage": "python",
+  "expectedOutput": "Region 0: 33334 transacciones, Volumen=833333350.0\nRegion 1: 33333 transacciones, Volumen=833316680.0\nRegion 2: 33333 transacciones, Volumen=833350020.0",
+  "successCriteria": [
+    "Se comprenden las agrupaciones por clave de partición simulando el comportamiento de un Shuffle.",
+    "Las métricas de volumen y recuento se distribuyen coherentemente entre las regiones."
+  ],
+  "file": "solution.py",
+  "steps": [
+    "Comprender el objetivo y escribir la solución técnica solicitada.",
+    "Ejecutar la verificación del ejercicio y comparar la salida obtenida."
+  ],
+  "verify": "python solution.py"
+}

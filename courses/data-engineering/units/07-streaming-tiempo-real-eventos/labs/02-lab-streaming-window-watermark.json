@@ -1,0 +1,24 @@
+{
+  "$schema": "../../../../schemas/lab.schema.json",
+  "id": "lab-streaming-window-watermark",
+  "title": "Laboratorio: Ventanas de Event Time y Evaluación de Watermarks",
+  "goal": "Implementar una lógica de ventana temporal que descarte eventos que lleguen más tarde que el umbral del Watermark.",
+  "level": "advanced",
+  "estimatedMinutes": 35,
+  "icon": "clock",
+  "domainId": "streaming-tiempo-real-eventos",
+  "lessonId": "procesamiento-streams-watermarks-exactly-once",
+  "code": "def process_stream_with_watermark(events, watermark_delay_sec=10):\n    current_watermark = 0\n    accepted, dropped = 0, 0\n    for ev in events:\n        ts = ev['event_time']\n        if ts >= current_watermark:\n            accepted += 1\n            current_watermark = max(current_watermark, ts - watermark_delay_sec)\n        else:\n            dropped += 1\n    return accepted, dropped\n\nstream = [\n    {'event_time': 100, 'data': 'A'},\n    {'event_time': 120, 'data': 'B'}, # Watermark pasa a 120 - 10 = 110\n    {'event_time': 105, 'data': 'C'}, # Llega con retraso menor a 110: DESCARTADO\n    {'event_time': 125, 'data': 'D'}  # Valido\n]\n\nacc, drop = process_stream_with_watermark(stream, watermark_delay_sec=10)\nprint(f'Aceptados: {acc}, Descartados por Watermark: {drop}')",
+  "codeLanguage": "python",
+  "expectedOutput": "Aceptados: 3, Descartados por Watermark: 1",
+  "successCriteria": [
+    "Los eventos que respetan el margen del Watermark son aceptados.",
+    "El evento tardío (tiempo 105 menor que el watermark 110) es correctamente descartado."
+  ],
+  "file": "solution.py",
+  "steps": [
+    "Comprender el objetivo y escribir la solución técnica solicitada.",
+    "Ejecutar la verificación del ejercicio y comparar la salida obtenida."
+  ],
+  "verify": "python solution.py"
+}

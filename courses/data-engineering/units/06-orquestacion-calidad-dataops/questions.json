@@ -1,0 +1,137 @@
+{
+  "$schema": "../../../../schemas/questions.schema.json",
+  "questions": [
+    {
+      "id": "q-u6-01",
+      "type": "single",
+      "domainId": "orquestacion-calidad-dataops",
+      "skill": "Orquestación con Apache Airflow",
+      "topic": "idempotencia-pipelines",
+      "stem": "¿Por qué es imprescindible que una tarea dentro de un DAG de Apache Airflow sea idempotente?",
+      "options": [
+        {
+          "key": "A",
+          "text": "Para que consuma un 0% de memoria RAM en el servidor."
+        },
+        {
+          "key": "B",
+          "text": "Porque si la tarea falla a la mitad y el orquestador la reintenta, la ejecución debe producir exactamente el mismo resultado sin duplicar registros ni corromper el destino."
+        },
+        {
+          "key": "C",
+          "text": "Para impedir que otros usuarios puedan ver el código fuente en GitHub."
+        },
+        {
+          "key": "D",
+          "text": "Porque Airflow solo permite ejecutar scripts de bash si son idempotentes."
+        }
+      ],
+      "correct": [
+        "B"
+      ],
+      "explanation": "La idempotencia garantiza que ejecutar una tarea una o diez veces para una misma fecha lógica genere el mismo estado final correcto, previniendo duplicados durante reintentos.",
+      "sources": [
+        "Data Pipelines with Apache Airflow"
+      ]
+    },
+    {
+      "id": "q-u6-02",
+      "type": "single",
+      "domainId": "orquestacion-calidad-dataops",
+      "skill": "Sensores y Gestión de Concurrencia",
+      "topic": "reschedule-vs-poke",
+      "stem": "En Apache Airflow, ¿por qué los sensores que esperan condiciones de larga duración (más de 10 minutos) deben configurarse obligatoriamente con `mode='reschedule'` en lugar de `mode='poke'`?",
+      "options": [
+        {
+          "key": "A",
+          "text": "Porque el modo `poke` formatea el disco duro si el archivo no llega en 10 minutos."
+        },
+        {
+          "key": "B",
+          "text": "Porque el modo `poke` secuestra un worker slot continuamente mientras duerme, pudiendo provocar un Worker Deadlock que paralice todas las demás tareas del clúster."
+        },
+        {
+          "key": "C",
+          "text": "Porque el modo `reschedule` desactiva las alertas de error de Airflow."
+        },
+        {
+          "key": "D",
+          "text": "Porque el modo `poke` no es compatible con el lenguaje Python."
+        }
+      ],
+      "correct": [
+        "B"
+      ],
+      "explanation": "El modo `poke` retiene el slot de worker sin soltarlo. Con múltiples sensores, se agotan los slots disponibles paralizando el clúster. El modo `reschedule` libera el slot entre intentos.",
+      "sources": [
+        "Apache Airflow Documentation - Sensors"
+      ]
+    },
+    {
+      "id": "q-u6-03",
+      "type": "single",
+      "domainId": "orquestacion-calidad-dataops",
+      "skill": "Calidad y Contratos de Datos",
+      "topic": "circuit-breakers",
+      "stem": "¿Cuál es la función principal de implementar un Circuit Breaker mediante herramientas como Great Expectations en un pipeline de datos?",
+      "options": [
+        {
+          "key": "A",
+          "text": "Aumentar automáticamente la velocidad de la tarjeta de red del clúster."
+        },
+        {
+          "key": "B",
+          "text": "Validar reglas de integridad y esquemas de los datos, abortando inmediatamente la ejecución para impedir que datos corruptos contaminen las tablas de producción."
+        },
+        {
+          "key": "C",
+          "text": "Convertir bases de datos relacionales a formato NoSQL de manera transparente."
+        },
+        {
+          "key": "D",
+          "text": "Generar automáticamente la declaración de impuestos de la empresa."
+        }
+      ],
+      "correct": [
+        "B"
+      ],
+      "explanation": "Un Circuit Breaker actúa como un cortacircuitos de software: si los datos no cumplen los contratos de calidad definidos, detiene el pipeline antes de que impacten reportes de negocio.",
+      "sources": [
+        "Fundamentals of Data Engineering - Joe Reis"
+      ]
+    },
+    {
+      "id": "q-u6-04",
+      "type": "single",
+      "domainId": "orquestacion-calidad-dataops",
+      "skill": "Cultura y Prácticas DataOps",
+      "topic": "dataops-ci-cd",
+      "stem": "¿Qué prueba automatizada de integración continua (CI) permite validar que ningún DAG introducido en el repositorio contenga errores de sintaxis antes de desplegarse en producción?",
+      "options": [
+        {
+          "key": "A",
+          "text": "Un test con pytest que cargue la colección `DagBag` y verifique que `len(dag_bag.import_errors) == 0`."
+        },
+        {
+          "key": "B",
+          "text": "Un comando que borre la base de datos de producción cada medianoche."
+        },
+        {
+          "key": "C",
+          "text": "Un script que envíe un correo electrónico al soporte técnico de Microsoft."
+        },
+        {
+          "key": "D",
+          "text": "Una verificación de espacio libre en disco en la computadora del desarrollador."
+        }
+      ],
+      "correct": [
+        "A"
+      ],
+      "explanation": "Comprobar `dag_bag.import_errors == 0` con pytest valida que todos los DAGs compilen correctamente sin errores de importación o sintaxis antes del despliegue.",
+      "sources": [
+        "Testing Data Pipelines with Apache Airflow"
+      ]
+    }
+  ]
+}

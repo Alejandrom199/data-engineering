@@ -1,0 +1,197 @@
+{
+  "$schema": "../../../../../schemas/lesson.schema.json",
+  "id": "apache-kafka-logs-particiones-offsets",
+  "title": "Apache Kafka a Fondo: Commit Log, Particiones y Offsets",
+  "estimatedMinutes": 16,
+  "domainIds": [
+    "streaming-tiempo-real-eventos"
+  ],
+  "topics": [
+    "apache-kafka",
+    "commit-log-particiones",
+    "consumer-groups",
+    "kafka-offsets"
+  ],
+  "hook": "La mayoría de las personas creen que Apache Kafka es una simple 'cola de mensajes' como RabbitMQ. Pero en una cola tradicional, cuando un consumidor lee un mensaje, el mensaje se borra. En Kafka, 50 aplicaciones distintas pueden leer el mismo evento 10 días después sin que desaparezca. ¿Por qué Kafka no es una cola, sino un Commit Log distribuido?",
+  "concept": {
+    "blocks": [
+      {
+        "type": "heading",
+        "text": "1. El Commit Log Distribuido: Inmutable y Append-Only"
+      },
+      {
+        "type": "paragraph",
+        "text": "Apache Kafka está diseñado sobre la estructura de datos más simple y eficiente de la informática: un **Commit Log inmutable** (registro secuencial de sólo adición en disco). Los eventos se escriben al final del log y nunca se modifican. Debido a que las escrituras secuenciales en disco son casi tan rápidas como la memoria RAM, un clúster de Kafka puede procesar millones de mensajes por segundo con latencias sub-milisegundo."
+      },
+      {
+        "type": "heading",
+        "text": "2. Tópicos, Particiones y Paralelismo"
+      },
+      {
+        "type": "paragraph",
+        "text": "Un **Tópico (Topic)** es una categoría lógica de eventos (ej. `ordenes_creadas`). Para escalar horizontalmente, cada tópico se divide en múltiples **Particiones** distribuidas entre los diferentes servidores (**Brokers**) del clúster:"
+      },
+      {
+        "type": "list",
+        "style": "bullet",
+        "items": [
+          "**Orden Estricto por Partición:** El orden cronológico de los eventos está garantizado dentro de una misma partición, pero **no** entre particiones distintas.",
+          "**Particionamiento por Clave:** Si envías un mensaje con `clave = cliente_id`, Kafka aplica un hash consistente (`hash(key) % num_partitions`), garantizando que todos los eventos del mismo cliente caigan siempre en la misma partición y en estricto orden cronológico.",
+          "**El Offset:** Cada mensaje dentro de una partición recibe un número entero secuencial e inmutable llamado **Offset** que identifica unívocamente su posición en el log."
+        ]
+      },
+      {
+        "type": "heading",
+        "text": "3. Consumer Groups y Rebalanceo"
+      },
+      {
+        "type": "paragraph",
+        "text": "Los consumidores se agrupan en **Consumer Groups**. Si un tópico tiene 4 particiones y tu grupo tiene 4 consumidores, cada consumidor lee exactamente de 1 partición en paralelo. Si tienes más consumidores que particiones (ej. 6 consumidores para 4 particiones), los 2 consumidores sobrantes quedarán ociosos. Cada consumidor guarda periódicamente el último offset que procesó con éxito (`__consumer_offsets`), permitiendo reanudar exactamente donde quedó tras una caída."
+      },
+      {
+        "type": "code",
+        "language": "python",
+        "caption": "Consumidor resiliente de Kafka en Python",
+        "code": "from kafka import KafkaConsumer\nimport json\n\nconsumer = KafkaConsumer(\n    'pedidos_online',\n    bootstrap_servers=['kafka-broker-1:9092'],\n    group_id='servicio_facturacion',  # Identificador del Consumer Group\n    auto_offset_reset='earliest',     # Si no hay offset previo, lee desde el inicio\n    enable_auto_commit=False,         # Commit manual tras procesar con exito\n    value_deserializer=lambda m: json.loads(m.decode('utf-8'))\n)\n\nfor message in consumer:\n    pedido = message.value\n    print(f'Procesando pedido {pedido[\"id\"]} de particion {message.partition}, offset {message.offset}')\n    # Guardar en base de datos de forma idempotente\n    guardar_factura(pedido)\n    # Confirmar que el mensaje fue procesado exitosamente\n    consumer.commit()"
+      },
+      {
+        "type": "callout",
+        "tone": "info",
+        "title": "Retención en Disco",
+        "text": "Los mensajes en Kafka no se borran cuando son leídos; permanecen en disco durante el tiempo de retención configurado (`log.retention.hours=168`, 7 días por defecto). Esto permite que nuevos equipos lean la historia pasada sin afectar a los productores."
+      }
+    ]
+  },
+  "keyPoints": [
+    "Kafka es un Commit Log distribuido append-only que escribe eventos secuencialmente en disco sin borrarlos al ser leídos.",
+    "Las particiones son la unidad de paralelismo y garantizan el orden estricto de los eventos para una misma clave.",
+    "El Offset registra la posición exacta de lectura de cada consumidor, permitiendo recuperación ante caídas sin pérdida de datos."
+  ],
+  "terms": [
+    {
+      "term": "Kafka Broker",
+      "translation": "Servidor Broker de Kafka",
+      "definition": "Nodo del clúster de Kafka responsable de almacenar particiones de mensajes en disco y servir a productores y consumidores."
+    },
+    {
+      "term": "Offset",
+      "translation": "Desplazamiento / Offset",
+      "definition": "Identificador entero secuencial y monotónicamente creciente asignado a cada mensaje dentro de una partición de Kafka."
+    },
+    {
+      "term": "Consumer Group",
+      "translation": "Grupo de Consumidores",
+      "definition": "Conjunto de consumidores cooperativos que se reparten de forma balanceada y exclusiva las particiones de un tópico."
+    }
+  ],
+  "diagram": {
+    "type": "flow",
+    "nodes": [
+      {
+        "id": "prod",
+        "label": "Productor (App Web)",
+        "sub": "Envía evento con clave 'U100'",
+        "detail": "Aplica hash('U100') % 2 -> Partición 0",
+        "icon": "mail",
+        "kind": "default"
+      },
+      {
+        "id": "p0",
+        "label": "Partición 0 (Broker 1)",
+        "sub": "Offsets: 0, 1, 2, 3...",
+        "detail": "Almacena orden estricto para el usuario U100",
+        "icon": "server",
+        "kind": "default"
+      },
+      {
+        "id": "p1",
+        "label": "Partición 1 (Broker 2)",
+        "sub": "Offsets: 0, 1, 2...",
+        "detail": "Almacena eventos de otros usuarios en paralelo",
+        "icon": "server",
+        "kind": "default"
+      },
+      {
+        "id": "cg",
+        "label": "Consumer Group (2 Workers)",
+        "sub": "C1 lee P0 | C2 lee P1",
+        "detail": "Procesamiento paralelo balanceado con commits",
+        "icon": "users",
+        "kind": "end"
+      }
+    ]
+  },
+  "activity": {
+    "type": "sort",
+    "prompt": "Clasifica las características en el concepto de Kafka correspondiente:",
+    "buckets": [
+      "Partición de Kafka",
+      "Offset de Kafka"
+    ],
+    "items": [
+      {
+        "text": "Unidad de escalado horizontal que divide un tópico en múltiples servidores brokers",
+        "bucket": 0
+      },
+      {
+        "text": "Número entero secuencial que marca la posición exacta del mensaje en el registro",
+        "bucket": 1
+      },
+      {
+        "text": "Garantiza orden cronológico estricto de eventos para una misma clave de partición",
+        "bucket": 0
+      },
+      {
+        "text": "Puntero guardado por el consumidor en `__consumer_offsets` para recordar hasta dónde leyó",
+        "bucket": 1
+      }
+    ]
+  },
+  "checkQuestionId": "q-u7-02",
+  "traps": [
+    {
+      "option": "Configurar más consumidores en un Consumer Group que el número total de particiones del tópico.",
+      "reason": "Los consumidores adicionales quedarán completamente ociosos sin recibir ningún dato, consumiendo recursos inútilmente."
+    },
+    {
+      "option": "Habilitar `enable_auto_commit=True` en consumidores que realizan transformaciones pesadas antes de guardar.",
+      "reason": "Airflow o el script confirmará que el mensaje se leyó antes de procesarlo; si el proceso se cae en medio, el mensaje se perderá para siempre."
+    }
+  ],
+  "trapSummary": "Usar auto-commit de offsets en consumidores críticos provocando pérdida silenciosa de mensajes ante caídas del proceso.",
+  "flashcards": [
+    {
+      "id": "fc-u7-l2-1",
+      "front": "¿Por qué Kafka puede procesar millones de mensajes por segundo escribiendo directamente en disco?",
+      "back": "Porque utiliza un Commit Log append-only de escritura puramente secuencial, lo cual aprovecha al máximo el ancho de banda del disco sin búsquedas aleatorias."
+    },
+    {
+      "id": "fc-u7-l2-2",
+      "front": "¿En qué ámbito garantiza Apache Kafka el orden estricto de los eventos?",
+      "back": "Garantiza orden estricto únicamente dentro de una misma partición, pero no entre particiones diferentes del mismo tópico."
+    },
+    {
+      "id": "fc-u7-l2-3",
+      "front": "¿Qué sucede si un Consumer Group tiene 8 consumidores y el tópico tiene 4 particiones?",
+      "back": "Solo 4 consumidores estarán activos procesando una partición cada uno; los 4 consumidores restantes quedarán ociosos en espera de reemplazo."
+    }
+  ],
+  "quickFacts": [
+    {
+      "statement": "Kafka almacena los mensajes de forma inmutable en un Commit Log ordenado.",
+      "answer": true
+    },
+    {
+      "statement": "Cuando un consumidor lee un mensaje de Kafka, el mensaje se borra automáticamente del disco.",
+      "answer": false
+    },
+    {
+      "statement": "Asignar la misma clave a los mensajes garantiza que caigan en la misma partición en orden cronológico.",
+      "answer": true
+    },
+    {
+      "statement": "Un tópico de Kafka solo puede tener como máximo una partición.",
+      "answer": false
+    }
+  ]
+}

@@ -1,0 +1,220 @@
+{
+  "$schema": "../../../../../schemas/lesson.schema.json",
+  "id": "ingestion-apis-rest-backoff-paginacion",
+  "title": "Ingestión de APIs REST: Paginación, Rate Limits y Backoff Exponencial",
+  "estimatedMinutes": 14,
+  "domainIds": [
+    "ingestion-formatos-motores-locales"
+  ],
+  "topics": [
+    "ingestion-apis",
+    "backoff-exponencial",
+    "paginacion-cursores",
+    "circuit-breakers"
+  ],
+  "hook": "Un pipeline extrae un catálogo de 2 millones de productos de una API de Shopify. Al llegar a la página 5,000, el servidor devuelve HTTP 429 (Too Many Requests). El script reintenta de inmediato 50 veces seguidas por segundo y la API bloquea la IP de la empresa por 24 horas. ¿Cómo se diseña un extractor profesional que respete límites y sea tolerante a fallos?",
+  "concept": {
+    "blocks": [
+      {
+        "type": "heading",
+        "text": "1. El Reto de Extraer Datos de APIs Externas"
+      },
+      {
+        "type": "paragraph",
+        "text": "En el mundo real, los datos no siempre están en una base de datos a la que te puedas conectar directamente. Gran parte de la ingestión ocurre consumiendo APIs REST (SaaS como Stripe, Salesforce, Hubspot o APIs gubernamentales). Estas APIs tienen dos restricciones críticas: cuotas de tráfico (Rate Limits) e inestabilidad de red."
+      },
+      {
+        "type": "heading",
+        "text": "2. Paginación por Offset vs Paginación por Cursores"
+      },
+      {
+        "type": "paragraph",
+        "text": "Existen dos formas principales en que las APIs entregan grandes volúmenes de datos en páginas:"
+      },
+      {
+        "type": "table",
+        "headers": [
+          "Estrategia",
+          "Cómo Funciona",
+          "Ventaja",
+          "Problema en Producción"
+        ],
+        "rows": [
+          [
+            "Offset / Page (`?page=50&limit=100`)",
+            "Calcula `OFFSET = page * limit` en la base de datos.",
+            "Fácil de implementar.",
+            "Si entran nuevos registros mientras paginas, se leen registros duplicados o se omiten filas; además, offsets altos degradan el rendimiento."
+          ],
+          [
+            "Cursor (`?cursor=eyJuZXh0X2lkIjo5OTV9`)",
+            "Usa un puntero o clave del último registro visto (`WHERE id > 995 LIMIT 100`).",
+            "Tiempo de respuesta constante y consistente ante escrituras concurrentes.",
+            "No permite saltar directamente a una página arbitraria (solo navegación secuencial)."
+          ]
+        ],
+        "caption": "Comparativa de patrones de paginación en APIs"
+      },
+      {
+        "type": "heading",
+        "text": "3. Backoff Exponencial con Jitter (Decorrelación)"
+      },
+      {
+        "type": "paragraph",
+        "text": "Cuando una API responde con un error transitorio (HTTP 429 Too Many Requests, 502 Bad Gateway o 503 Service Unavailable), reintentar de inmediato provoca el efecto 'estampida' (Thundering Herd Problem). La técnica estándar de la industria es el **Backoff Exponencial con Jitter**: esperar un tiempo base que se duplica en cada intento ($2^n$) y sumarle una variación aleatoria (jitter) para desincronizar reintentos de múltiples clientes."
+      },
+      {
+        "type": "code",
+        "language": "python",
+        "caption": "Extractor resiliente con decorrelated jitter en Python",
+        "code": "import time\nimport random\nimport requests\n\ndef fetch_with_backoff(url, max_retries=5, base_delay=1.0):\n    attempt = 0\n    delay = base_delay\n    while attempt < max_retries:\n        response = requests.get(url, timeout=10)\n        if response.status_code == 200:\n            return response.json()\n        elif response.status_code in {429, 500, 502, 503, 504}:\n            attempt += 1\n            # Backoff exponencial con variación aleatoria (jitter)\n            delay = min(delay * 2, 60.0) + random.uniform(0.1, 1.5)\n            print(f'Error {response.status_code}. Reintentando en {delay:.2f}s (intento {attempt}/{max_retries})...')\n            time.sleep(delay)\n        else:\n            # Errores 400, 401, 404 no son transitorios: fallar de inmediato\n            response.raise_for_status()\n    raise RuntimeError(f'Agotados los {max_retries} reintentos para {url}')"
+      },
+      {
+        "type": "callout",
+        "tone": "tip",
+        "title": "Cabecera Retry-After",
+        "text": "Muchas APIs REST bien construidas devuelven la cabecera HTTP `Retry-After: 30` en respuestas 429 indicando exactamente cuántos segundos esperar. Siempre verifica esa cabecera antes de calcular tu propio backoff."
+      }
+    ]
+  },
+  "keyPoints": [
+    "La paginación basada en cursores es inmune a duplicaciones y omisiones causadas por inserciones en tiempo real.",
+    "El backoff exponencial con jitter previene saturar servidores remotos y evita bloqueos permanentes de IP.",
+    "Los errores transitorios (429, 503) deben reintentarse de forma controlada; los errores deterministas (400, 401, 404) deben fallar rápido."
+  ],
+  "terms": [
+    {
+      "term": "Rate Limiting",
+      "translation": "Límite de tasa / frecuencia",
+      "definition": "Política de control de tráfico impuesta por un servidor para restringir el número de peticiones que un cliente puede realizar en un intervalo de tiempo."
+    },
+    {
+      "term": "Cursor Pagination",
+      "translation": "Paginación por Cursores",
+      "definition": "Mecanismo de paginación que utiliza un puntero criptográfico o clave única del último registro recuperado para obtener la siguiente página."
+    },
+    {
+      "term": "Jitter",
+      "translation": "Variación aleatoria / fluctuación",
+      "definition": "Ruido o retraso aleatorio introducido en los intervalos de reintento para evitar que múltiples clientes ataquen un servidor simultáneamente."
+    }
+  ],
+  "diagram": {
+    "type": "flow",
+    "nodes": [
+      {
+        "id": "req",
+        "label": "Petición HTTP",
+        "sub": "GET /orders?cursor=X",
+        "detail": "Cliente solicita página de datos al SaaS",
+        "icon": "mail",
+        "kind": "default"
+      },
+      {
+        "id": "status",
+        "label": "¿Código de Respuesta?",
+        "sub": "Evaluación HTTP",
+        "detail": "Verifica si es éxito, transitorio o fatal",
+        "icon": "search",
+        "kind": "decision"
+      },
+      {
+        "id": "ok",
+        "label": "200 OK -> Guardar",
+        "sub": "Puntero actualizado",
+        "detail": "Parsea página y toma nuevo cursor",
+        "icon": "check",
+        "kind": "end"
+      },
+      {
+        "id": "retry",
+        "label": "429 / 503 -> Backoff + Jitter",
+        "sub": "Espera exponencial (2^n + jitter)",
+        "detail": "Descongestiona el servidor antes de reintentar",
+        "icon": "clock",
+        "kind": "default"
+      },
+      {
+        "id": "fatal",
+        "label": "401 / 404 -> Error Fatal",
+        "sub": "Fallo inmediato",
+        "detail": "Detiene el pipeline notificando a monitoreo",
+        "icon": "alert",
+        "kind": "end"
+      }
+    ]
+  },
+  "activity": {
+    "type": "sort",
+    "prompt": "Clasifica cómo debe actuar el cliente de ingestión según el código HTTP recibido de la API:",
+    "buckets": [
+      "Reintentar con Backoff Exponencial",
+      "Fallar de Inmediato (No Reintentar)"
+    ],
+    "items": [
+      {
+        "text": "HTTP 429 Too Many Requests (Cuota excedida temporalmente)",
+        "bucket": 0
+      },
+      {
+        "text": "HTTP 401 Unauthorized (Token de autenticación expirado o inválido)",
+        "bucket": 1
+      },
+      {
+        "text": "HTTP 503 Service Unavailable (Servidor en mantenimiento o sobrecargado)",
+        "bucket": 0
+      },
+      {
+        "text": "HTTP 404 Not Found (El recurso o endpoint solicitado no existe)",
+        "bucket": 1
+      }
+    ]
+  },
+  "checkQuestionId": "q-u2-01",
+  "traps": [
+    {
+      "option": "Programar reintentos en bucle `while True:` sin límite máximo de intentos (`max_retries`).",
+      "reason": "Si el servicio externo sufre una caída prolongada, el pipeline quedará colgado indefinidamente acumulando costos de cómputo."
+    },
+    {
+      "option": "Usar paginación por offset sobre tablas operacionales donde los usuarios agregan miles de registros continuamente.",
+      "reason": "Provoca que los registros se desplacen de página durante la extracción, originando registros duplicados y omisiones invisibles."
+    }
+  ],
+  "trapSummary": "Reintentar peticiones inmediatamente ante códigos 429 sin pausa exponencial ni dispersión aleatoria de reintentos.",
+  "flashcards": [
+    {
+      "id": "fc-u2-l1-1",
+      "front": "¿Por qué es superior la paginación por cursores frente a la paginación por offset en APIs con datos dinámicos?",
+      "back": "Porque utiliza un identificador del último registro visto como ancla, evitando leer duplicados o saltarse filas cuando se insertan registros concurrentemente."
+    },
+    {
+      "id": "fc-u2-l1-2",
+      "front": "¿Qué propósito cumple añadir 'jitter' (variación aleatoria) a una fórmula de backoff exponencial?",
+      "back": "Desincroniza los reintentos de múltiples clientes simultáneos, evitando que bombardeen el servidor en el mismo instante (Thundering Herd)."
+    },
+    {
+      "id": "fc-u2-l1-3",
+      "front": "¿Qué indica el código de estado HTTP 429?",
+      "back": "Too Many Requests: el cliente ha enviado demasiadas solicitudes en un periodo de tiempo determinado y ha superado el rate limit."
+    }
+  ],
+  "quickFacts": [
+    {
+      "statement": "El backoff exponencial multiplica el tiempo de espera entre intentos sucesivos de conexión.",
+      "answer": true
+    },
+    {
+      "statement": "Un error HTTP 401 debe reintentarse infinitamente con backoff exponencial.",
+      "answer": false
+    },
+    {
+      "statement": "La cabecera HTTP Retry-After informa cuántos segundos debe esperar el cliente antes del siguiente intento.",
+      "answer": true
+    },
+    {
+      "statement": "La paginación por offset es más eficiente computacionalmente que la de cursores en páginas muy profundas (página > 10,000).",
+      "answer": false
+    }
+  ]
+}

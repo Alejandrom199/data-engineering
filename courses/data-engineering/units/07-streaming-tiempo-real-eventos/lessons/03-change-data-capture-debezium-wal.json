@@ -1,0 +1,188 @@
+{
+  "$schema": "../../../../../schemas/lesson.schema.json",
+  "id": "change-data-capture-debezium-wal",
+  "title": "Change Data Capture (CDC): Replicación sin Impacto con Debezium",
+  "estimatedMinutes": 16,
+  "domainIds": [
+    "streaming-tiempo-real-eventos"
+  ],
+  "topics": [
+    "change-data-capture",
+    "debezium-cdc",
+    "write-ahead-log",
+    "arquitectura-kappa"
+  ],
+  "hook": "Un equipo de datos consulta cada 5 minutos la tabla `usuarios` en la base de datos de producción con `SELECT * WHERE updated_at > NOW() - INTERVAL 5 MINUTE`. Con 20 millones de filas, la consulta satura la CPU de la base transaccional, bloquea transacciones y no detecta cuando un registro es eliminado con `DELETE` (desaparece sin dejar rastro de updated_at). ¿Cómo captura CDC cada INSERT, UPDATE y DELETE con impacto cero?",
+  "concept": {
+    "blocks": [
+      {
+        "type": "heading",
+        "text": "1. El Fracaso del Polling Tradicional por Fecha"
+      },
+      {
+        "type": "paragraph",
+        "text": "Hacer consultas periódicas (polling) sobre bases operacionales buscando registros modificados tiene tres problemas graves: 1) Consume recursos de CPU y memoria de la base transaccional, 2) Si una fila se modifica 3 veces entre consultas, solo ves el estado final y pierdes los estados intermedios, y 3) Es **incapaz de detectar borrados (`DELETE`)**, ya que una fila eliminada físicamente no puede tener un `updated_at`."
+      },
+      {
+        "type": "heading",
+        "text": "2. ¿Cómo Funciona Change Data Capture (CDC)?"
+      },
+      {
+        "type": "paragraph",
+        "text": "Toda base de datos transaccional (PostgreSQL, MySQL, SQL Server) escribe cada cambio en un registro interno de transacciones antes de aplicarlo en las tablas para garantizar durabilidad (**Write-Ahead Log / WAL** en Postgres, o **binlog** en MySQL). **Debezium** es una plataforma de código abierto basada en Kafka Connect que lee directamente este log binario a nivel de sistema operativo: **nunca ejecuta consultas SQL contra las tablas**."
+      },
+      {
+        "type": "heading",
+        "text": "3. La Estructura de un Evento CDC de Debezium"
+      },
+      {
+        "type": "paragraph",
+        "text": "Cada modificación en la base de datos se traduce en un evento enriquecido en formato JSON o Avro transmitido a un tópico de Kafka, incluyendo el estado anterior (`before`) y el nuevo (`after`):"
+      },
+      {
+        "type": "code",
+        "language": "json",
+        "caption": "Estructura de un evento UPDATE capturado por Debezium",
+        "code": "{\n  \"op\": \"u\",  -- 'c' (create), 'u' (update), 'd' (delete)\n  \"ts_ms\": 1759080000120,\n  \"before\": {\n    \"id\": 450,\n    \"email\": \"antiguo@dominio.com\",\n    \"ciudad\": \"Valencia\"\n  },\n  \"after\": {\n    \"id\": 450,\n    \"email\": \"nuevo@dominio.com\",\n    \"ciudad\": \"Madrid\"\n  },\n  \"source\": {\n    \"db\": \"ecommerce_prod\",\n    \"table\": \"usuarios\",\n    \"lsn\": 184592038\n  }\n}"
+      },
+      {
+        "type": "callout",
+        "tone": "info",
+        "title": "Detección de Borrados Físicos (Tombstones)",
+        "text": "Cuando ocurre un `DELETE`, Debezium emite un evento con `op: 'd'` que contiene los datos del registro antes de morir, seguido de un mensaje con valor `null` (Tombstone), permitiendo que los consumidores repliquen el borrado en el Data Lake o DWH con total fidelidad."
+      }
+    ]
+  },
+  "keyPoints": [
+    "El polling por `updated_at` sobrecarga la base operacional y no puede capturar borrados (DELETE).",
+    "Debezium lee directamente el Write-Ahead Log (WAL/binlog) con impacto cercano a cero en la base de datos.",
+    "Los eventos CDC contienen el estado anterior (`before`), el nuevo (`after`) y el tipo de operación (`op`)."
+  ],
+  "terms": [
+    {
+      "term": "Change Data Capture (CDC)",
+      "translation": "Captura de Datos Modificados",
+      "definition": "Conjunto de patrones de diseño software para identificar, capturar y transmitir automáticamente los cambios de datos en tiempo real."
+    },
+    {
+      "term": "Write-Ahead Log (WAL)",
+      "translation": "Registro de Escritura Previa",
+      "definition": "Log binario donde los motores de bases de datos relacionales persisten secuencialmente cada transacción antes de modificar las páginas de datos."
+    },
+    {
+      "term": "Debezium",
+      "translation": "Plataforma Debezium",
+      "definition": "Proyecto de código abierto distribuido que transforma los logs de replicación de múltiples bases de datos en flujos continuos de eventos en Kafka."
+    }
+  ],
+  "diagram": {
+    "type": "flow",
+    "nodes": [
+      {
+        "id": "app",
+        "label": "App Web (Escrituras)",
+        "sub": "INSERT / UPDATE / DELETE",
+        "detail": "Transacciones ordinarias de los usuarios",
+        "icon": "tool",
+        "kind": "default"
+      },
+      {
+        "id": "pg",
+        "label": "PostgreSQL + WAL",
+        "sub": "Write-Ahead Log",
+        "detail": "Registra transacciones en log binario en disco",
+        "icon": "server",
+        "kind": "default"
+      },
+      {
+        "id": "deb",
+        "label": "Debezium (Kafka Connect)",
+        "sub": "Lee WAL sin consultas SQL",
+        "detail": "Impacto cero en el rendimiento de Postgres",
+        "icon": "loop",
+        "kind": "default"
+      },
+      {
+        "id": "kafka",
+        "label": "Tópico de Kafka",
+        "sub": "Stream de Eventos CDC",
+        "detail": "Eventos {op, before, after} en tiempo real",
+        "icon": "loop",
+        "kind": "end"
+      }
+    ]
+  },
+  "activity": {
+    "type": "sort",
+    "prompt": "Clasifica las características según el mecanismo de extracción de bases de datos:",
+    "buckets": [
+      "Change Data Capture (Debezium / WAL)",
+      "Polling por SQL (updated_at)"
+    ],
+    "items": [
+      {
+        "text": "Detecta automáticamente eliminaciones físicas (`DELETE`) emitiendo eventos de borrado",
+        "bucket": 0
+      },
+      {
+        "text": "Ejecuta consultas periódicas con `SELECT` que compiten por CPU y memoria con los usuarios de la app",
+        "bucket": 1
+      },
+      {
+        "text": "Lee directamente el log de transacciones binario a nivel de disco con impacto nulo en SQL",
+        "bucket": 0
+      },
+      {
+        "text": "Incapaz de registrar estados intermedios si una fila cambia múltiples veces en el intervalo",
+        "bucket": 1
+      }
+    ]
+  },
+  "checkQuestionId": "q-u7-03",
+  "traps": [
+    {
+      "option": "Mantener un conector de CDC desconectado durante semanas sin monitorear el tamaño del WAL en Postgres.",
+      "reason": "Postgres retendrá los ficheros del WAL en disco esperando a que el conector lea, saturando el 100% del disco del servidor y tirando la base de datos."
+    },
+    {
+      "option": "Asumir que CDC sustituye a los backups tradicionales de la base de datos.",
+      "reason": "CDC es un canal de replicación de eventos analíticos, no una estrategia de recuperación ante desastres (DR) para restauración de sistemas."
+    }
+  ],
+  "trapSummary": "Dejar slots de replicación de CDC inactivos provocando que Postgres acumule archivos WAL hasta llenar el disco de producción.",
+  "flashcards": [
+    {
+      "id": "fc-u7-l3-1",
+      "front": "¿Por qué la extracción por CDC basada en logs es superior al polling periódico con SQL (`SELECT ... WHERE updated_at >`)?",
+      "back": "Porque no sobrecarga la base operacional con consultas pesadas, captura todos los cambios intermedios y detecta borrados físicos (DELETE)."
+    },
+    {
+      "id": "fc-u7-l3-2",
+      "front": "¿Qué es el Write-Ahead Log (WAL) en PostgreSQL y cómo lo utiliza Debezium?",
+      "back": "Es el registro binario donde Postgres persiste atómicamente cada cambio; Debezium lo lee en streaming para convertir cada transacción en un evento de Kafka."
+    },
+    {
+      "id": "fc-u7-l3-3",
+      "front": "¿Qué información clave contiene un evento generado por Debezium?",
+      "back": "El tipo de operación (`op`: create, update, delete), la marca de tiempo, el estado anterior (`before`) y el estado nuevo (`after`)."
+    }
+  ],
+  "quickFacts": [
+    {
+      "statement": "Debezium captura cambios de la base de datos leyendo los archivos de log de transacciones (WAL/binlog).",
+      "answer": true
+    },
+    {
+      "statement": "El polling con `SELECT WHERE updated_at` puede detectar fácilmente cuando una fila es eliminada con DELETE.",
+      "answer": false
+    },
+    {
+      "statement": "Los eventos de CDC permiten replicar transacciones operacionales hacia un Data Lakehouse en tiempo real.",
+      "answer": true
+    },
+    {
+      "statement": "Debezium exige bloquear las tablas de la base de datos operacional durante la lectura de cambios.",
+      "answer": false
+    }
+  ]
+}

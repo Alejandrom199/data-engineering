@@ -1,0 +1,24 @@
+{
+  "$schema": "../../../../schemas/lab.schema.json",
+  "id": "lab-delta-lakehouse-crud",
+  "title": "Laboratorio: Operaciones CRUD y Metadatos en el Lakehouse",
+  "goal": "Crear una tabla transaccional, realizar operaciones atómicas y verificar la creación de versiones sucesivas en el Transaction Log.",
+  "level": "intermediate",
+  "estimatedMinutes": 30,
+  "icon": "shield",
+  "domainId": "lakehouse-tablas-transaccionales",
+  "lessonId": "evolucion-lakehouse-delta-iceberg",
+  "code": "import duckdb\n\ncon = duckdb.connect()\n# Simulación de tabla lakehouse con versionado de commits\ncon.execute('''\n    CREATE TABLE delta_log (version INT, operacion VARCHAR, archivos_agregados INT, timestamp TIMESTAMP);\n    CREATE TABLE clientes_lakehouse (id INT, nombre VARCHAR, saldo DECIMAL(10,2), version_commit INT);\n    \n    -- Commit 1: Carga inicial\n    INSERT INTO delta_log VALUES (1, 'WRITE', 2, CURRENT_TIMESTAMP);\n    INSERT INTO clientes_lakehouse VALUES (1, 'Alice', 500.00, 1), (2, 'Bob', 250.00, 1);\n    \n    -- Commit 2: Update atomico\n    INSERT INTO delta_log VALUES (2, 'UPDATE', 1, CURRENT_TIMESTAMP);\n    UPDATE clientes_lakehouse SET saldo = 600.00, version_commit = 2 WHERE id = 1;\n''')\n\nres = con.execute('SELECT version, operacion FROM delta_log ORDER BY version').fetchall()\nprint('Historial de commits:')\nfor r in res:\n    print(f'v{r[0]}: {r[1]}')\n\nactivo = con.execute('SELECT nombre, saldo FROM clientes_lakehouse WHERE id = 1').fetchone()\nprint(f'Estado actual Alice: ${activo[1]}')",
+  "codeLanguage": "python",
+  "expectedOutput": "Historial de commits:\nv1: WRITE\nv2: UPDATE\nEstado actual Alice: $600.00",
+  "successCriteria": [
+    "Se verifica la atomicidad de las operaciones registradas en el log transaccional.",
+    "Los datos reflejan la versión confirmada más reciente sin inconsistencias."
+  ],
+  "file": "solution.py",
+  "steps": [
+    "Comprender el objetivo y escribir la solución técnica solicitada.",
+    "Ejecutar la verificación del ejercicio y comparar la salida obtenida."
+  ],
+  "verify": "python solution.py"
+}

@@ -1,0 +1,188 @@
+{
+  "$schema": "../../../../../schemas/lesson.schema.json",
+  "id": "sensores-recursos-reschedule-vs-poke",
+  "title": "Sensores en Airflow: Prevención de Deadlocks con Reschedule vs Poke",
+  "estimatedMinutes": 14,
+  "domainIds": [
+    "orquestacion-calidad-dataops"
+  ],
+  "topics": [
+    "airflow-sensores",
+    "reschedule-vs-poke",
+    "worker-deadlocks",
+    "gestion-pools"
+  ],
+  "hook": "Un clúster de Airflow tiene 16 workers disponibles. A las 8:00 AM se lanzan 16 DAGs con sensores que esperan la llegada de un archivo FTP de un proveedor externo que suele llegar a las 11:00 AM. A las 8:05 AM se disparan 20 pipelines críticos de la empresa, pero ninguno puede arrancar. El clúster está totalmente paralizado en un deadlock. ¿Qué ocurrió?",
+  "concept": {
+    "blocks": [
+      {
+        "type": "heading",
+        "text": "1. ¿Qué es un Sensor en Airflow?"
+      },
+      {
+        "type": "paragraph",
+        "text": "Un **Sensor** es un tipo especial de operador que evalúa periódicamente si se cumple una condición externa antes de permitir que el resto del DAG avance (por ejemplo: `S3KeySensor` esperando que un archivo exista en un bucket, `SqlSensor` esperando que una fila aparezca en Postgres o `ExternalTaskSensor` esperando que otro DAG termine)."
+      },
+      {
+        "type": "heading",
+        "text": "2. El Peligro Mortal del Modo 'poke'"
+      },
+      {
+        "type": "paragraph",
+        "text": "Por defecto, los sensores operan en modo **`mode='poke'`**. En este modo, la tarea toma un worker slot de Airflow y **lo mantiene secuestrado continuamente** mientras duerme (`sleep`) entre comprobaciones. Si el archivo tarda 4 horas en llegar, ese worker no puede hacer ningún otro trabajo útil durante 4 horas. Si tienes 16 sensores en modo poke, consumirán el 100% de los slots del clúster, provocando un **Worker Deadlock**: ninguna otra tarea del negocio podrá ejecutarse."
+      },
+      {
+        "type": "heading",
+        "text": "3. La Solución Obligatoria en Producción: mode='reschedule'"
+      },
+      {
+        "type": "paragraph",
+        "text": "En modo **`mode='reschedule'`**, el sensor evalúa la condición una vez. Si la condición no se cumple, el sensor **libera inmediatamente el worker slot** y se pone en estado `UP_FOR_RESCHEDULE`. El worker queda 100% libre para ejecutar otras tareas pesadas de la empresa. Pasado el intervalo configurado (`poke_interval=300`), Airflow vuelve a asignarle un worker por unos milisegundos para volver a comprobar."
+      },
+      {
+        "type": "code",
+        "language": "python",
+        "caption": "Sensor profesional configurado con reschedule y timeout",
+        "code": "from airflow.providers.amazon.aws.sensors.s3 import S3KeySensor\nfrom datetime import timedelta\n\nesperar_archivo_proveedor = S3KeySensor(\n    task_id='esperar_csv_proveedor',\n    bucket_name='landing-zone-externa',\n    bucket_key='proveedor_a/{{ ds }}/ventas.csv',\n    poke_interval=600,         # Comprueba cada 10 minutos\n    timeout=14400,             # Falla tras 4 horas si no llega\n    mode='reschedule',         # LIBERA EL WORKER SLOT ENTRE INTENTOS (Imprescindible)\n    soft_fail=True             # Si expira el timeout, marca como SKIPPED sin alertar PagerDuty\n)"
+      },
+      {
+        "type": "callout",
+        "tone": "tip",
+        "title": "Regla de Sensores",
+        "text": "Cualquier sensor que espere una condición que pueda tardar más de 2 minutos en cumplirse DEBE configurarse obligatoriamente con `mode='reschedule'`. Deja `poke` solo para condiciones casi instantáneas (<60 segundos)."
+      }
+    ]
+  },
+  "keyPoints": [
+    "Los sensores en modo `poke` bloquean un slot de worker permanentemente durante el tiempo de espera.",
+    "Múltiples sensores en modo `poke` causan deadlocks completos al agotar todos los recursos del clúster.",
+    "El modo `reschedule` libera el worker inmediatamente entre intentos, permitiendo que otras tareas avancen sin saturar el sistema."
+  ],
+  "terms": [
+    {
+      "term": "Airflow Sensor",
+      "translation": "Sensor de Airflow",
+      "definition": "Operador especializado que comprueba periódicamente el cumplimiento de una condición externa antes de permitir que continúe el DAG."
+    },
+    {
+      "term": "Worker Slot",
+      "translation": "Ranura de Ejecución de Worker",
+      "definition": "Unidad de capacidad de concurrencia que permite a un worker de Airflow ejecutar una tarea activa a la vez."
+    },
+    {
+      "term": "Reschedule Mode",
+      "translation": "Modo Re-programación",
+      "definition": "Estrategia donde el sensor libera su worker slot si la condición no se cumple, esperando su próximo intento en cola."
+    }
+  ],
+  "diagram": {
+    "type": "flow",
+    "nodes": [
+      {
+        "id": "check",
+        "label": "¿Archivo en S3 disponible?",
+        "sub": "Evaluación del Sensor",
+        "detail": "Comprueba si la clave existe en el bucket",
+        "icon": "search",
+        "kind": "decision"
+      },
+      {
+        "id": "poke",
+        "label": "Modo 'poke' (Peligro)",
+        "sub": "Secuestra el Worker Slot",
+        "detail": "Duerme ocupando RAM y slot sin soltarlo",
+        "icon": "lock",
+        "kind": "default"
+      },
+      {
+        "id": "resched",
+        "label": "Modo 'reschedule' (Óptimo)",
+        "sub": "Libera el Worker Slot",
+        "detail": "Se desasigna del worker y vuelve a la cola",
+        "icon": "key",
+        "kind": "default"
+      },
+      {
+        "id": "ready",
+        "label": "Archivo Detectado",
+        "sub": "Fin de espera",
+        "detail": "Desbloquea las siguientes tareas del pipeline",
+        "icon": "check",
+        "kind": "end"
+      }
+    ]
+  },
+  "activity": {
+    "type": "sort",
+    "prompt": "Clasifica cada comportamiento según el modo del sensor de Airflow:",
+    "buckets": [
+      "Sensor en Modo 'poke'",
+      "Sensor en Modo 'reschedule'"
+    ],
+    "items": [
+      {
+        "text": "Mantiene el proceso de ejecución activo y secuestra el worker slot durante toda la espera",
+        "bucket": 0
+      },
+      {
+        "text": "Libera el worker slot inmediatamente tras una verificación fallida para que otros DAGs lo usen",
+        "bucket": 1
+      },
+      {
+        "text": "Pone el estado de la tarea en UP_FOR_RESCHEDULE hasta el siguiente intervalo",
+        "bucket": 1
+      },
+      {
+        "text": "Riesgo crítico de Worker Deadlock si múltiples sensores esperan archivos retrasados",
+        "bucket": 0
+      }
+    ]
+  },
+  "checkQuestionId": "q-u6-02",
+  "traps": [
+    {
+      "option": "Configurar un sensor en modo `poke` sin definir un parámetro `timeout`.",
+      "reason": "Si el archivo nunca llega, el sensor secuestrará el worker para siempre de forma indefinida hasta reiniciar el servidor."
+    },
+    {
+      "option": "Poner un `poke_interval` de 1 segundo para 'detectar el archivo más rápido'.",
+      "reason": "Bombardeará la base de datos o el bucket S3 con 86,400 peticiones al día, generando costos y agotando conexiones."
+    }
+  ],
+  "trapSummary": "Usar sensores en modo poke para esperas de larga duración agotando todos los workers y bloqueando el clúster.",
+  "flashcards": [
+    {
+      "id": "fc-u6-l2-1",
+      "front": "¿Por qué el modo `poke` en los sensores de Airflow puede provocar la parálisis total (deadlock) de un clúster?",
+      "back": "Porque cada sensor en modo poke retiene un worker slot activo mientras duerme; si todos los slots son consumidos por sensores esperando, ninguna otra tarea puede correr."
+    },
+    {
+      "id": "fc-u6-l2-2",
+      "front": "¿Cómo soluciona el modo `reschedule` el problema de consumo de recursos en sensores?",
+      "back": "Evalúa la condición y, si no se cumple, libera inmediatamente el worker slot devolviendo la tarea al estado UP_FOR_RESCHEDULE hasta el próximo chequeo."
+    },
+    {
+      "id": "fc-u6-l2-3",
+      "front": "¿Qué parámetro es obligatorio definir en cualquier sensor para evitar que quede esperando eternamente si el dato nunca llega?",
+      "back": "`timeout`: define el número máximo de segundos antes de que el sensor falle o se marque como omitido."
+    }
+  ],
+  "quickFacts": [
+    {
+      "statement": "El modo `reschedule` libera el worker slot de Airflow entre comprobaciones periódicas.",
+      "answer": true
+    },
+    {
+      "statement": "El modo `poke` es el modo recomendado para esperar archivos que pueden tardar 6 horas en llegar.",
+      "answer": false
+    },
+    {
+      "statement": "Un sensor sin parámetro `timeout` puede quedar bloqueado indefinidamente si el evento esperado nunca ocurre.",
+      "answer": true
+    },
+    {
+      "statement": "En modo reschedule, el sensor consume 10 veces más memoria que en modo poke.",
+      "answer": false
+    }
+  ]
+}

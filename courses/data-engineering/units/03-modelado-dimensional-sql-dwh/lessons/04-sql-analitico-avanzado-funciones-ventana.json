@@ -1,0 +1,227 @@
+{
+  "$schema": "../../../../../schemas/lesson.schema.json",
+  "id": "sql-analitico-avanzado-funciones-ventana",
+  "title": "SQL Analítico Avanzado: Funciones de Ventana y Análisis de Cohortes",
+  "estimatedMinutes": 15,
+  "domainIds": [
+    "modelado-dimensional-sql-dwh"
+  ],
+  "topics": [
+    "funciones-ventana",
+    "sql-analitico",
+    "row-number-rank",
+    "lead-lag-cohortes"
+  ],
+  "hook": "Un Product Manager te pide un reporte: 'Para cada cliente, calcula cuántos días pasaron entre su primera compra y su segunda compra, y si el valor de la segunda compra fue superior a la primera'. Si intentas resolver esto con `GROUP BY` y auto-uniones (self-joins) tradicionales, la consulta se convierte en una pesadilla de 80 líneas lentísima. ¿Cómo lo resuelven las funciones de ventana en 6 líneas?",
+  "concept": {
+    "blocks": [
+      {
+        "type": "heading",
+        "text": "1. El Salto de GROUP BY a Funciones de Ventana (OVER)"
+      },
+      {
+        "type": "paragraph",
+        "text": "Una cláusula `GROUP BY` tradicional colapsa múltiples filas en una sola fila agregada. En cambio, una **Función de Ventana (Window Function)** realiza un cálculo analítico sobre un conjunto de filas relacionadas con la fila actual, **sin colapsar las filas individuales**. Cada fila conserva su identidad original y recibe una columna calculada adicional."
+      },
+      {
+        "type": "heading",
+        "text": "2. La Anatomía de la Cláusula OVER()"
+      },
+      {
+        "type": "paragraph",
+        "text": "Toda función de ventana se define mediante la palabra clave `OVER()` y tres modificadores opcionales:"
+      },
+      {
+        "type": "list",
+        "style": "bullet",
+        "items": [
+          "`PARTITION BY columna`: Divide los datos en grupos lógicos independientes (ventanas aisladas) para el cálculo.",
+          "`ORDER BY columna`: Define el orden secuencial en que se evalúan las filas dentro de cada partición.",
+          "`ROWS BETWEEN ...`: Define el marco de ventana específico (por ejemplo, 'los últimos 7 días' o 'todas las filas precedentes')."
+        ]
+      },
+      {
+        "type": "heading",
+        "text": "3. Funciones de Clasificación: ROW_NUMBER, RANK y DENSE_RANK"
+      },
+      {
+        "type": "table",
+        "headers": [
+          "Función",
+          "Comportamiento ante Empates",
+          "Ejemplo con valores (100, 100, 80)"
+        ],
+        "rows": [
+          [
+            "`ROW_NUMBER()`",
+            "Asigna siempre números estrictamente secuenciales únicos sin empates.",
+            "1, 2, 3"
+          ],
+          [
+            "`RANK()`",
+            "Asigna la misma posición a empates y deja huecos en la numeración posterior.",
+            "1, 1, 3 (se salta el 2)"
+          ],
+          [
+            "`DENSE_RANK()`",
+            "Asigna la misma posición a empates pero sin dejar huecos en la secuencia.",
+            "1, 1, 2"
+          ]
+        ],
+        "caption": "Comparativa de funciones de ranking analítico"
+      },
+      {
+        "type": "heading",
+        "text": "4. Navegación entre Filas: LAG() y LEAD()"
+      },
+      {
+        "type": "paragraph",
+        "text": "`LAG(col, N)` permite acceder a los datos de la fila anterior (hacia atrás en el tiempo), mientras que `LEAD(col, N)` accede a la fila posterior (hacia adelante). Esto hace posible calcular crecimiento mes a mes (Month-over-Month), tiempo de retención y secuencias de eventos de usuarios sin ningún JOIN."
+      },
+      {
+        "type": "code",
+        "language": "sql",
+        "caption": "Cálculo de días transcurridos entre pedidos con LAG()",
+        "code": "WITH pedidos_con_historia AS (\n    SELECT \n        cliente_id,\n        orden_id,\n        fecha_compra,\n        monto,\n        -- Obtiene la fecha del pedido inmediatamente anterior del mismo cliente\n        LAG(fecha_compra, 1) OVER (\n            PARTITION BY cliente_id \n            ORDER BY fecha_compra\n        ) AS fecha_compra_previa,\n        -- Numera secuencialmente las compras del cliente\n        ROW_NUMBER() OVER (\n            PARTITION BY cliente_id \n            ORDER BY fecha_compra\n        ) AS numero_compra\n    FROM fact_ventas\n)\nSELECT \n    cliente_id,\n    orden_id,\n    fecha_compra,\n    fecha_compra_previa,\n    (fecha_compra - fecha_compra_previa) AS dias_entre_compras\nFROM pedidos_con_historia\nWHERE numero_compra = 2;"
+      },
+      {
+        "type": "callout",
+        "tone": "info",
+        "title": "Deduplicación Elegante",
+        "text": "La combinación `ROW_NUMBER() OVER (PARTITION BY id ORDER BY updated_at DESC)` con un filtro `WHERE rn = 1` es el patrón canónico y más rápido en SQL para eliminar duplicados y quedarse siempre con el registro más reciente."
+      }
+    ]
+  },
+  "keyPoints": [
+    "Las funciones de ventana calculan agregaciones y métricas relativas sin reducir ni colapsar las filas de la consulta.",
+    "`ROW_NUMBER`, `RANK` y `DENSE_RANK` resuelven problemas de clasificación y deduplicación analítica.",
+    "`LAG` y `LEAD` permiten comparar registros consecutivos en el tiempo facilitando análisis de retención y series temporales."
+  ],
+  "terms": [
+    {
+      "term": "Window Function",
+      "translation": "Función de Ventana",
+      "definition": "Función SQL que opera sobre un conjunto de filas relacionadas manteniendo la granularidad individual de cada fila en el resultado."
+    },
+    {
+      "term": "LAG / LEAD",
+      "translation": "Funciones de Acceso a Filas Previas y Posteriores",
+      "definition": "Funciones analíticas que devuelven el valor de una columna correspondiente a un número determinado de filas antes o después de la fila actual."
+    },
+    {
+      "term": "PARTITION BY",
+      "translation": "Partición de Ventana",
+      "definition": "Cláusula que divide el conjunto de datos en subgrupos aislados para aplicar la función analítica de forma independiente en cada grupo."
+    }
+  ],
+  "diagram": {
+    "type": "flow",
+    "nodes": [
+      {
+        "id": "raw",
+        "label": "Filas Crudas de Ventas",
+        "sub": "Cliente A (3 órdenes)",
+        "detail": "Orden 1 ($50), Orden 2 ($120), Orden 3 ($30)",
+        "icon": "layers",
+        "kind": "default"
+      },
+      {
+        "id": "win",
+        "label": "OVER (PARTITION BY cliente_id ORDER BY fecha)",
+        "sub": "Ventana Analítica",
+        "detail": "Evalúa la secuencia cronológica de cada cliente por separado",
+        "icon": "grid",
+        "kind": "default"
+      },
+      {
+        "id": "calc",
+        "label": "Cálculo: LAG() y ROW_NUMBER()",
+        "sub": "Conservando granularidad",
+        "detail": "Orden 2 ve Orden 1 previa sin colapsar las 3 filas",
+        "icon": "sliders",
+        "kind": "default"
+      },
+      {
+        "id": "out",
+        "label": "Resultado Enriquecido",
+        "sub": "Métricas fila por fila",
+        "detail": "Lista para análisis de cohortes o deduplicación",
+        "icon": "check",
+        "kind": "end"
+      }
+    ]
+  },
+  "activity": {
+    "type": "sort",
+    "prompt": "Clasifica el resultado de ranking según la función utilizada para dos valores empatados en el primer lugar:",
+    "buckets": [
+      "Función RANK()",
+      "Función DENSE_RANK()"
+    ],
+    "items": [
+      {
+        "text": "Genera una secuencia con salto: puesto 1, puesto 1, puesto 3",
+        "bucket": 0
+      },
+      {
+        "text": "Genera una secuencia continua sin huecos: puesto 1, puesto 1, puesto 2",
+        "bucket": 1
+      },
+      {
+        "text": "Deja un vacío numérico correspondiente a la cantidad de empates previos",
+        "bucket": 0
+      },
+      {
+        "text": "Garantiza que el siguiente valor distinto reciba el siguiente entero consecutivo",
+        "bucket": 1
+      }
+    ]
+  },
+  "checkQuestionId": "q-u3-04",
+  "traps": [
+    {
+      "option": "Intentar usar una función de ventana directamente en la cláusula `WHERE` (ej. `WHERE ROW_NUMBER() = 1`).",
+      "reason": "Las funciones de ventana se ejecutan después del WHERE; debes envolver la consulta en una CTE (`WITH`) o subconsulta para filtrar por el resultado."
+    },
+    {
+      "option": "Confundir `RANK()` con `DENSE_RANK()` en asignación de puestos o premios.",
+      "reason": "Si hay un empate en el primer lugar, `RANK()` saltará directamente al puesto 3, omitiendo el puesto 2, lo cual puede romper lógicas de negocio."
+    }
+  ],
+  "trapSummary": "Usar funciones de ventana directamente en el WHERE en lugar de en una expresión de tabla común (CTE).",
+  "flashcards": [
+    {
+      "id": "fc-u3-l4-1",
+      "front": "¿Cuál es la diferencia primordial entre un cálculo con `GROUP BY` y uno con funciones de ventana (`OVER`)?",
+      "back": "`GROUP BY` colapsa las filas del grupo en un único registro resumen; la función de ventana mantiene todas las filas originales intactas añadiendo el cálculo analítico."
+    },
+    {
+      "id": "fc-u3-l4-2",
+      "front": "¿Para qué sirve la función analítica `LAG()` en SQL?",
+      "back": "Permite acceder al valor de una columna de una fila anterior dentro de la partición de la ventana sin necesidad de hacer un self-join."
+    },
+    {
+      "id": "fc-u3-l4-3",
+      "front": "¿Por qué no se puede colocar una función de ventana directamente en la cláusula `WHERE`?",
+      "back": "Porque en el orden de ejecución lógico de SQL, el `WHERE` se evalúa antes que las funciones de ventana; se debe usar una CTE (`WITH`) para filtrarlas."
+    }
+  ],
+  "quickFacts": [
+    {
+      "statement": "Las funciones de ventana permiten calcular agregaciones manteniendo intactas las filas individuales.",
+      "answer": true
+    },
+    {
+      "statement": "La cláusula PARTITION BY agrupa los datos y elimina las filas duplicadas de la tabla.",
+      "answer": false
+    },
+    {
+      "statement": "`ROW_NUMBER() OVER (PARTITION BY id ORDER BY fecha DESC)` es la técnica estándar para deduplicar datos en SQL.",
+      "answer": true
+    },
+    {
+      "statement": "La función `LEAD()` permite mirar hacia las filas anteriores en la partición.",
+      "answer": false
+    }
+  ]
+}

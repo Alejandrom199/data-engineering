@@ -1,0 +1,137 @@
+{
+  "$schema": "../../../../schemas/questions.schema.json",
+  "questions": [
+    {
+      "id": "q-u3-01",
+      "type": "single",
+      "domainId": "modelado-dimensional-sql-dwh",
+      "skill": "Arquitectura de Datos OLAP",
+      "topic": "oltp-vs-olap",
+      "stem": "¿Por qué es perjudicial conectar directamente herramientas de visualización analítica (PowerBI, Tableau) a una base de datos operacional transaccional (OLTP)?",
+      "options": [
+        {
+          "key": "A",
+          "text": "Porque las herramientas de BI borran accidentalmente los datos transaccionales al conectarse."
+        },
+        {
+          "key": "B",
+          "text": "Porque las consultas analíticas pesadas escanean millones de filas, consumiendo CPU y memoria y bloqueando las transacciones de los usuarios de la app en vivo."
+        },
+        {
+          "key": "C",
+          "text": "Porque las bases de datos OLTP no soportan el protocolo TCP/IP."
+        },
+        {
+          "key": "D",
+          "text": "Porque las herramientas de BI solo son compatibles con archivos CSV planos."
+        }
+      ],
+      "correct": [
+        "B"
+      ],
+      "explanation": "Las consultas de BI realizan escaneos y agregaciones masivas que saturan los recursos de la base de datos OLTP, provocando latencia alta o caídas en la aplicación operacional.",
+      "sources": [
+        "Designing Data-Intensive Applications"
+      ]
+    },
+    {
+      "id": "q-u3-02",
+      "type": "single",
+      "domainId": "modelado-dimensional-sql-dwh",
+      "skill": "Metodología Dimensional Kimball",
+      "topic": "modelo-kimball",
+      "stem": "En un modelo dimensional en estrella (Star Schema), ¿qué caracteriza a las tablas de hechos frente a las tablas de dimensiones?",
+      "options": [
+        {
+          "key": "A",
+          "text": "Las tablas de hechos contienen las métricas cuantitativas y claves foráneas, mientras que las dimensiones contienen atributos descriptivos de contexto."
+        },
+        {
+          "key": "B",
+          "text": "Las tablas de hechos son muy cortas en filas y las dimensiones tienen miles de millones de filas."
+        },
+        {
+          "key": "C",
+          "text": "Las tablas de hechos almacenan exclusivamente los nombres y direcciones de los clientes."
+        },
+        {
+          "key": "D",
+          "text": "Las tablas de hechos están normalizadas en Tercera Forma Normal (3NF) y las dimensiones no."
+        }
+      ],
+      "correct": [
+        "A"
+      ],
+      "explanation": "Las tablas de hechos registran mediciones numéricas de eventos de negocio rodeadas radialmente por dimensiones que ofrecen contexto descriptivo (quién, cuándo, dónde, qué).",
+      "sources": [
+        "The Data Warehouse Toolkit - Ralph Kimball"
+      ]
+    },
+    {
+      "id": "q-u3-03",
+      "type": "single",
+      "domainId": "modelado-dimensional-sql-dwh",
+      "skill": "Dimensiones de Cambio Lento (SCD)",
+      "topic": "scd-tipo-2",
+      "stem": "¿Cómo resuelve una dimensión SCD Tipo 2 el cambio de ciudad de residencia de un cliente manteniendo intactos los reportes históricos pasados?",
+      "options": [
+        {
+          "key": "A",
+          "text": "Sobreescribe el campo ciudad en la fila existente del cliente borrando la ciudad anterior."
+        },
+        {
+          "key": "B",
+          "text": "Inserta una nueva fila con una nueva clave subrogada, marcando la fecha de inicio y fin de vigencia de cada versión del cliente."
+        },
+        {
+          "key": "C",
+          "text": "Crea una base de datos separada para el nuevo año."
+        },
+        {
+          "key": "D",
+          "text": "Ignora el cambio de ciudad para no alterar las tablas analíticas."
+        }
+      ],
+      "correct": [
+        "B"
+      ],
+      "explanation": "SCD Tipo 2 versiona el registro insertando una nueva fila con su propia Surrogate Key y rangos de fechas de vigencia, asegurando que las compras pasadas sigan asociadas a la ciudad antigua.",
+      "sources": [
+        "The Data Warehouse Toolkit - Ralph Kimball"
+      ]
+    },
+    {
+      "id": "q-u3-04",
+      "type": "single",
+      "domainId": "modelado-dimensional-sql-dwh",
+      "skill": "SQL Analítico Avanzado",
+      "topic": "funciones-ventana",
+      "stem": "¿Cuál es la función analítica de SQL que permite acceder al valor de una columna en la fila inmediatamente anterior dentro de una partición ordenada?",
+      "options": [
+        {
+          "key": "A",
+          "text": "LEAD()"
+        },
+        {
+          "key": "B",
+          "text": "LAG()"
+        },
+        {
+          "key": "C",
+          "text": "ROW_NUMBER()"
+        },
+        {
+          "key": "D",
+          "text": "DENSE_RANK()"
+        }
+      ],
+      "correct": [
+        "B"
+      ],
+      "explanation": "La función `LAG()` accede a filas anteriores dentro de la ventana, permitiendo comparar el evento actual con el pasado inmediato sin necesidad de joins.",
+      "sources": [
+        "SQL for Data Analytics"
+      ]
+    }
+  ]
+}

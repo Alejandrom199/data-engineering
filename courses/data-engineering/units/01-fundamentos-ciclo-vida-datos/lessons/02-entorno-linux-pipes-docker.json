@@ -1,0 +1,204 @@
+{
+  "$schema": "../../../../../schemas/lesson.schema.json",
+  "id": "entorno-linux-pipes-docker",
+  "title": "El Entorno del Ingeniero de Datos: Linux, Streams y Docker",
+  "estimatedMinutes": 14,
+  "domainIds": [
+    "fundamentos-ciclo-vida-datos"
+  ],
+  "topics": [
+    "linux-streaming",
+    "docker-reproducibilidad",
+    "terminal-datos",
+    "procesamiento-archivos"
+  ],
+  "hook": "Un archivo de log de 20 GB en un servidor de producción se corrompe y colapsa cualquier editor de texto o script de Python por falta de memoria RAM. Con una sola línea de comandos en Linux, un ingeniero senior filtra los errores en 4 segundos sin consumir ni 10 MB de RAM. ¿Cómo lo hace?",
+  "concept": {
+    "blocks": [
+      {
+        "type": "heading",
+        "text": "1. La Terminal Linux: El Superpoder del Ingeniero de Datos"
+      },
+      {
+        "type": "paragraph",
+        "text": "Los servidores de producción y clústeres en la nube (AWS EC2, Kubernetes, Databricks) corren sobre distribuciones Linux. Comprender los flujos de entrada y salida estándar (`stdin`, `stdout`, `stderr`) y el operador pipe (`|`) permite encadenar utilidades del sistema operativo para procesar gigabytes de datos en streaming constante con consumo casi nulo de memoria."
+      },
+      {
+        "type": "code",
+        "language": "bash",
+        "caption": "Filtrado masivo en streaming con pipes",
+        "code": "# Descomprime un log masivo, filtra líneas de ERROR, extrae la IP y cuenta ocurrencias\nzcat server_logs.gz | grep 'ERROR' | awk '{print $4}' | sort | uniq -c | sort -nr | head -n 10"
+      },
+      {
+        "type": "heading",
+        "text": "2. Comandos Esenciales para el Análisis Rápido"
+      },
+      {
+        "type": "paragraph",
+        "text": "Antes de escribir un pipeline complejo en Python o Spark, un ingeniero inspecciona los datos crudos con herramientas nativas de Linux:"
+      },
+      {
+        "type": "list",
+        "style": "bullet",
+        "items": [
+          "`head -n 5 data.csv` y `tail -n 5 data.csv`: Inspeccionar encabezados y últimas filas sin cargar el archivo completo.",
+          "`wc -l data.csv`: Contar rápidamente el volumen total de filas en segundos.",
+          "`cut -d',' -f1,3 data.csv`: Extraer columnas específicas en formato delimitado.",
+          "`sed` y `awk`: Transformar y filtrar patrones de texto estructurado al vuelo."
+        ]
+      },
+      {
+        "type": "heading",
+        "text": "3. Reproducibilidad con Docker: 'Funciona en mi máquina'"
+      },
+      {
+        "type": "paragraph",
+        "text": "El problema clásico del software ('en mi máquina local funciona, pero en el servidor de producción falla por versiones de librerías') se resuelve aislando dependencias en contenedores Docker. En ingeniería de datos, usamos Docker para levantar bases de datos locales (Postgres), brokers de mensajería (Kafka) y orquestadores (Airflow) con un simple archivo `docker-compose.yml`."
+      },
+      {
+        "type": "code",
+        "language": "dockerfile",
+        "caption": "Dockerfile optimizado para un worker de datos en Python",
+        "code": "FROM python:3.11-slim\n\nWORKDIR /app\nRUN apt-get update && apt-get install -y --no-install-recommends gcc libpq-dev && rm -rf /var/lib/apt/lists/*\n\nCOPY requirements.txt .\nRUN pip install --no-cache-dir -r requirements.txt\n\nCOPY src/ ./src/\nCMD [\"python\", \"src/main.py\"]"
+      },
+      {
+        "type": "callout",
+        "tone": "info",
+        "title": "Contenedores Ligeros",
+        "text": "Usar imágenes `slim` o `alpine` reduce la superficie de vulnerabilidades de seguridad y acelera el despliegue en entornos de integración continua (CI/CD)."
+      }
+    ]
+  },
+  "keyPoints": [
+    "Los pipes de Linux conectan la salida de un proceso con la entrada de otro procesando bytes en streaming continuo sin agotar la memoria RAM.",
+    "Herramientas como `awk`, `grep`, `sort` y `uniq` permiten diagnósticos inmediatos sobre ficheros gigantescos.",
+    "Docker garantiza que los pipelines se ejecuten exactamente igual en tu computadora que en los nodos de producción."
+  ],
+  "terms": [
+    {
+      "term": "Standard Streams",
+      "translation": "Flujos Estándar (stdin, stdout, stderr)",
+      "definition": "Canales de comunicación predeterminados en sistemas Unix para entrada de datos, salida de resultados y mensajes de error."
+    },
+    {
+      "term": "Pipe (|)",
+      "translation": "Tubería Unix",
+      "definition": "Operador de línea de comandos que redirige la salida estándar de un programa hacia la entrada estándar de otro."
+    },
+    {
+      "term": "Docker Container",
+      "translation": "Contenedor Docker",
+      "definition": "Unidad de software empaquetada que incluye código, binarios y librerías necesarias para ejecutarse de manera aislada y consistente."
+    }
+  ],
+  "diagram": {
+    "type": "flow",
+    "nodes": [
+      {
+        "id": "disk",
+        "label": "Fichero en Disco (20 GB)",
+        "sub": "Archivo comprimido gz",
+        "detail": "Lectura secuencial bloque por bloque",
+        "icon": "server",
+        "kind": "default"
+      },
+      {
+        "id": "zcat",
+        "label": "zcat / Descompresor",
+        "sub": "Flujo de texto continuo",
+        "detail": "Descomprime directamente al stdout sin escribir archivo temporal",
+        "icon": "loop",
+        "kind": "default"
+      },
+      {
+        "id": "grep",
+        "label": "grep 'ERROR'",
+        "sub": "Filtro de líneas",
+        "detail": "O descarta o propaga la línea coincidente",
+        "icon": "sliders",
+        "kind": "default"
+      },
+      {
+        "id": "dest",
+        "label": "Salida Filtrada (<1 MB)",
+        "sub": "Archivo final / Pantalla",
+        "detail": "Resultado listo para análisis inmediato con RAM constante",
+        "icon": "check",
+        "kind": "end"
+      }
+    ]
+  },
+  "activity": {
+    "type": "sort",
+    "prompt": "Identifica si el enfoque de procesamiento usa streaming constante de memoria o carga masiva en RAM:",
+    "buckets": [
+      "Streaming Constante (Escalable)",
+      "Carga Masiva (Riesgo de OOM)"
+    ],
+    "items": [
+      {
+        "text": "Ejecutar `zcat log.gz | grep '404' > errores.txt` en la terminal",
+        "bucket": 0
+      },
+      {
+        "text": "Hacer `df = pd.read_csv('archivo_30gb.csv')` en una máquina con 8 GB de RAM",
+        "bucket": 1
+      },
+      {
+        "text": "Iterar línea por línea sobre un archivo en Python con un context manager `for line in f:`",
+        "bucket": 0
+      },
+      {
+        "text": "Hacer `f.read().splitlines()` cargando todo el contenido en una lista",
+        "bucket": 1
+      }
+    ]
+  },
+  "checkQuestionId": "q-u1-02",
+  "traps": [
+    {
+      "option": "Abrir un archivo CSV de 15 GB con herramientas de interfaz gráfica o `cat archivo.csv` en la terminal.",
+      "reason": "Bloqueará la terminal y consumirá excesivos recursos; siempre utiliza paginadores (`less`), muestreos (`head`) o utilidades de streaming."
+    },
+    {
+      "option": "Construir imágenes Docker copiando el entorno virtual local completo en lugar de instalarlo con requirements.txt.",
+      "reason": "Genera imágenes gigantescas con binarios incompatibles entre el sistema operativo host y la imagen Linux destino."
+    }
+  ],
+  "trapSummary": "Intentar cargar archivos de decenas de gigabytes en memoria de golpe en lugar de usar procesamiento basado en streams.",
+  "flashcards": [
+    {
+      "id": "fc-u1-l2-1",
+      "front": "¿Por qué los pipes de Linux (`|`) permiten procesar archivos más grandes que la memoria RAM disponible?",
+      "back": "Porque transmiten datos en un búfer circular de bytes en streaming continuo; el siguiente comando consume datos tan pronto como el anterior los produce."
+    },
+    {
+      "id": "fc-u1-l2-2",
+      "front": "¿Qué problema resuelve Docker en el desarrollo y despliegue de pipelines de datos?",
+      "back": "Garantiza entornos reproducibles e idénticos en desarrollo y producción, encapsulando librerías, dependencias de sistema y configuración."
+    },
+    {
+      "id": "fc-u1-l2-3",
+      "front": "¿Qué comando de Linux muestra las primeras 10 líneas de un archivo sin cargarlo en memoria?",
+      "back": "`head -n 10 nombre_archivo`"
+    }
+  ],
+  "quickFacts": [
+    {
+      "statement": "Un pipe de Linux transmite datos entre procesos mediante búfers en streaming sin escribir ficheros temporales en disco.",
+      "answer": true
+    },
+    {
+      "statement": "Docker exige que el sistema operativo de producción sea idéntico al hardware donde se desarrolló la imagen.",
+      "answer": false
+    },
+    {
+      "statement": "El comando `wc -l` cuenta el número de líneas de un archivo de texto.",
+      "answer": true
+    },
+    {
+      "statement": "El archivo `stdin` representa el flujo estándar por donde los programas emiten sus mensajes de error.",
+      "answer": false
+    }
+  ]
+}

@@ -1,0 +1,24 @@
+{
+  "$schema": "../../../../schemas/lab.schema.json",
+  "id": "lab-star-schema-design-implementation",
+  "title": "Laboratorio: Implementación de un Esquema en Estrella en PostgreSQL",
+  "goal": "Crear y poblar las tablas de hechos y dimensiones de un Data Mart de ventas en estrella y consultar métricas agregadas.",
+  "level": "intermediate",
+  "estimatedMinutes": 30,
+  "icon": "layers",
+  "domainId": "modelado-dimensional-sql-dwh",
+  "lessonId": "metodologia-kimball-star-schema",
+  "code": "-- Creación de Dimensiones\nCREATE TABLE dim_cliente (\n    cliente_key SERIAL PRIMARY KEY,\n    nombre VARCHAR(100),\n    pais VARCHAR(50)\n);\n\nCREATE TABLE dim_producto (\n    producto_key SERIAL PRIMARY KEY,\n    categoria VARCHAR(50),\n    precio_unitario NUMERIC(10,2)\n);\n\n-- Creación de Tabla de Hechos\nCREATE TABLE fact_ventas (\n    venta_id SERIAL PRIMARY KEY,\n    cliente_key INT REFERENCES dim_cliente(cliente_key),\n    producto_key INT REFERENCES dim_producto(producto_key),\n    cantidad INT NOT NULL,\n    monto_total NUMERIC(10,2) NOT NULL\n);\n\n-- Inserción de prueba y consulta analítica de estrella\nINSERT INTO dim_cliente (nombre, pais) VALUES ('Alice', 'Espana'), ('Bob', 'Mexico');\nINSERT INTO dim_producto (categoria, precio_unitario) VALUES ('Electronica', 150.00);\nINSERT INTO fact_ventas (cliente_key, producto_key, cantidad, monto_total) VALUES (1, 1, 2, 300.00), (2, 1, 1, 150.00);\n\nSELECT \n    c.pais,\n    SUM(f.monto_total) AS total_ingresos\nFROM fact_ventas f\nJOIN dim_cliente c ON f.cliente_key = c.cliente_key\nGROUP BY c.pais\nORDER BY total_ingresos DESC;",
+  "codeLanguage": "sql",
+  "expectedOutput": "Espana | 300.00\nMexico | 150.00",
+  "successCriteria": [
+    "Se construyen las claves foráneas conectando la tabla de hechos a las dimensiones.",
+    "La agregación por país devuelve los montos esperados sin duplicación."
+  ],
+  "file": "solution.sql",
+  "steps": [
+    "Comprender el objetivo y escribir la solución técnica solicitada.",
+    "Ejecutar la verificación del ejercicio y comparar la salida obtenida."
+  ],
+  "verify": "psql -f solution.sql"
+}

@@ -1,0 +1,24 @@
+{
+  "$schema": "../../../../schemas/lab.schema.json",
+  "id": "lab-kafka-producer-consumer",
+  "title": "Laboratorio: Emulación de Productor y Consumidor con Particionamiento",
+  "goal": "Construir un productor que distribuya mensajes por clave en particiones y un consumidor que rastree offsets de forma secuencial.",
+  "level": "intermediate",
+  "estimatedMinutes": 30,
+  "icon": "loop",
+  "domainId": "streaming-tiempo-real-eventos",
+  "lessonId": "apache-kafka-logs-particiones-offsets",
+  "code": "class MockKafkaTopic:\n    def __init__(self, num_partitions=2):\n        self.partitions = {i: [] for i in range(num_partitions)}\n    \n    def produce(self, key, value):\n        p_id = hash(key) % len(self.partitions)\n        offset = len(self.partitions[p_id])\n        self.partitions[p_id].append({'offset': offset, 'key': key, 'val': value})\n        return p_id, offset\n\ntopic = MockKafkaTopic(num_partitions=2)\n# Enviamos eventos del mismo usuario\np1, off1 = topic.produce('user_42', 'Login')\np2, off2 = topic.produce('user_42', 'AddToCart')\n\nprint(f'Evento 1 en particion {p1}, offset {off1}')\nprint(f'Evento 2 en particion {p2}, offset {off2}')",
+  "codeLanguage": "python",
+  "expectedOutput": "Evento 1 en particion 0, offset 0\nEvento 2 en particion 0, offset 1",
+  "successCriteria": [
+    "Ambos eventos con la misma clave caen en la misma partición.",
+    "Los offsets se incrementan secuencialmente preservando el orden estricto."
+  ],
+  "file": "solution.py",
+  "steps": [
+    "Comprender el objetivo y escribir la solución técnica solicitada.",
+    "Ejecutar la verificación del ejercicio y comparar la salida obtenida."
+  ],
+  "verify": "python solution.py"
+}

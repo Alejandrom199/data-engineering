@@ -1,0 +1,227 @@
+{
+  "$schema": "../../../../../schemas/lesson.schema.json",
+  "id": "procesamiento-streams-watermarks-exactly-once",
+  "title": "Procesamiento de Streams: Watermarks y Semántica Exactly-Once",
+  "estimatedMinutes": 16,
+  "domainIds": [
+    "streaming-tiempo-real-eventos"
+  ],
+  "topics": [
+    "event-time-vs-processing-time",
+    "watermarks-ventanas",
+    "garantias-entrega",
+    "exactly-once"
+  ],
+  "hook": "Un teléfono móvil en un túnel sin cobertura genera 5 compras offline a las 10:00 AM. Al salir del túnel a las 11:30 AM, el teléfono se conecta y transmite los 5 pagos. Si tu motor de analítica agrupa ventas por la hora de llegada del servidor (11:30 AM), tus métricas de facturación por hora serán falsas. ¿Cómo gestiona el motor el tiempo real con Event Time y Watermarks?",
+  "concept": {
+    "blocks": [
+      {
+        "type": "heading",
+        "text": "1. Event Time vs Processing Time"
+      },
+      {
+        "type": "paragraph",
+        "text": "En streaming existen tres nociones del tiempo:"
+      },
+      {
+        "type": "list",
+        "style": "bullet",
+        "items": [
+          "**Event Time (Tiempo del Evento):** El momento exacto en que el evento ocurrió en el dispositivo emisor (por ejemplo, el clic en el móvil). Es la única fuente de verdad para el negocio.",
+          "**Ingestion Time (Tiempo de Ingestión):** El momento en que el evento fue recibido y persistido por el broker (Kafka).",
+          "**Processing Time (Tiempo de Procesamiento):** El reloj de la máquina que ejecuta la transformación (Spark Streaming o Apache Flink) al momento de procesar los bytes."
+        ]
+      },
+      {
+        "type": "heading",
+        "text": "2. Watermarks: ¿Cuánto Tiempo Esperamos por Datos Tardíos?"
+      },
+      {
+        "type": "paragraph",
+        "text": "Debido a la latencia de red, los eventos llegan desordenados. Para calcular una ventana de tiempo (por ejemplo, 'total de ventas de 10:00 a 10:10'), el motor no puede esperar eternamente para cerrar la ventana. Un **Watermark (Marca de Agua)** es una cota móvil de retraso: le dice al motor *'asumimos que ningún evento llegará con más de 10 minutos de retraso'*. Cuando el reloj de Event Time supera el límite del Watermark, la ventana se cierra definitivamente y emite el resultado final."
+      },
+      {
+        "type": "code",
+        "language": "python",
+        "caption": "Ventanas con Watermark en Spark Structured Streaming",
+        "code": "from pyspark.sql.functions import col, window\n\n# Agrupacion por ventana de 10 minutos con tolerancia de 5 minutos a datos tardios\neventos_con_watermark = df_stream \\\n    .withWatermark('event_timestamp', '5 minutes') \\\n    .groupBy(\n        window(col('event_timestamp'), '10 minutes', '5 minutes'),\n        col('categoria')\n    ) \\\n    .count()"
+      },
+      {
+        "type": "heading",
+        "text": "3. Semántica de Entrega: At-Least-Once vs Exactly-Once"
+      },
+      {
+        "type": "paragraph",
+        "text": "Garantizar la entrega de mensajes a través de redes distribuidas falibles presenta tres niveles de garantías:"
+      },
+      {
+        "type": "table",
+        "headers": [
+          "Semántica",
+          "Garantía",
+          "Impacto de Red",
+          "Mecanismo"
+        ],
+        "rows": [
+          [
+            "At-Most-Once (Como máximo una)",
+            "El mensaje puede perderse, pero nunca se duplica.",
+            "Cero reintentos.",
+            "Envía y olvida (Fire and forget)."
+          ],
+          [
+            "At-Least-Once (Al menos una)",
+            "El mensaje nunca se pierde, pero puede duplicarse si falla la confirmación.",
+            "Reintentos continuos.",
+            "Reintentos con ack y confirmación de recepción."
+          ],
+          [
+            "Exactly-Once (Exactamente una)",
+            "Cada evento se procesa y tiene efecto en el destino exactamente una vez.",
+            "Coordinación transaccional.",
+            "Productores idempotentes en Kafka + Checkpointing + Two-Phase Commit en sumidero."
+          ]
+        ],
+        "caption": "Niveles de garantía de entrega en arquitecturas distribuidas"
+      },
+      {
+        "type": "callout",
+        "tone": "tip",
+        "title": "Idempotencia en el Destino",
+        "text": "La forma más robusta y económica de lograr Exactly-Once de extremo a extremo es combinar transporte **At-Least-Once** con un **Consumidor Idempotente** (usando operaciones `MERGE` o claves únicas de deduplicación en la base de datos destino)."
+      }
+    ]
+  },
+  "keyPoints": [
+    "El Event Time es la hora real de origen del dato; los cálculos analíticos de negocio siempre deben basarse en él.",
+    "Los Watermarks definen el umbral temporal de tolerancia a eventos tardíos antes de cerrar una ventana agregada.",
+    "La semántica Exactly-Once se logra mediante coordinación transaccional de extremo a extremo o transporte At-Least-Once con sumideros idempotentes."
+  ],
+  "terms": [
+    {
+      "term": "Event Time",
+      "translation": "Tiempo del Evento",
+      "definition": "Marca de tiempo que registra el momento exacto en que un evento fue generado físicamente por el dispositivo emisor."
+    },
+    {
+      "term": "Watermark",
+      "translation": "Marca de Agua / Watermark",
+      "definition": "Mecanismo de progreso temporal que indica que no se esperan más datos anteriores a una determinada marca de Event Time."
+    },
+    {
+      "term": "Exactly-Once Semantics (EOS)",
+      "translation": "Semántica de Entrega Exactamente Una Vez",
+      "definition": "Garantía de procesamiento donde cada mensaje se refleja en el estado del sistema destino exactamente una sola vez, incluso ante fallos."
+    }
+  ],
+  "diagram": {
+    "type": "flow",
+    "nodes": [
+      {
+        "id": "ev1",
+        "label": "Evento a las 10:02",
+        "sub": "Llega a las 10:03 (A tiempo)",
+        "detail": "Entra en la ventana 10:00 - 10:10",
+        "icon": "check",
+        "kind": "default"
+      },
+      {
+        "id": "wm",
+        "label": "Watermark (Retraso max: 5 min)",
+        "sub": "Cota móvil de tiempo",
+        "detail": "A las 10:15 avanza cerrando la ventana 10:00-10:10",
+        "icon": "clock",
+        "kind": "decision"
+      },
+      {
+        "id": "late",
+        "label": "Evento a las 10:05",
+        "sub": "Llega a las 10:20 (Muy tardío)",
+        "detail": "Llega después del Watermark: se descarta o enruta a DLQ",
+        "icon": "alert",
+        "kind": "end"
+      },
+      {
+        "id": "out",
+        "label": "Ventana Cerrada (Resultado)",
+        "sub": "Total emitido",
+        "detail": "Métrica agregada calculada con precisión",
+        "icon": "check",
+        "kind": "end"
+      }
+    ]
+  },
+  "activity": {
+    "type": "sort",
+    "prompt": "Clasifica la afirmación según la semántica de entrega correspondiente:",
+    "buckets": [
+      "At-Least-Once",
+      "Exactly-Once"
+    ],
+    "items": [
+      {
+        "text": "Garantiza que ningún mensaje se pierda mediante reintentos, pero requiere deduplicación ante fallos",
+        "bucket": 0
+      },
+      {
+        "text": "El efecto final en la base de datos receptora es exactamente de una sola aplicación sin duplicados",
+        "bucket": 1
+      },
+      {
+        "text": "Reintenta el envío de la transacción si la red se interrumpe antes de recibir el acuse (ack)",
+        "bucket": 0
+      },
+      {
+        "text": "Usa coordinación de confirmación en dos fases (Two-Phase Commit) entre productor, broker y sumidero",
+        "bucket": 1
+      }
+    ]
+  },
+  "checkQuestionId": "q-u7-04",
+  "traps": [
+    {
+      "option": "Calcular ventanas de agregación de negocio utilizando el reloj del servidor (Processing Time).",
+      "reason": "Si hay retrasos en la red o caídas temporales, los eventos de horas distintas se agruparán en el mismo minuto, corrompiendo las métricas."
+    },
+    {
+      "option": "Configurar un Watermark de 7 días sobre un pipeline de alta velocidad en memoria.",
+      "reason": "Forzará al motor de streaming a retener el estado de 7 días completos en memoria RAM, provocando un fallo de OOM."
+    }
+  ],
+  "trapSummary": "Usar Processing Time para calcular ventanas analíticas de negocio en lugar del Event Time real del suceso.",
+  "flashcards": [
+    {
+      "id": "fc-u7-l4-1",
+      "front": "¿Por qué las métricas de negocio en streaming deben calcularse siempre sobre el Event Time y no sobre el Processing Time?",
+      "back": "Porque el Event Time refleja el momento real en que ocurrió la acción del usuario, permaneciendo inmutable independientemente de retrasos de red o caídas de servidores."
+    },
+    {
+      "id": "fc-u7-l4-2",
+      "front": "¿Cuál es la función de un Watermark en el procesamiento de flujos de datos?",
+      "back": "Establecer un límite temporal de tolerancia para datos tardíos, permitiendo al motor saber cuándo cerrar y materializar una ventana de tiempo en memoria."
+    },
+    {
+      "id": "fc-u7-l4-3",
+      "front": "¿Cómo se logra semántica Exactly-Once de forma práctica y económica en el destino?",
+      "back": "Combinando transporte At-Least-Once con escrituras idempotentes (como operaciones MERGE o claves únicas de deduplicación en el sumidero)."
+    }
+  ],
+  "quickFacts": [
+    {
+      "statement": "El Event Time registra la hora en que el evento ocurrió en el dispositivo emisor original.",
+      "answer": true
+    },
+    {
+      "statement": "Un Watermark permite que el motor de streaming espere indefinidamente sin cerrar nunca las ventanas de memoria.",
+      "answer": false
+    },
+    {
+      "statement": "En semántica At-Least-Once, un mensaje puede llegar duplicado pero nunca se pierde.",
+      "answer": true
+    },
+    {
+      "statement": "Las escrituras idempotentes garantizan que procesar dos veces el mismo mensaje no altere el resultado final.",
+      "answer": true
+    }
+  ]
+}

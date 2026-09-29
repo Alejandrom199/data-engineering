@@ -1,0 +1,28 @@
+{
+  "$schema": "../../../../schemas/unit.schema.json",
+  "id": "orquestacion-calidad-dataops",
+  "title": "Orquestación Robusta, Calidad y DataOps",
+  "officialTitle": "Robust Orchestration, Data Quality & DataOps",
+  "summary": "Ingeniería de software aplicada a datos: orquestación de DAGs deterministas con Apache Airflow, prevención de deadlocks con sensores en modo reschedule, contratos de calidad como Circuit Breakers (Great Expectations) y automatización CI/CD con DataOps.",
+  "icon": "git",
+  "color": "#a855f7",
+  "objectives": [
+    "Diseñar DAGs deterministas e idempotentes en Apache Airflow gestionando correctamente el concepto de fechas lógicas y backfilling.",
+    "Prevenir el agotamiento de workers y deadlocks en Airflow mediante el uso correcto del modo reschedule en sensores.",
+    "Implementar contratos de datos y validaciones automatizadas (Circuit Breakers) con Great Expectations antes de publicar a producción.",
+    "Aplicar las mejores prácticas de DataOps: testing automatizado de pipelines, integración continua (CI/CD) e infraestructura como código."
+  ],
+  "lessons": [
+    "orquestacion-airflow-dags-idempotencia",
+    "sensores-recursos-reschedule-vs-poke",
+    "calidad-datos-circuit-breakers-expectations",
+    "dataops-ci-cd-infraestructura-codigo"
+  ],
+  "labs": [
+    "lab-airflow-idempotent-dag",
+    "lab-airflow-sensor-reschedule",
+    "lab-data-quality-circuit-breaker"
+  ],
+  "quizPassRatio": 0.75,
+  "quizQuestionCount": 10
+}

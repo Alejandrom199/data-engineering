@@ -1,0 +1,137 @@
+{
+  "$schema": "../../../../schemas/questions.schema.json",
+  "questions": [
+    {
+      "id": "q-u7-01",
+      "type": "single",
+      "domainId": "streaming-tiempo-real-eventos",
+      "skill": "Paradigmas de Tiempo Real y Eventos",
+      "topic": "batch-vs-streaming",
+      "stem": "¿En cuál de los siguientes escenarios empresariales se justifica plenamente la adopción de una arquitectura de Streaming continuo en lugar de procesamiento Batch?",
+      "options": [
+        {
+          "key": "A",
+          "text": "Generación de facturas comerciales a final de mes."
+        },
+        {
+          "key": "B",
+          "text": "Detección inmediata de transacciones fraudulentas con tarjetas de crédito para bloquear la operación en milisegundos."
+        },
+        {
+          "key": "C",
+          "text": "Auditoría anual de inventario físico en almacenes."
+        },
+        {
+          "key": "D",
+          "text": "Cálculo del reporte trimestral de ventas para la junta directiva."
+        }
+      ],
+      "correct": [
+        "B"
+      ],
+      "explanation": "El streaming se justifica cuando un sistema automatizado debe reaccionar en milisegundos ante un evento crítico. Los reportes y cierres contables periódicos son casos ideales para batch.",
+      "sources": [
+        "Designing Data-Intensive Applications"
+      ]
+    },
+    {
+      "id": "q-u7-02",
+      "type": "single",
+      "domainId": "streaming-tiempo-real-eventos",
+      "skill": "Arquitectura y Mecanismos de Apache Kafka",
+      "topic": "commit-log-particiones",
+      "stem": "¿Cómo garantiza Apache Kafka que todos los eventos de un mismo cliente se procesen en estricto orden cronológico en un tópico con múltiples particiones?",
+      "options": [
+        {
+          "key": "A",
+          "text": "Deteniendo temporalmente todas las demás particiones del clúster."
+        },
+        {
+          "key": "B",
+          "text": "Asignando el ID del cliente como clave (`key`) del mensaje para que el algoritmo de hash lo enrute siempre a la misma partición."
+        },
+        {
+          "key": "C",
+          "text": "Borrando los mensajes viejos antes de enviar los nuevos."
+        },
+        {
+          "key": "D",
+          "text": "Kafka no puede garantizar orden bajo ninguna circunstancia."
+        }
+      ],
+      "correct": [
+        "B"
+      ],
+      "explanation": "Kafka garantiza orden estricto dentro de una misma partición. Al enviar eventos con la misma clave de negocio, se enrutan siempre a la misma partición preservando su orden cronológico.",
+      "sources": [
+        "Kafka: The Definitive Guide"
+      ]
+    },
+    {
+      "id": "q-u7-03",
+      "type": "single",
+      "domainId": "streaming-tiempo-real-eventos",
+      "skill": "Change Data Capture y Replicación",
+      "topic": "change-data-capture",
+      "stem": "¿Cuál es la principal ventaja técnica de usar Change Data Capture (CDC) con Debezium frente a consultar la base de datos periódicamente con `SELECT WHERE updated_at > ...`?",
+      "options": [
+        {
+          "key": "A",
+          "text": "Debezium lee directamente el log de transacciones (WAL/binlog) con impacto casi nulo en la base operacional y captura eliminaciones (DELETE) y estados intermedios."
+        },
+        {
+          "key": "B",
+          "text": "Debezium elimina la necesidad de tener bases de datos en la empresa."
+        },
+        {
+          "key": "C",
+          "text": "Debezium convierte automáticamente todas las consultas a lenguaje R."
+        },
+        {
+          "key": "D",
+          "text": "Debezium borra los registros antiguos para liberar espacio en Postgres."
+        }
+      ],
+      "correct": [
+        "A"
+      ],
+      "explanation": "Al leer el log binario transaccional, CDC no sobrecarga el motor relacional con consultas SQL pesadas y captura el 100% de los cambios, incluyendo borrados físicos.",
+      "sources": [
+        "Debezium Documentation"
+      ]
+    },
+    {
+      "id": "q-u7-04",
+      "type": "single",
+      "domainId": "streaming-tiempo-real-eventos",
+      "skill": "Semántica de Tiempo y Watermarks",
+      "topic": "watermarks-ventanas",
+      "stem": "¿Para qué sirve un Watermark en un motor de procesamiento de streams como Apache Flink o Spark Structured Streaming?",
+      "options": [
+        {
+          "key": "A",
+          "text": "Para cifrar el contenido de los mensajes con clave pública."
+        },
+        {
+          "key": "B",
+          "text": "Para definir el umbral máximo de retraso aceptable para datos desordenados basados en Event Time antes de cerrar y materializar una ventana de cálculo en memoria."
+        },
+        {
+          "key": "C",
+          "text": "Para forzar a los consumidores a leer siempre desde el offset 0."
+        },
+        {
+          "key": "D",
+          "text": "Para medir el consumo eléctrico de los servidores en el datacenter."
+        }
+      ],
+      "correct": [
+        "B"
+      ],
+      "explanation": "El Watermark rastrea el progreso temporal en Event Time e indica cuándo es seguro cerrar una ventana y liberar el estado de la memoria RAM.",
+      "sources": [
+        "Streaming Systems: The What, Where, When, and How of Large-Scale Data Processing"
+      ]
+    }
+  ]
+}

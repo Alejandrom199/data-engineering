@@ -1,0 +1,196 @@
+{
+  "$schema": "../../../../../schemas/lesson.schema.json",
+  "id": "optimizacion-layout-compaction-zorder",
+  "title": "Optimización Física: Compaction (OPTIMIZE) y Z-Ordering",
+  "estimatedMinutes": 16,
+  "domainIds": [
+    "lakehouse-tablas-transaccionales"
+  ],
+  "topics": [
+    "compaction-optimize",
+    "z-ordering",
+    "file-skipping",
+    "layout-optimizacion"
+  ],
+  "hook": "Un pipeline de streaming en tiempo real ingiere micro-lotes cada 30 segundos, generando 2,880 archivos Parquet diminutos al día en una tabla Delta. Al cabo de dos meses, hay 170,000 archivos y las consultas tardan 3 minutos en arrancar. Tras ejecutar un solo comando `OPTIMIZE con Z-ORDER`, la consulta pasa a responder en 1.5 segundos. ¿Qué ocurrió físicamente en el almacenamiento?",
+  "concept": {
+    "blocks": [
+      {
+        "type": "heading",
+        "text": "1. El Problema de los Archivos Pequeños en Streaming"
+      },
+      {
+        "type": "paragraph",
+        "text": "Las arquitecturas Lakehouse modernas reciben eventos continuos. Esto inevitablemente fragmenta la tabla en miles de micro-archivos de pocos kilobytes. Aunque Parquet y Delta son rápidos, el coste de abrir, leer metadatos y cerrar miles de conexiones de red en S3 destruye el rendimiento. La solución es la **Compactación (Compaction)** mediante el comando `OPTIMIZE`."
+      },
+      {
+        "type": "heading",
+        "text": "2. Comando OPTIMIZE: Fusionar en Archivos Ideales de ~1 GB"
+      },
+      {
+        "type": "paragraph",
+        "text": "El comando `OPTIMIZE` toma miles de micro-archivos pequeños y los reescribe fusionados en archivos consolidados de tamaño óptimo (generalmente 512 MB a 1 GB). Esta operación se ejecuta como una transacción ACID ordinaria: los lectores concurrentes siguen leyendo los archivos antiguos sin enterarse hasta que el nuevo commit atómico confirma los archivos fusionados."
+      },
+      {
+        "type": "heading",
+        "text": "3. Z-Ordering: Clustering Multidimensional sin Particionamiento"
+      },
+      {
+        "type": "paragraph",
+        "text": "Tradicionalmente particionabas por columnas (Hive Partitioning: `anio/mes/`). Pero si tienes que filtrar frecuentemente por `cliente_id` y `tipo_producto`, particionar por ambas genera millones de carpetas vacías (hiper-particionamiento). **Z-Ordering** es una técnica que organiza físicamente los datos dentro de los archivos Parquet siguiendo una **Curva de Morton (Space-Filling Curve)**, preservando la localidad de múltiples dimensiones a la vez."
+      },
+      {
+        "type": "code",
+        "language": "sql",
+        "caption": "Ejecución de OPTIMIZE con Z-Ordering en Delta Lake",
+        "code": "-- Compacta micro-archivos y agrupa físicamente por cliente y fecha de evento\nOPTIMIZE eventos_lakehouse\nZORDER BY (cliente_id, categoria_producto);\n\n-- Ahora consultas que filtren por cualquiera de estas columnas omitirán >90% de los archivos\nSELECT COUNT(*) \nFROM eventos_lakehouse \nWHERE cliente_id = 94820 \n  AND categoria_producto = 'ELECTRONICA';"
+      },
+      {
+        "type": "heading",
+        "text": "4. Maximizar el File Skipping con Estadísticas Min/Max"
+      },
+      {
+        "type": "paragraph",
+        "text": "Al ordenar los datos con Z-Order, los rangos de valores mínimos y máximos (`min/max`) de cada archivo Parquet se vuelven sumamente estrechos y concentrados. Cuando una consulta busca `cliente_id = 94820`, el motor analiza las estadísticas del log y **omite el 95% de los archivos** (File Skipping), leyendo solo los 2 o 3 archivos que físicamente contienen esos registros."
+      },
+      {
+        "type": "callout",
+        "tone": "tip",
+        "title": "Regla de Z-Ordering",
+        "text": "No incluyas más de 3 o 4 columnas en la cláusula `ZORDER BY`. Cuantas más dimensiones añadas, más se diluye la eficacia de la curva espacial y menor será el porcentaje de archivos omitidos."
+      }
+    ]
+  },
+  "keyPoints": [
+    "`OPTIMIZE` consolida miles de micro-archivos generados por streaming en archivos óptimos de ~1 GB.",
+    "Z-Ordering reorganiza físicamente los datos según múltiples columnas para estrechar los rangos min/max de los metadatos.",
+    "El File Skipping permite que los motores analíticos ignoren más del 90% de los archivos Parquet en disco, acelerando drásticamente las consultas."
+  ],
+  "terms": [
+    {
+      "term": "Compaction (OPTIMIZE)",
+      "translation": "Compactación de Archivos",
+      "definition": "Proceso que reúne múltiples archivos pequeños fragmentados en archivos consolidados de mayor tamaño para optimizar el I/O."
+    },
+    {
+      "term": "Z-Ordering",
+      "translation": "Ordenamiento Curva Z / Morton",
+      "definition": "Algoritmo de clustering multidimensional que asigna datos multidimensionales a un orden unidimensional preservando la cercanía espacial."
+    },
+    {
+      "term": "File Skipping",
+      "translation": "Omisión de Archivos",
+      "definition": "Capacidad de un motor de consulta para descartar archivos enteros basándose en sus estadísticas de metadatos sin abrir los ficheros."
+    }
+  ],
+  "diagram": {
+    "type": "flow",
+    "nodes": [
+      {
+        "id": "micro",
+        "label": "Miles de Micro-archivos",
+        "sub": "Streaming continuo (50 KB)",
+        "detail": "Small File Problem en Object Storage",
+        "icon": "grid",
+        "kind": "default"
+      },
+      {
+        "id": "opt",
+        "label": "OPTIMIZE + Z-ORDER",
+        "sub": "Compactación y Morton Curve",
+        "detail": "Reagrupa por atributos clave en bloques de 1 GB",
+        "icon": "loop",
+        "kind": "default"
+      },
+      {
+        "id": "stats",
+        "label": "Metadatos Min/Max Estrechos",
+        "sub": "Estadísticas precisas",
+        "detail": "Cada archivo cubre rangos específicos sin solaparse",
+        "icon": "chart",
+        "kind": "default"
+      },
+      {
+        "id": "skip",
+        "label": "File Skipping > 90%",
+        "sub": "Consultas Ultrarrápidas",
+        "detail": "El motor lee solo 2 de cada 100 archivos en disco",
+        "icon": "bolt",
+        "kind": "end"
+      }
+    ]
+  },
+  "activity": {
+    "type": "sort",
+    "prompt": "Clasifica las técnicas de optimización física de layout en el Lakehouse:",
+    "buckets": [
+      "Compaction (OPTIMIZE)",
+      "Z-Ordering Multidimensional"
+    ],
+    "items": [
+      {
+        "text": "Fusiona miles de archivos pequeños generados por micro-batches en archivos de ~1 GB",
+        "bucket": 0
+      },
+      {
+        "text": "Reorganiza los datos mapeando múltiples dimensiones a una curva continua de espacio",
+        "bucket": 1
+      },
+      {
+        "text": "Resuelve directamente el Small File Problem en el almacenamiento de objetos",
+        "bucket": 0
+      },
+      {
+        "text": "Maximiza el File Skipping mediante estadísticas min/max en múltiples columnas",
+        "bucket": 1
+      }
+    ]
+  },
+  "checkQuestionId": "q-u5-04",
+  "traps": [
+    {
+      "option": "Aplicar `ZORDER BY` sobre columnas que ya son la clave de partición del directorio de la tabla.",
+      "reason": "Es un desperdicio absoluto de cómputo; los datos ya están físicamente segregados en directorios distintos por esa columna."
+    },
+    {
+      "option": "Ejecutar `OPTIMIZE` cada 2 minutos en un pipeline de streaming continuo.",
+      "reason": "La sobrecarga computacional de reescribir archivos superará el beneficio; la compactación debe programarse cada varias horas o diario."
+    }
+  ],
+  "trapSummary": "Aplicar Z-Ordering sobre 15 columnas o sobre columnas que ya forman parte del particionamiento del directorio.",
+  "flashcards": [
+    {
+      "id": "fc-u5-l4-1",
+      "front": "¿Qué comando realiza la compactación de archivos en Delta Lake?",
+      "back": "`OPTIMIZE nombre_tabla;`"
+    },
+    {
+      "id": "fc-u5-l4-2",
+      "front": "¿Qué problema resuelve Z-Ordering frente al particionamiento tradicional por carpetas?",
+      "back": "Permite agrupar físicamente datos por atributos de alta cardinalidad sin generar millones de subcarpetas vacías."
+    },
+    {
+      "id": "fc-u5-l4-3",
+      "front": "¿Cuántas columnas se recomienda incluir como máximo en una cláusula ZORDER BY?",
+      "back": "De 2 a 4 columnas clave; añadir demasiadas columnas diluye la efectividad de la curva espacial y perjudica el File Skipping."
+    }
+  ],
+  "quickFacts": [
+    {
+      "statement": "OPTIMIZE y Z-Ordering se ejecutan como una transacción ACID sin detener a los lectores concurrentes.",
+      "answer": true
+    },
+    {
+      "statement": "Z-Ordering debe aplicarse sobre columnas que ya son particiones físicas del directorio.",
+      "answer": false
+    },
+    {
+      "statement": "El File Skipping aprovecha los valores min/max almacenados en los metadatos para omitir archivos.",
+      "answer": true
+    },
+    {
+      "statement": "Es recomendable correr OPTIMIZE cada 30 segundos en un pipeline continuo de streaming.",
+      "answer": false
+    }
+  ]
+}

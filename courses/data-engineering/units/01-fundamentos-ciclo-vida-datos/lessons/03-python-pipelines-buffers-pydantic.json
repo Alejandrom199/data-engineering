@@ -1,0 +1,202 @@
+{
+  "$schema": "../../../../../schemas/lesson.schema.json",
+  "id": "python-pipelines-buffers-pydantic",
+  "title": "Pipelines con Python Moderno: Buffers, Generadores y Pydantic",
+  "estimatedMinutes": 14,
+  "domainIds": [
+    "fundamentos-ciclo-vida-datos"
+  ],
+  "topics": [
+    "python-generadores",
+    "pydantic-validacion",
+    "tipado-estricto",
+    "manejo-memoria"
+  ],
+  "hook": "Un script de extracción en Python procesa 500,000 transacciones bancarias. En el registro 489,120, un campo 'monto' viene como texto 'N/A' en vez de número flotante. El script colapsa con `ValueError`, cancela toda la ejecución y deja la base de datos a medio cargar. ¿Cómo estructurar código profesional que valide y aísle anomalías?",
+  "concept": {
+    "blocks": [
+      {
+        "type": "heading",
+        "text": "1. El Pecado Capital: Cargar Colecciones Enteras en RAM"
+      },
+      {
+        "type": "paragraph",
+        "text": "Muchos desarrolladores novatos leen datos acumulando registros en listas (`registros.append(fila)`). Con 1,000 registros esto funciona; con 50 millones, el sistema operativo mata el proceso con un error de Out-Of-Memory (OOM). La solución elegante de Python son los **Generadores** y la sentencia `yield`."
+      },
+      {
+        "type": "code",
+        "language": "python",
+        "caption": "Generador perezoso que consume memoria constante O(1)",
+        "code": "def stream_csv_rows(file_path):\n    \"\"\"Lee un archivo de cualquier tamaño con menos de 10 MB de RAM.\"\"\"\n    with open(file_path, mode='r', encoding='utf-8') as f:\n        header = next(f).strip().split(',')\n        for line in f:\n            values = line.strip().split(',')\n            yield dict(zip(header, values))\n\n# El archivo se lee registro por registro a demanda\nfor record in stream_csv_rows('transacciones_masivas.csv'):\n    procesar_registro(record)"
+      },
+      {
+        "type": "heading",
+        "text": "2. Validación de Esquemas con Pydantic: Tipado Defensivo"
+      },
+      {
+        "type": "paragraph",
+        "text": "En producción, 'los datos son culpables hasta que demuestren lo contrario'. Pydantic permite declarar la estructura requerida de cada registro con tipos de datos estrictos, coerción automática y validaciones personalizadas. Si un dato viene corrupto, se captura el error sin que el pipeline colapse."
+      },
+      {
+        "type": "code",
+        "language": "python",
+        "caption": "Modelo Pydantic v2 para validación estricta",
+        "code": "from pydantic import BaseModel, Field, field_validator\nfrom datetime import datetime\n\nclass TransactionRecord(BaseModel):\n    id: str\n    user_id: int\n    amount: float = Field(gt=0, description='El monto debe ser positivo')\n    currency: str = Field(min_length=3, max_length=3)\n    timestamp: datetime\n\n    @field_validator('currency')\n    def validate_iso_currency(cls, v):\n        if v.upper() not in {'USD', 'EUR', 'MXN', 'COP', 'CLP'}:\n            raise ValueError(f'Moneda no soportada: {v}')\n        return v.upper()"
+      },
+      {
+        "type": "heading",
+        "text": "3. Procesamiento en Lotes (Chunking) con Búferes"
+      },
+      {
+        "type": "paragraph",
+        "text": "Insertar registros uno por uno en una base de datos es extremadamente lento debido a la latencia de red de cada transacción. La estrategia profesional es acumular en un búfer de tamaño controlado (por ejemplo, 5,000 registros) y enviar inserciones por lotes (`batch insert`)."
+      },
+      {
+        "type": "callout",
+        "tone": "warning",
+        "title": "Dead Letter Queue (DLQ)",
+        "text": "Nunca descartes los registros inválidos en silencio. Guarda los registros corruptos en un archivo o cola de 'registros muertos' (DLQ) con la causa del error para que puedan ser auditados y reprocesados."
+      }
+    ]
+  },
+  "keyPoints": [
+    "Los generadores en Python (`yield`) leen y transforman flujos masivos de datos manteniendo el consumo de memoria acotado y constante.",
+    "Pydantic proporciona validación de esquemas y coerción de tipos para impedir que datos corruptos contaminen el almacenamiento analítico.",
+    "El procesamiento por lotes (micro-batching) optimiza el throughput de red al comunicarse con bases de datos y APIs."
+  ],
+  "terms": [
+    {
+      "term": "Generator (yield)",
+      "translation": "Generador de Python",
+      "definition": "Función que produce una secuencia de valores perezosamente a demanda, pausando su estado de ejecución entre cada valor."
+    },
+    {
+      "term": "Pydantic",
+      "translation": "Librería Pydantic",
+      "definition": "Biblioteca de análisis y validación de datos para Python basada en sugerencias de tipos (type hints)."
+    },
+    {
+      "term": "Dead Letter Queue (DLQ)",
+      "translation": "Cola de mensajes muertos / fallidos",
+      "definition": "Almacén secundario donde se desvían los registros que fallaron las reglas de validación para evitar detener el pipeline principal."
+    }
+  ],
+  "diagram": {
+    "type": "flow",
+    "nodes": [
+      {
+        "id": "source",
+        "label": "Fuente Masiva (10M Filas)",
+        "sub": "Stream de datos crudos",
+        "detail": "Entrada continua registro por registro",
+        "icon": "server",
+        "kind": "default"
+      },
+      {
+        "id": "gen",
+        "label": "Generador (yield)",
+        "sub": "Memoria constante O(1)",
+        "detail": "Emite diccionarios perezosos sin acumular listas",
+        "icon": "loop",
+        "kind": "default"
+      },
+      {
+        "id": "val",
+        "label": "Validador Pydantic",
+        "sub": "Comprobación de tipos",
+        "detail": "Verifica tipos, límites y reglas de negocio",
+        "icon": "shield",
+        "kind": "decision"
+      },
+      {
+        "id": "batch",
+        "label": "Búfer de Lote (5k filas)",
+        "sub": "Batching a Base de Datos",
+        "detail": "Inserta eficientemente en bloques limpios",
+        "icon": "layers",
+        "kind": "default"
+      },
+      {
+        "id": "dlq",
+        "label": "Dead Letter Queue (DLQ)",
+        "sub": "Registros rechazados",
+        "detail": "Persiste anomalías para auditoría sin colapsar el pipeline",
+        "icon": "alert",
+        "kind": "end"
+      }
+    ]
+  },
+  "activity": {
+    "type": "sort",
+    "prompt": "Clasifica cada práctica de desarrollo en Python como recomendada o riesgosa para pipelines de datos:",
+    "buckets": [
+      "Práctica Recomendada",
+      "Práctica Riesgosa / Antipatrón"
+    ],
+    "items": [
+      {
+        "text": "Validar cada registro con un modelo de Pydantic y aislar fallos en un archivo DLQ",
+        "bucket": 0
+      },
+      {
+        "text": "Usar `cursor.fetchall()` sobre una tabla con 20 millones de transacciones",
+        "bucket": 1
+      },
+      {
+        "text": "Escribir funciones generadoras con `yield` para transformar flujos de texto",
+        "bucket": 0
+      },
+      {
+        "text": "Capturar todas las excepciones con `except: pass` para que el script nunca falle",
+        "bucket": 1
+      }
+    ]
+  },
+  "checkQuestionId": "q-u1-03",
+  "traps": [
+    {
+      "option": "Cargar una tabla entera de 10 millones de registros con un simple `cursor.fetchall()` en memoria.",
+      "reason": "Descarga todos los resultados en una sola lista en RAM, provocando un Memory Error instantáneo. Se debe usar `fetchmany()` o cursores del lado del servidor."
+    },
+    {
+      "option": "Usar bloques `try...except Exception: pass` genéricos para silenciar errores de tipos en datos.",
+      "reason": "Oculta registros inválidos silenciosamente, produciendo discrepancias financieras y desconfianza en los reportes de negocio."
+    }
+  ],
+  "trapSummary": "Silenciar errores de validación de datos con bloques de excepción vacíos en lugar de enrutarlos a un Dead Letter Queue.",
+  "flashcards": [
+    {
+      "id": "fc-u1-l3-1",
+      "front": "¿Cuál es la diferencia de consumo de memoria entre una función con `return list` y una con `yield`?",
+      "back": "`return list` guarda todos los elementos en RAM a la vez (O(N)), mientras que `yield` emite un elemento a la vez con memoria constante (O(1))."
+    },
+    {
+      "id": "fc-u1-l3-2",
+      "front": "¿Qué rol cumple Pydantic en la arquitectura de un pipeline de datos?",
+      "back": "Garantiza que los datos entrantes se ajusten a un contrato de tipos estricto, transformando tipos y rechazando esquemas corruptos."
+    },
+    {
+      "id": "fc-u1-l3-3",
+      "front": "¿Qué es una Dead Letter Queue (DLQ)?",
+      "back": "Un mecanismo de persistencia donde se almacenan los mensajes o registros que fallaron las validaciones para su análisis posterior sin detener el proceso."
+    }
+  ],
+  "quickFacts": [
+    {
+      "statement": "Las funciones generadoras con `yield` permiten iterar colecciones infinitas con memoria RAM acotada.",
+      "answer": true
+    },
+    {
+      "statement": "Pydantic permite únicamente validar tipos básicos de Python pero no reglas de negocio personalizadas.",
+      "answer": false
+    },
+    {
+      "statement": "Las inserciones en lote (`batch insert`) son más rápidas que insertar fila por fila debido a la menor latencia de red.",
+      "answer": true
+    },
+    {
+      "statement": "El método `fetchall()` es la técnica recomendada para consultar tablas con cientos de millones de registros.",
+      "answer": false
+    }
+  ]
+}

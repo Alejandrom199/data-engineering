@@ -5,9 +5,11 @@
   "subtitle": "Evaluación diagnóstica inicial para medir conocimientos previos de computación, lógica y datos",
   "badge": "D",
   "durationMinutes": 45,
-  "langs": ["es"],
+  "langs": [
+    "es"
+  ],
   "selection": {
     "mode": "pool",
-    "count": 15
+    "count": 14
   }
 }

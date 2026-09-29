@@ -1,0 +1,24 @@
+{
+  "$schema": "../../../../schemas/lab.schema.json",
+  "id": "lab-data-quality-circuit-breaker",
+  "title": "Laboratorio: Implementación de Circuit Breaker de Calidad",
+  "goal": "Construir un validador que verifique nulos y rangos, levantando una excepción fatal ante datos corruptos.",
+  "level": "intermediate",
+  "estimatedMinutes": 35,
+  "icon": "shield",
+  "domainId": "orquestacion-calidad-dataops",
+  "lessonId": "calidad-datos-circuit-breakers-expectations",
+  "code": "def evaluate_circuit_breaker(records):\n    errors = []\n    for idx, r in enumerate(records):\n        if r.get('id') is None:\n            errors.append(f'Fila {idx}: ID nulo')\n        if not (0.01 <= r.get('monto', 0) <= 10000.0):\n            errors.append(f'Fila {idx}: Monto fuera de rango ({r.get(\"monto\")})')\n    \n    if errors:\n        raise ValueError(f'CIRCUIT BREAKER ACTIVADO: {len(errors)} anomalias detectadas.')\n    return 'CALIDAD CERTIFICADA'\n\nbatch_valido = [{'id': 1, 'monto': 50.0}, {'id': 2, 'monto': 120.0}]\nbatch_corrupto = [{'id': 3, 'monto': -5.0}]\n\nprint('Batch 1:', evaluate_circuit_breaker(batch_valido))\ntry:\n    evaluate_circuit_breaker(batch_corrupto)\nexcept ValueError as e:\n    print('Batch 2:', str(e))",
+  "codeLanguage": "python",
+  "expectedOutput": "Batch 1: CALIDAD CERTIFICADA\nBatch 2: CIRCUIT BREAKER ACTIVADO: 1 anomalias detectadas.",
+  "successCriteria": [
+    "El lote válido pasa la certificación sin incidentes.",
+    "El lote anómalo dispara el Circuit Breaker interrumpiendo el flujo."
+  ],
+  "file": "solution.py",
+  "steps": [
+    "Comprender el objetivo y escribir la solución técnica solicitada.",
+    "Ejecutar la verificación del ejercicio y comparar la salida obtenida."
+  ],
+  "verify": "python solution.py"
+}

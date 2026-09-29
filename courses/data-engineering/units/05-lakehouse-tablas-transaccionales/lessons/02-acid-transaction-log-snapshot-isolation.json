@@ -1,0 +1,188 @@
+{
+  "$schema": "../../../../../schemas/lesson.schema.json",
+  "id": "acid-transaction-log-snapshot-isolation",
+  "title": "Bajo el Capó: El Transaction Log y Snapshot Isolation",
+  "estimatedMinutes": 15,
+  "domainIds": [
+    "lakehouse-tablas-transaccionales"
+  ],
+  "topics": [
+    "transaction-log",
+    "snapshot-isolation",
+    "concurrencia-acid",
+    "mutabilidad-object-storage"
+  ],
+  "hook": "S3 y GCS son almacenamientos inmutables: físicamente no puedes modificar un archivo Parquet ni existe el concepto de bloqueo de base de datos (`lock`). Si 10 procesos de Spark intentan escribir y 50 analistas intentan leer la misma tabla en S3 al mismo segundo, ¿cómo es matemáticamente posible garantizar transacciones ACID sin bloquear el disco?",
+  "concept": {
+    "blocks": [
+      {
+        "type": "heading",
+        "text": "1. El Secreto: El Registro de Transacciones (`_delta_log`)"
+      },
+      {
+        "type": "paragraph",
+        "text": "En Delta Lake, una tabla no es simplemente un directorio de archivos Parquet; es una colección de archivos Parquet acompañada de una carpeta oculta llamada `_delta_log/`. Cada vez que ocurre una operación (inserción, actualización o borrado), Delta escribe un nuevo archivo JSON ordenado secuencialmente (`000000.json`, `000001.json`, etc.) que registra atómicamente qué archivos Parquet se agregaron (`add`) y qué archivos se marcaron como eliminados (`remove`)."
+      },
+      {
+        "type": "heading",
+        "text": "2. Snapshot Isolation: Lecturas Siempre Consistentes"
+      },
+      {
+        "type": "paragraph",
+        "text": "Delta Lake implementa **Snapshot Isolation** (Aislamiento por Instantáneas). Cuando un analista inicia una consulta, el motor lee el Transaction Log hasta la última versión confirmada (por ejemplo, la versión 42). A partir de ese momento, la consulta ve una instantánea inmutable del estado de la tabla en la versión 42. Si mientras tanto entra un job de streaming que escribe 500 archivos y confirma la versión 43, **el analista ni se entera ni se bloquea**; sigue leyendo los archivos autorizados de la versión 42."
+      },
+      {
+        "type": "heading",
+        "text": "3. Concurrencia Optimista (Optimistic Concurrency Control - OCC)"
+      },
+      {
+        "type": "paragraph",
+        "text": "Delta Lake utiliza control de concurrencia optimista: asume que las transacciones simultáneas generalmente no tocarán los mismos datos. Ambas transacciones leen la misma versión inicial. La primera en terminar escribe su archivo de log exitosamente. Si la segunda transacción intentó modificar exactamente los mismos archivos que la primera, Spark detecta el conflicto, aborta de forma segura la segunda transacción y la reintenta automáticamente."
+      },
+      {
+        "type": "code",
+        "language": "json",
+        "caption": "Ejemplo de commit atómico en _delta_log/000001.json",
+        "code": "{\n  \"commitInfo\": {\"timestamp\": 1759000000000, \"operation\": \"WRITE\", \"operationMetrics\": {\"numFiles\": 2}},\n  \"add\": {\"path\": \"part-0001.parquet\", \"size\": 12450000, \"dataChange\": true},\n  \"remove\": {\"path\": \"part-0000-old.parquet\", \"deletionTimestamp\": 1759000000000, \"dataChange\": true}\n}"
+      },
+      {
+        "type": "callout",
+        "tone": "info",
+        "title": "Checkpoints Parquet",
+        "text": "Para evitar tener que leer miles de archivos JSON en tablas antiguas, Delta Lake compacta automáticamente cada 10 commits un archivo de estado consolidado en formato Parquet (`000010.checkpoint.parquet`)."
+      }
+    ]
+  },
+  "keyPoints": [
+    "El Transaction Log (`_delta_log`) registra de forma atómica y secuencial qué archivos Parquet pertenecen al estado activo de la tabla.",
+    "Snapshot Isolation garantiza que los lectores consulten una instantánea fija sin ser afectados ni bloqueados por escrituras concurrentes.",
+    "Optimistic Concurrency Control (OCC) resuelve escrituras simultáneas reintentando automáticamente ante colisiones de archivos."
+  ],
+  "terms": [
+    {
+      "term": "Transaction Log",
+      "translation": "Registro de Transacciones",
+      "definition": "Registro inmutable, secuencial y cronológico de todos los cambios de estado aplicados sobre una tabla Lakehouse."
+    },
+    {
+      "term": "Snapshot Isolation",
+      "translation": "Aislamiento por Instantáneas",
+      "definition": "Nivel de aislamiento donde cada transacción observa una vista estática y coherente de los datos confirmados al momento de iniciar."
+    },
+    {
+      "term": "Optimistic Concurrency Control (OCC)",
+      "translation": "Control de Concurrencia Optimista",
+      "definition": "Mecanismo que permite escrituras paralelas sin bloqueos asumiendo que no habrá conflictos, resolviendo colisiones mediante reintentos."
+    }
+  ],
+  "diagram": {
+    "type": "flow",
+    "nodes": [
+      {
+        "id": "log",
+        "label": "000001.json (Log)",
+        "sub": "Commit Atómico",
+        "detail": "add: part_A.parquet | remove: part_old.parquet",
+        "icon": "file",
+        "kind": "default"
+      },
+      {
+        "id": "reader",
+        "label": "Lector (Analista BI)",
+        "sub": "Snapshot Versión 1",
+        "detail": "Lee de forma aislada y constante sin bloqueos",
+        "icon": "eye",
+        "kind": "default"
+      },
+      {
+        "id": "writer",
+        "label": "Escritor Concurrente",
+        "sub": "Pipeline Streaming",
+        "detail": "Prepara archivos nuevos en paralelo",
+        "icon": "tool",
+        "kind": "default"
+      },
+      {
+        "id": "log2",
+        "label": "000002.json (Nuevo Commit)",
+        "sub": "Actualización Atómica",
+        "detail": "Pasa a ser la versión activa visible para nuevas consultas",
+        "icon": "check",
+        "kind": "end"
+      }
+    ]
+  },
+  "activity": {
+    "type": "sort",
+    "prompt": "Clasifica el rol de cada elemento en la arquitectura interna de Delta Lake:",
+    "buckets": [
+      "Archivos de Datos (Data Files)",
+      "Transaction Log (_delta_log)"
+    ],
+    "items": [
+      {
+        "text": "Archivos Parquet que contienen las filas reales con compresión Snappy",
+        "bucket": 0
+      },
+      {
+        "text": "Archivos JSON secuenciales que declaran qué archivos se agregaron o eliminaron",
+        "bucket": 1
+      },
+      {
+        "text": "Archivos Parquet inmutables generados en cada operación de escritura",
+        "bucket": 0
+      },
+      {
+        "text": "Checkpoints Parquet generados cada 10 commits para acelerar el arranque",
+        "bucket": 1
+      }
+    ]
+  },
+  "checkQuestionId": "q-u5-02",
+  "traps": [
+    {
+      "option": "Borrar manualmente un archivo Parquet del bucket S3 usando la consola de AWS.",
+      "reason": "Corrompe la integridad referencial; el Transaction Log seguirá esperando ese archivo y las consultas fallarán con FileNotFoundException."
+    },
+    {
+      "option": "Modificar directamente los archivos JSON dentro de la carpeta `_delta_log/`.",
+      "reason": "Destruye el orden criptográfico y las sumas de verificación del log, dejando la tabla inutilizable."
+    }
+  ],
+  "trapSummary": "Eliminar o manipular manualmente archivos Parquet en el Object Storage puenteando el Transaction Log de Delta Lake.",
+  "flashcards": [
+    {
+      "id": "fc-u5-l2-1",
+      "front": "¿Cómo sabe un motor de consulta qué archivos Parquet forman parte del estado actual de una tabla Delta?",
+      "back": "Lee el Transaction Log (`_delta_log`), que indica exactamente qué archivos han sido añadidos ('add') y cuáles han sido eliminados ('remove')."
+    },
+    {
+      "id": "fc-u5-l2-2",
+      "front": "¿Cómo previene Snapshot Isolation que un lector vea datos a medio escribir en S3?",
+      "back": "El lector solo ve los archivos que ya fueron formalmente confirmados en el Transaction Log al momento de iniciar su consulta."
+    },
+    {
+      "id": "fc-u5-l2-3",
+      "front": "¿Qué ocurre si dos procesos intentan modificar la misma partición al mismo tiempo en Delta Lake?",
+      "back": "Mediante Control de Concurrencia Optimista (OCC), el primer proceso confirma y el segundo detecta el conflicto y se reintenta automáticamente."
+    }
+  ],
+  "quickFacts": [
+    {
+      "statement": "El Transaction Log de Delta Lake registra los cambios de manera secuencial e inmutable.",
+      "answer": true
+    },
+    {
+      "statement": "En S3, Delta Lake utiliza bloqueos físicos de disco para impedir lecturas concurrentes.",
+      "answer": false
+    },
+    {
+      "statement": "Los lectores en Delta Lake nunca bloquean a los escritores y los escritores nunca bloquean a los lectores.",
+      "answer": true
+    },
+    {
+      "statement": "Se recomienda borrar a mano los archivos Parquet antiguos desde la consola de S3 para ahorrar espacio.",
+      "answer": false
+    }
+  ]
+}

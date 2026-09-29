@@ -1,0 +1,191 @@
+{
+  "$schema": "../../../../../schemas/lesson.schema.json",
+  "id": "escalado-limites-arquitectura-spark",
+  "title": "¿Por qué Falla una Máquina? Arquitectura Driver y Executors de Spark",
+  "estimatedMinutes": 14,
+  "domainIds": [
+    "procesamiento-distribuido-spark"
+  ],
+  "topics": [
+    "spark-arquitectura",
+    "driver-vs-executors",
+    "cluster-computing",
+    "memoria-distribuida"
+  ],
+  "hook": "Tu empresa adquiere un servidor físico de $15,000 USD con 512 GB de memoria RAM. Al procesar un dataset de 1.2 Terabytes en Python, el proceso colapsa tras 4 horas de ejecución por un error de falta de memoria. Comprar un servidor de 2 Terabytes de RAM costaría una fortuna y seguiría teniendo un límite. ¿Cómo resuelve este problema el escalado horizontal?",
+  "concept": {
+    "blocks": [
+      {
+        "type": "heading",
+        "text": "1. Escalado Vertical vs Escalado Horizontal"
+      },
+      {
+        "type": "paragraph",
+        "text": "El escalado vertical (*Scale-Up*) consiste en añadir más RAM y CPUs a una sola máquina. Tiene dos grandes inconvenientes: existe un límite físico/económico y representa un único punto de fallo. El escalado horizontal (*Scale-Out*) agrupa decenas o cientos de computadoras estándar en un clúster coordinado por software. Si necesitas procesar el doble de datos, simplemente añades más nodos al clúster."
+      },
+      {
+        "type": "heading",
+        "text": "2. La Arquitectura de Apache Spark: Driver y Executors"
+      },
+      {
+        "type": "paragraph",
+        "text": "Apache Spark es el motor de computación distribuida en memoria líder de la industria. Su arquitectura se basa en el patrón Master/Worker:"
+      },
+      {
+        "type": "list",
+        "style": "bullet",
+        "items": [
+          "**Driver Node (El Cerebro):** Ejecuta el programa principal (`main()`), mantiene el `SparkSession`, coordina con el Cluster Manager (YARN, Kubernetes), divide el trabajo en etapas (stages) y tareas (tasks), y distribuye las tareas a los trabajadores.",
+          "**Executors (Los Músculos):** Procesos que corren en los nodos de trabajo (worker nodes). Almacenan particiones de datos en su memoria RAM o disco y ejecutan en paralelo las tareas asignadas por el Driver.",
+          "**Cluster Manager:** Administra los recursos físicos del clúster (CPU y RAM) asignando máquinas a la aplicación Spark."
+        ]
+      },
+      {
+        "type": "heading",
+        "text": "3. Particiones: La Unidad Mínima de Paralelismo"
+      },
+      {
+        "type": "paragraph",
+        "text": "Spark no puede procesar datos en paralelo si no están divididos. Un dataset de 100 GB se divide lógicamente en cientos de **Particiones** (típicamente de 128 MB cada una). Cada núcleo de CPU (core) de un Executor procesa exactamente una partición a la vez. Si tienes 40 cores en el clúster, Spark procesará 40 particiones concurrentemente."
+      },
+      {
+        "type": "callout",
+        "tone": "warning",
+        "title": "El Pecado del Driver: .collect()",
+        "text": "El comando `.collect()` en PySpark descarga todas las particiones del clúster entero hacia la memoria RAM del Driver. Si el dataset pesa 200 GB y el Driver tiene 8 GB de RAM, el Driver colapsará instantáneamente con Out-Of-Memory (OOM). En producción, usa siempre `.take(10)` o escribe los resultados a disco con `.write`."
+      }
+    ]
+  },
+  "keyPoints": [
+    "El escalado horizontal conecta múltiples servidores en un clúster superando las limitaciones físicas de una sola máquina.",
+    "El Driver planifica el grafo de ejecución mientras que los Executors procesan particiones en paralelo.",
+    "Nunca ejecutes `.collect()` sobre datasets masivos porque desbordará la memoria del Driver."
+  ],
+  "terms": [
+    {
+      "term": "Driver Node",
+      "translation": "Nodo Conductor / Driver",
+      "definition": "Proceso central en una aplicación Spark que orquesta el plan de ejecución y asigna tareas a los nodos ejecutores."
+    },
+    {
+      "term": "Executor",
+      "translation": "Nodo Ejecutor",
+      "definition": "Proceso distribuido de trabajo que ejecuta tareas individuales de computación y retiene particiones de datos en memoria o disco."
+    },
+    {
+      "term": "Partition",
+      "translation": "Partición de Spark",
+      "definition": "División física y lógica de los datos que reside en un nodo y constituye la unidad fundamental de procesamiento paralelo."
+    }
+  ],
+  "diagram": {
+    "type": "flow",
+    "nodes": [
+      {
+        "id": "driver",
+        "label": "Driver Node (Cerebro)",
+        "sub": "SparkSession / Planificador",
+        "detail": "Traduce código en tareas y distribuye trabajo",
+        "icon": "bolt",
+        "kind": "default"
+      },
+      {
+        "id": "mgr",
+        "label": "Cluster Manager",
+        "sub": "K8s / YARN / Standalone",
+        "detail": "Asigna memoria y CPUs en los nodos",
+        "icon": "grid",
+        "kind": "default"
+      },
+      {
+        "id": "ex1",
+        "label": "Executor 1 (Nodo Worker)",
+        "sub": "4 Cores | 16 GB RAM",
+        "detail": "Procesa Particiones 1 a 4 concurrentemente",
+        "icon": "server",
+        "kind": "default"
+      },
+      {
+        "id": "ex2",
+        "label": "Executor 2 (Nodo Worker)",
+        "sub": "4 Cores | 16 GB RAM",
+        "detail": "Procesa Particiones 5 a 8 concurrentemente",
+        "icon": "server",
+        "kind": "end"
+      }
+    ]
+  },
+  "activity": {
+    "type": "sort",
+    "prompt": "Clasifica cada responsabilidad en el componente de Spark correspondiente:",
+    "buckets": [
+      "Driver Node",
+      "Executor Node"
+    ],
+    "items": [
+      {
+        "text": "Ejecutar el método main() del script y mantener la sesión SparkSession",
+        "bucket": 0
+      },
+      {
+        "text": "Almacenar bloques de particiones en RAM y ejecutar transformaciones de CPU",
+        "bucket": 1
+      },
+      {
+        "text": "Dividir el grafo de ejecución en Stages y enviar tareas a la red",
+        "bucket": 0
+      },
+      {
+        "text": "Reportar el estado y las métricas de finalización de tareas de vuelta al Driver",
+        "bucket": 1
+      }
+    ]
+  },
+  "checkQuestionId": "q-u4-01",
+  "traps": [
+    {
+      "option": "Ejecutar `df.collect()` para inspeccionar las primeras 5 filas de un DataFrame de 1 Terabyte.",
+      "reason": "Trae todos los datos de todos los ejecutores a la memoria del Driver, provocando una caída total de la aplicación por OOM."
+    },
+    {
+      "option": "Configurar un clúster con 100 núcleos de CPU para procesar un DataFrame que solo tiene 2 particiones.",
+      "reason": "Solo 2 núcleos estarán trabajando y los otros 98 núcleos quedarán totalmente ociosos desperdiciando dinero."
+    }
+  ],
+  "trapSummary": "Llamar a .collect() en el Driver sobre datasets masivos provocando la caída de la aplicación por falta de memoria.",
+  "flashcards": [
+    {
+      "id": "fc-u4-l1-1",
+      "front": "¿Cuál es la función principal del Driver en una aplicación de Apache Spark?",
+      "back": "Planificar y coordinar el trabajo: compilar el código en tareas, solicitar recursos al Cluster Manager y supervisar la ejecución de los Executors."
+    },
+    {
+      "id": "fc-u4-l1-2",
+      "front": "¿Qué sucede internamente cuando un desarrollador ejecuta `df.collect()` en PySpark?",
+      "back": "Todos los datos de todas las particiones en todos los ejecutores se transmiten por red hacia la memoria del Driver, arriesgando un Out-Of-Memory."
+    },
+    {
+      "id": "fc-u4-l1-3",
+      "front": "¿Cómo se relaciona el número de particiones de un DataFrame con el paralelismo de Spark?",
+      "back": "Cada partición es procesada por un núcleo de CPU a la vez; el número de particiones define el nivel máximo de paralelismo real."
+    }
+  ],
+  "quickFacts": [
+    {
+      "statement": "El escalado horizontal consiste en añadir más nodos de cómputo a un clúster distribuido.",
+      "answer": true
+    },
+    {
+      "statement": "El comando `.collect()` procesa los datos en paralelo dentro de los ejecutores sin usar el Driver.",
+      "answer": false
+    },
+    {
+      "statement": "Un núcleo de CPU en un Executor procesa exactamente una partición de datos a la vez.",
+      "answer": true
+    },
+    {
+      "statement": "Apache Spark almacena obligatoriamente todos los datos intermedios en discos duros lentos como Hadoop MapReduce.",
+      "answer": false
+    }
+  ]
+}

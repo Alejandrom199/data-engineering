@@ -1,0 +1,201 @@
+{
+  "$schema": "../../../../../schemas/lesson.schema.json",
+  "id": "diseno-data-lake-capas-particionamiento",
+  "title": "Diseño de Data Lakes: Arquitectura de Capas y Particionamiento en S3",
+  "estimatedMinutes": 15,
+  "domainIds": [
+    "ingestion-formatos-motores-locales"
+  ],
+  "topics": [
+    "arquitectura-medallion",
+    "hive-partitioning",
+    "small-file-problem",
+    "object-storage-s3"
+  ],
+  "hook": "Un Data Lake en Amazon S3 almacena 50 millones de micro-archivos JSON de 2 KB generados por sensores IoT cada 10 segundos. Al intentar listar la carpeta en el bucket para hacer un reporte, la API de S3 tarda 25 minutos solo en enumerar los nombres de los archivos antes de leer un solo byte. ¿Cómo se diseñan las capas y particiones de un Data Lake profesional?",
+  "concept": {
+    "blocks": [
+      {
+        "type": "heading",
+        "text": "1. La Arquitectura de Capas (Medallion Architecture)"
+      },
+      {
+        "type": "paragraph",
+        "text": "Un Data Lake sin orden se convierte rápidamente en un 'Data Swamp' (pantano de datos) inutilizable. La arquitectura moderna organiza los datos en tres capas progresivas de calidad y refinamiento conocidas como la **Arquitectura Medallion**:"
+      },
+      {
+        "type": "list",
+        "style": "bullet",
+        "items": [
+          "**Capa Bronce (Raw / Ingestion):** Copia inmutable y fidedigna del dato crudo exactamente como llegó de la fuente (JSON, CSV, logs). Permite reprocesar la historia completa si la lógica de negocio cambia.",
+          "**Capa Plata (Cleaned / Conformed):** Datos limpiados, validados, con tipos de datos estrictos, sin duplicados y almacenados en formato columnar Parquet.",
+          "**Capa Oro (Business / Curated):** Tablas agregadas y modeladas para analítica de negocio (modelado dimensional Kimball, KPIs, métricas de retención) listas para BI y analistas."
+        ]
+      },
+      {
+        "type": "heading",
+        "text": "2. Hive Partitioning en Object Storage (S3 / GCS)"
+      },
+      {
+        "type": "paragraph",
+        "text": "El almacenamiento de objetos no tiene directorios reales; utiliza prefijos de clave. El estándar de la industria para organizar particiones es la convención **Hive Partitioning** (`clave=valor`):"
+      },
+      {
+        "type": "code",
+        "language": "bash",
+        "caption": "Estructura canónica de Hive Partitioning en S3",
+        "code": "s3://mi-empresa-data-lake/plata/ventas/\n  ├── anio=2026/\n  │   ├── mes=01/\n  │   │   ├── parte_0001.parquet\n  │   │   └── parte_0002.parquet\n  │   └── mes=02/\n  │       └── parte_0001.parquet"
+      },
+      {
+        "type": "paragraph",
+        "text": "Cuando ejecutas `WHERE anio = 2026 AND mes = 02`, los motores de consulta (Athena, DuckDB, Spark) omiten por completo los prefijos de otros años y meses (**Partition Pruning**), leyendo solo la carpeta relevante."
+      },
+      {
+        "type": "heading",
+        "text": "3. El Infame 'Small File Problem'"
+      },
+      {
+        "type": "paragraph",
+        "text": "Tener millones de archivos pequeños (< 10 MB) arruina el rendimiento por tres razones: 1) Cada llamada a la API de S3 (GET/LIST) añade latencia de red (50-100 ms), 2) La nube cobra por cada 1,000 peticiones de API, multiplicando la factura, y 3) Los metadatos saturan la memoria del motor de consulta. El tamaño de archivo óptimo para analítica es de **128 MB a 512 MB**."
+      },
+      {
+        "type": "callout",
+        "tone": "warning",
+        "title": "Peligro del Hiper-Particionamiento",
+        "text": "Nunca particiones por columnas de altísima cardinalidad como `cliente_id` o `timestamp_segundo`. Crearás millones de carpetas con archivos de 2 KB cada una, destruyendo el rendimiento del Data Lake."
+      }
+    ]
+  },
+  "keyPoints": [
+    "La Arquitectura Medallion estructura los datos en Bronce (crudo), Plata (limpio) y Oro (negocio).",
+    "El particionamiento Hive (`campo=valor`) permite Partition Pruning, evitando escanear particiones no consultadas.",
+    "El Small File Problem se combate agrupando micro-lotes de streaming en archivos compactados de 128 MB a 512 MB."
+  ],
+  "terms": [
+    {
+      "term": "Medallion Architecture",
+      "translation": "Arquitectura Medallón (Bronce, Plata, Oro)",
+      "definition": "Patrón de diseño de datos que organiza lógicamente el Data Lake en capas progresivas de calidad y refinamiento."
+    },
+    {
+      "term": "Partition Pruning",
+      "translation": "Poda de Particiones",
+      "definition": "Optimización del motor de consulta que excluye directorios o particiones enteras basándose en los filtros de la cláusula WHERE."
+    },
+    {
+      "term": "Small File Problem",
+      "translation": "Problema de Archivos Pequeños",
+      "definition": "Degradación crítica de rendimiento provocada por almacenar millones de archivos diminutos en lugar de bloques consolidados."
+    }
+  ],
+  "diagram": {
+    "type": "flow",
+    "nodes": [
+      {
+        "id": "src",
+        "label": "Fuentes Crudas",
+        "sub": "APIs, CDC, Logs",
+        "detail": "Datos entrantes sin procesar",
+        "icon": "server",
+        "kind": "default"
+      },
+      {
+        "id": "bronze",
+        "label": "Capa Bronce (Raw)",
+        "sub": "Histórico Inmutable",
+        "detail": "Datos crudos almacenados tal como llegaron",
+        "icon": "file",
+        "kind": "default"
+      },
+      {
+        "id": "silver",
+        "label": "Capa Plata (Clean)",
+        "sub": "Parquet Particionado",
+        "detail": "Datos tipados, deduplicados y en formato columnar",
+        "icon": "layers",
+        "kind": "default"
+      },
+      {
+        "id": "gold",
+        "label": "Capa Oro (Business)",
+        "sub": "Modelado Dimensional",
+        "detail": "Tablas agregadas listas para KPIs y BI",
+        "icon": "medal",
+        "kind": "end"
+      }
+    ]
+  },
+  "activity": {
+    "type": "sort",
+    "prompt": "Clasifica cada conjunto de datos en la capa correspondiente de la Arquitectura Medallion:",
+    "buckets": [
+      "Capa Bronce (Raw)",
+      "Capa Oro (Business)"
+    ],
+    "items": [
+      {
+        "text": "Archivos JSON crudos tal como se recibieron del webhook de pagos de Stripe",
+        "bucket": 0
+      },
+      {
+        "text": "Tabla agregada con el ingreso recurrente mensual (MRR) por país para el CFO",
+        "bucket": 1
+      },
+      {
+        "text": "Logs en texto plano comprimidos descargados directamente de los servidores web",
+        "bucket": 0
+      },
+      {
+        "text": "Esquema en estrella con tabla de hechos de ventas conectada a dimensiones de producto",
+        "bucket": 1
+      }
+    ]
+  },
+  "checkQuestionId": "q-u2-04",
+  "traps": [
+    {
+      "option": "Particionar un bucket S3 por fecha y hora y adicionalmente por ID de usuario único.",
+      "reason": "Generará hiper-particionamiento con millones de carpetas vacías o con archivos de pocos bytes, colapsando el tiempo de listado de S3."
+    },
+    {
+      "option": "Eliminar la capa Bronce para ahorrar costos de almacenamiento en disco.",
+      "reason": "Pierdes la fuente de verdad inmutable; si descubres un bug en la transformación de la capa Plata, no podrás reprocesar la historia."
+    }
+  ],
+  "trapSummary": "Particionar por columnas de alta cardinalidad generando millones de micro-archivos que saturan las APIs de Object Storage.",
+  "flashcards": [
+    {
+      "id": "fc-u2-l4-1",
+      "front": "¿Cuál es el propósito primordial de la capa Bronce en un Data Lake?",
+      "back": "Preservar una copia exacta, inmutable y fidedigna del dato original para permitir auditorías y reprocesamientos históricos."
+    },
+    {
+      "id": "fc-u2-l4-2",
+      "front": "¿Cómo funciona la convención Hive Partitioning en sistemas de almacenamiento en la nube como S3?",
+      "back": "Organiza los prefijos de clave con la estructura `nombre_campo=valor` (ej. `anio=2026/mes=03/`), facilitando la poda de particiones (Partition Pruning)."
+    },
+    {
+      "id": "fc-u2-l4-3",
+      "front": "¿Cuál es el tamaño óptimo de archivo recomendado para analítica en un Data Lake?",
+      "back": "Entre 128 MB y 512 MB por archivo, evitando el Small File Problem y maximizando la eficiencia de lectura en bloque."
+    }
+  ],
+  "quickFacts": [
+    {
+      "statement": "La Arquitectura Medallion organiza el flujo de datos en Bronce (crudo), Plata (limpio) y Oro (analítica).",
+      "answer": true
+    },
+    {
+      "statement": "Particionar por el ID único de cada usuario es una buena práctica para organizar un Data Lake.",
+      "answer": false
+    },
+    {
+      "statement": "El Partition Pruning evita que el motor lea datos de fechas o categorías excluidas por la cláusula WHERE.",
+      "answer": true
+    },
+    {
+      "statement": "Tener millones de archivos de 5 KB en un bucket S3 acelera las consultas al permitir paralelismo extremo.",
+      "answer": false
+    }
+  ]
+}

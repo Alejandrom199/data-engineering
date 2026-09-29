@@ -1,0 +1,218 @@
+{
+  "$schema": "../../../../../schemas/lesson.schema.json",
+  "id": "que-es-ingenieria-datos-ciclo-vida",
+  "title": "Qué es la Ingeniería de Datos y el Ciclo de Vida del Dato",
+  "estimatedMinutes": 12,
+  "domainIds": [
+    "fundamentos-ciclo-vida-datos"
+  ],
+  "topics": [
+    "ciclo-vida-datos",
+    "roles-datos",
+    "arquitectura-pipelines",
+    "calidad-fuente"
+  ],
+  "hook": "Una startup lanza un modelo de Inteligencia Artificial que predice ventas con 99% de acierto en el laboratorio, pero en producción colapsa en 24 horas porque la base de datos de usuarios cambió el formato de fecha y nadie lo detectó. ¿Quién es responsable de evitar este desastre?",
+  "concept": {
+    "blocks": [
+      {
+        "type": "heading",
+        "text": "1. ¿Qué es realmente la Ingeniería de Datos?"
+      },
+      {
+        "type": "paragraph",
+        "text": "La Ingeniería de Datos es la disciplina de la ingeniería de software enfocada en diseñar, construir y mantener los sistemas y pipelines que permiten recopilar, almacenar, transformar y entregar datos confiables, consistentes y de alta calidad a escala. Mientras que un Científico de Datos crea modelos predictivos y un Analista de Datos construye dashboards de negocio, el Ingeniero de Datos es el cimiento: garantiza que los datos lleguen a tiempo, sin corrupción y con el rendimiento adecuado."
+      },
+      {
+        "type": "table",
+        "headers": [
+          "Rol",
+          "Objetivo Principal",
+          "Herramientas Clave",
+          "Pregunta Típica"
+        ],
+        "rows": [
+          [
+            "Data Engineer",
+            "Construir tuberías de datos seguras, escalables y automatizadas",
+            "Python, SQL, Spark, Airflow, Kafka, Docker",
+            "¿Cómo garantizamos que 50 millones de eventos lleguen sin pérdida y procesados cada hora?"
+          ],
+          [
+            "Data Analyst",
+            "Responder preguntas de negocio mediante visualizaciones y métricas",
+            "SQL, PowerBI, Tableau, Excel, Metabase",
+            "¿Por qué cayeron las ventas de suscripciones un 15% el último trimestre?"
+          ],
+          [
+            "Data Scientist",
+            "Desarrollar modelos estadísticos y algoritmos de Machine Learning",
+            "Python, Scikit-Learn, PyTorch, Jupyter",
+            "¿Qué probabilidad tiene este cliente de cancelar su cuenta el próximo mes?"
+          ]
+        ],
+        "caption": "Comparativa de roles en el ecosistema moderno de datos"
+      },
+      {
+        "type": "heading",
+        "text": "2. Las 5 Etapas del Ciclo de Vida del Dato"
+      },
+      {
+        "type": "paragraph",
+        "text": "Todo dato en una empresa atraviesa cinco etapas fundamentales: 1) Generación (aplicaciones web, sensores IoT, ERPs), 2) Ingestión (extracción por APIs, CDC o webhooks), 3) Almacenamiento (Data Lakes, Object Storage, DWH), 4) Transformación (limpieza, modelado y agregación) y 5) Consumo (dashboards, analítica avanzada o APIs de servicio)."
+      },
+      {
+        "type": "callout",
+        "tone": "tip",
+        "title": "Regla de Oro del Ciclo de Vida",
+        "text": "Un error en la etapa de ingestión se multiplica por 10 en la etapa de transformación y por 100 cuando llega al dashboard de la junta directiva. Validar la calidad en el origen (Source Quality) es la inversión más rentable de un equipo de datos."
+      },
+      {
+        "type": "heading",
+        "text": "3. Anatomía de un Pipeline de Datos"
+      },
+      {
+        "type": "paragraph",
+        "text": "Un pipeline moderno se compone de tres bloques esenciales: la Fuente (Source), la Lógica de Negocio y Enriquecimiento (Transform) y el Destino (Sink). Para que un pipeline sea robusto en producción debe cumplir dos principios innegociables: Idempotencia (ejecutarlo dos veces con los mismos datos no duplica registros) y Observabilidad (registrar métricas de filas procesadas, errores y tiempos de ejecución)."
+      },
+      {
+        "type": "code",
+        "language": "python",
+        "caption": "Estructura conceptual de un pipeline robusto",
+        "code": "def run_pipeline(source_client, target_db, execution_date):\n    # 1. Ingestión idempotente para la fecha específica\n    raw_data = source_client.fetch_records(date=execution_date)\n    \n    # 2. Validación y transformación de tipos\n    validated_records = [validate_schema(r) for r in raw_data if is_clean(r)]\n    \n    # 3. Escritura atómica / Upsert en el destino\n    target_db.upsert_batch(validated_records, partition_key=execution_date)\n    print(f'Pipeline finalizado: {len(validated_records)} registros cargados.')"
+      }
+    ]
+  },
+  "keyPoints": [
+    "El Ingeniero de Datos provee la infraestructura y tuberías confiables que hacen posible la analítica y el Machine Learning.",
+    "El ciclo de vida del dato abarca Generación, Ingestión, Almacenamiento, Transformación y Servicio.",
+    "La idempotencia y la validación en origen son los dos pilares que diferencian un script amateur de un pipeline de producción."
+  ],
+  "terms": [
+    {
+      "term": "Pipeline de Datos",
+      "translation": "Tubería de procesamiento de datos",
+      "definition": "Conjunto de procesos automatizados que extraen datos de múltiples fuentes, los transforman y los cargan en un almacén analítico."
+    },
+    {
+      "term": "Idempotencia",
+      "translation": "Idempotencia",
+      "definition": "Propiedad de una operación que produce exactamente el mismo resultado final sin importar cuántas veces se ejecute con los mismos parámetros."
+    },
+    {
+      "term": "Source of Truth",
+      "translation": "Fuente de la Verdad",
+      "definition": "El sistema primario y canónico donde se origina o reside legalmente el estado autorizado de un dato de negocio."
+    }
+  ],
+  "diagram": {
+    "type": "flow",
+    "nodes": [
+      {
+        "id": "src",
+        "label": "1. Fuentes Operacionales",
+        "sub": "Postgres, APIs, IoT",
+        "detail": "Generación continua de transacciones y eventos crudos",
+        "icon": "server",
+        "kind": "default"
+      },
+      {
+        "id": "ing",
+        "label": "2. Ingestión & Validación",
+        "sub": "Pydantic, Python, Kafka",
+        "detail": "Captura defensiva con verificación de esquemas",
+        "icon": "sliders",
+        "kind": "default"
+      },
+      {
+        "id": "stg",
+        "label": "3. Almacenamiento Analítico",
+        "sub": "Data Lake / S3 / DWH",
+        "detail": "Persistencia estructurada en capas (Bronze -> Silver)",
+        "icon": "file",
+        "kind": "default"
+      },
+      {
+        "id": "srv",
+        "label": "4. Consumo de Negocio",
+        "sub": "BI, ML, Aplicaciones",
+        "detail": "Tablas limpias listas para consulta de alta velocidad",
+        "icon": "loop",
+        "kind": "end"
+      }
+    ]
+  },
+  "activity": {
+    "type": "sort",
+    "prompt": "Clasifica cada responsabilidad en el perfil profesional correspondiente:",
+    "buckets": [
+      "Data Engineer",
+      "Data Analyst / Data Scientist"
+    ],
+    "items": [
+      {
+        "text": "Diseñar un pipeline idempotente que ingiera 5 GB diarios de eventos a un Data Lake",
+        "bucket": 0
+      },
+      {
+        "text": "Crear un dashboard ejecutivo en PowerBI mostrando el Churn mensual de clientes",
+        "bucket": 1
+      },
+      {
+        "text": "Configurar un cluster de cómputo distribuido y gestionar particiones en S3",
+        "bucket": 0
+      },
+      {
+        "text": "Ajustar una regresión logística para clasificar usuarios propensos al abandono",
+        "bucket": 1
+      }
+    ]
+  },
+  "checkQuestionId": "q-u1-01",
+  "traps": [
+    {
+      "option": "Diseñar pipelines asumiendo que los datos de origen siempre vienen limpios y sin nulos.",
+      "reason": "En producción los esquemas de bases de datos cambian, las APIs devuelven errores 500 y los usuarios introducen datos inesperados. La validación defensiva es obligatoria."
+    },
+    {
+      "option": "Confundir el rol de Data Engineer con el de Data Scientist creando scripts que entrenan modelos pero sin orquestación.",
+      "reason": "El valor del Data Engineer está en la escalabilidad, resiliencia y disponibilidad continua de los datos, no en el ajuste fino de hiperparámetros de ML."
+    }
+  ],
+  "trapSummary": "Asumir que las fuentes operacionales mantendrán sus tipos de datos fijos para siempre sin contratos de datos.",
+  "flashcards": [
+    {
+      "id": "fc-u1-l1-1",
+      "front": "¿Cuál es la responsabilidad primordial del Ingeniero de Datos en una organización?",
+      "back": "Garantizar la disponibilidad, calidad, rendimiento y confiabilidad de las tuberías de datos de extremo a extremo."
+    },
+    {
+      "id": "fc-u1-l1-2",
+      "front": "¿Qué significa que un pipeline de datos sea idempotente?",
+      "back": "Que ejecutar el pipeline múltiples veces para un mismo periodo produce exactamente el mismo estado final, sin duplicar ni corromper registros."
+    },
+    {
+      "id": "fc-u1-l1-3",
+      "front": "¿Cuáles son las 5 etapas del ciclo de vida del dato?",
+      "back": "Generación, Ingestión, Almacenamiento, Transformación y Servicio (Consumo)."
+    }
+  ],
+  "quickFacts": [
+    {
+      "statement": "Un pipeline idempotente se puede reejecutar de forma segura sin generar registros duplicados.",
+      "answer": true
+    },
+    {
+      "statement": "El Data Engineer tiene como responsabilidad principal entrenar modelos de Deep Learning.",
+      "answer": false
+    },
+    {
+      "statement": "La validación defensiva en la capa de ingestión previene la propagación de anomalías hacia el DWH.",
+      "answer": true
+    },
+    {
+      "statement": "El ciclo de vida del dato concluye en el almacenamiento y no incluye el servicio.",
+      "answer": false
+    }
+  ]
+}

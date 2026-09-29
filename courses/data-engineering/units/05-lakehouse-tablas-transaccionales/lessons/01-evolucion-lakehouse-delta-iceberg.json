@@ -1,0 +1,218 @@
+{
+  "$schema": "../../../../../schemas/lesson.schema.json",
+  "id": "evolucion-lakehouse-delta-iceberg",
+  "title": "La Evolución al Lakehouse: De Data Lakes Rotos a Delta Lake e Iceberg",
+  "estimatedMinutes": 14,
+  "domainIds": [
+    "lakehouse-tablas-transaccionales"
+  ],
+  "topics": [
+    "lakehouse-vs-data-lake",
+    "transacciones-acid-storage",
+    "delta-lake",
+    "apache-iceberg"
+  ],
+  "hook": "Un job de ingesta falla a la mitad de escribir 100 archivos en S3 dejando la mitad cargados. Al mismo tiempo, el reporte financiero de fin de mes lee esa carpeta a medio escribir y genera cifras contables falsas. En un Data Lake tradicional esto era una pesadilla recurrente. ¿Cómo lo resuelve el paradigma Lakehouse?",
+  "concept": {
+    "blocks": [
+      {
+        "type": "heading",
+        "text": "1. El Gran Dilema Histórico: Data Warehouse vs Data Lake"
+      },
+      {
+        "type": "paragraph",
+        "text": "Durante una década, las empresas estuvieron atrapadas en una arquitectura dividida de dos niveles: 1) Un **Data Lake** (S3/HDFS) barato y flexible para almacenar petabytes de datos no estructurados pero sin garantías transaccionales (lecturas sucias, escrituras parciales, sin actualizaciones), y 2) Un **Data Warehouse** (DWH) con calidad y transacciones ACID pero carísimo y propietario. Mantener dos copias sincronizadas mediante pipelines ETL generaba costos astronómicos y discrepancias constantes."
+      },
+      {
+        "type": "heading",
+        "text": "2. La Llegada del Lakehouse"
+      },
+      {
+        "type": "paragraph",
+        "text": "La arquitectura **Lakehouse** combina lo mejor de ambos mundos: implementa estructuras de datos y capacidades de gestión transaccional (ACID, control de versiones, gobernanza) directamente sobre el almacenamiento de objetos de bajo costo (S3, GCS, Azure Data Lake Storage). Esto elimina la necesidad de mover datos continuamente hacia un DWH separado."
+      },
+      {
+        "type": "table",
+        "headers": [
+          "Característica",
+          "Data Lake Tradicional",
+          "Data Warehouse Clásico",
+          "Arquitectura Lakehouse"
+        ],
+        "rows": [
+          [
+            "Costo de Almacenamiento",
+            "Muy bajo (Object Storage abierto).",
+            "Alto (Almacenamiento propietario).",
+            "Muy bajo (Object Storage abierto)."
+          ],
+          [
+            "Garantías ACID",
+            "Inexistentes (Riesgo de lecturas sucias).",
+            "Completas (Transacciones seguras).",
+            "Completas (Sobre archivos abiertos Parquet)."
+          ],
+          [
+            "Formatos de Archivo",
+            "Archivos sueltos (CSV, JSON, Parquet).",
+            "Formatos binarios propietarios cerrados.",
+            "Estándares abiertos (Parquet + Transaction Log)."
+          ],
+          [
+            "Operaciones UPDATE / DELETE",
+            "Imposibles (Exige reescribir particiones enteras).",
+            "Nativas y eficientes.",
+            "Nativas mediante MERGE y Copy-on-Write / Merge-on-Read."
+          ]
+        ],
+        "caption": "Comparativa de paradigmas de almacenamiento analítico"
+      },
+      {
+        "type": "heading",
+        "text": "3. Los Formatos de Tabla Abiertos: Delta Lake y Apache Iceberg"
+      },
+      {
+        "type": "paragraph",
+        "text": "El corazón de un Lakehouse no es el hardware, sino el **Open Table Format**. Los dos estándares dominantes en la industria son **Delta Lake** (creado por los autores de Apache Spark y Databricks) y **Apache Iceberg** (creado por Netflix y donado a la Apache Foundation). Ambos aportan metadatos inteligentes que transforman un conjunto desordenado de archivos Parquet en una tabla transaccional de nivel empresarial."
+      },
+      {
+        "type": "callout",
+        "tone": "tip",
+        "title": "Independencia de Proveedor (Vendor Lock-in)",
+        "text": "Dado que las tablas Delta e Iceberg se componen de archivos Parquet estándar y especificaciones abiertas, cualquier motor (Spark, Trino, DuckDB, Flink, Snowflake) puede leer y escribir sobre ellas sin pagar licencias propietarias."
+      }
+    ]
+  },
+  "keyPoints": [
+    "El Lakehouse unifica la flexibilidad y bajo costo del Data Lake con la confiabilidad transaccional ACID del Data Warehouse.",
+    "Delta Lake y Apache Iceberg son los dos formatos de tabla abiertos líderes en la industria.",
+    "Permiten ejecutar operaciones de UPDATE, DELETE y transacciones concurrentes sobre archivos Parquet en Object Storage."
+  ],
+  "terms": [
+    {
+      "term": "Lakehouse",
+      "translation": "Arquitectura Lakehouse",
+      "definition": "Plataforma de datos unificada que implementa transacciones ACID y gobernanza directamente sobre almacenamiento de objetos económico."
+    },
+    {
+      "term": "Delta Lake",
+      "translation": "Delta Lake",
+      "definition": "Capa de almacenamiento de código abierto que proporciona transacciones ACID, manejo escalable de metadatos y unificación de streaming y batch sobre Apache Spark."
+    },
+    {
+      "term": "Apache Iceberg",
+      "translation": "Apache Iceberg",
+      "definition": "Formato de tabla abierto de alto rendimiento para grandes conjuntos de datos analíticos diseñado para independizarse del motor de ejecución."
+    }
+  ],
+  "diagram": {
+    "type": "flow",
+    "nodes": [
+      {
+        "id": "s3",
+        "label": "Cloud Object Storage",
+        "sub": "AWS S3 / GCS / Azure Blob",
+        "detail": "Almacenamiento persistente económico y escalable",
+        "icon": "server",
+        "kind": "default"
+      },
+      {
+        "id": "pq",
+        "label": "Archivos Apache Parquet",
+        "sub": "Datos columnares comprimidos",
+        "detail": "Formato de datos subyacente e inmutable",
+        "icon": "file",
+        "kind": "default"
+      },
+      {
+        "id": "log",
+        "label": "Capa de Metadatos ACID",
+        "sub": "Delta Log / Iceberg Manifests",
+        "detail": "Registra el estado atómico y versiones de la tabla",
+        "icon": "shield",
+        "kind": "default"
+      },
+      {
+        "id": "engines",
+        "label": "Motores de Consulta Múltiples",
+        "sub": "Spark, Trino, DuckDB, Flink",
+        "detail": "Acceso simultáneo y coherente sin bloqueos",
+        "icon": "loop",
+        "kind": "end"
+      }
+    ]
+  },
+  "activity": {
+    "type": "sort",
+    "prompt": "Clasifica las propiedades según pertenezcan al Data Lake Tradicional o al Lakehouse Moderno:",
+    "buckets": [
+      "Data Lake Tradicional (Desfasado)",
+      "Lakehouse Moderno (Delta / Iceberg)"
+    ],
+    "items": [
+      {
+        "text": "Posibilidad de lecturas sucias y corrupción si un job falla a mitad de escritura",
+        "bucket": 0
+      },
+      {
+        "text": "Garantías transaccionales ACID completas sobre archivos de almacenamiento en la nube",
+        "bucket": 1
+      },
+      {
+        "text": "Imposibilidad de realizar actualizaciones o borrados específicos sin reescribir carpetas enteras",
+        "bucket": 0
+      },
+      {
+        "text": "Soporte nativo para Time Travel, MERGE atómico y reversión de versiones",
+        "bucket": 1
+      }
+    ]
+  },
+  "checkQuestionId": "q-u5-01",
+  "traps": [
+    {
+      "option": "Diseñar un Data Lake sobre S3 guardando archivos Parquet sueltos sin una capa de tabla transaccional.",
+      "reason": "Cualquier fallo a mitad de escritura dejará datos huérfanos o corruptos que los lectores consumirán sin saberlo."
+    },
+    {
+      "option": "Creer que adoptar Delta Lake obliga a utilizar exclusivamente la plataforma comercial de Databricks.",
+      "reason": "Delta Lake es un proyecto de código abierto de la Linux Foundation que puede ejecutarse libremente en cualquier clúster o con DuckDB."
+    }
+  ],
+  "trapSummary": "Construir Data Lakes modernos con archivos Parquet crudos sin capas de metadatos transaccionales como Delta o Iceberg.",
+  "flashcards": [
+    {
+      "id": "fc-u5-l1-1",
+      "front": "¿Qué problema fundamental de los Data Lakes tradicionales vino a resolver la arquitectura Lakehouse?",
+      "back": "La falta de transacciones ACID, que provocaba lecturas inconsistentes de escrituras a medio terminar y la imposibilidad de hacer updates y deletes atómicos."
+    },
+    {
+      "id": "fc-u5-l1-2",
+      "front": "¿Qué dos formatos de tabla abiertos lideran el ecosistema Lakehouse en la actualidad?",
+      "back": "Delta Lake (Linux Foundation / Databricks) y Apache Iceberg (Apache Software Foundation / Netflix)."
+    },
+    {
+      "id": "fc-u5-l1-3",
+      "front": "¿En qué formato físico se almacenan los datos reales subyacentes en una tabla Delta o Iceberg?",
+      "back": "En archivos estándar Apache Parquet, gestionados por una capa de metadatos y registros de transacciones."
+    }
+  ],
+  "quickFacts": [
+    {
+      "statement": "El Lakehouse implementa transacciones ACID directamente sobre almacenamiento en la nube como S3.",
+      "answer": true
+    },
+    {
+      "statement": "Delta Lake es un formato binario propietario que solo funciona en la nube de Databricks.",
+      "answer": false
+    },
+    {
+      "statement": "Las tablas Lakehouse permiten que lectores concurrentes consulten datos sin verse bloqueados por escritores.",
+      "answer": true
+    },
+    {
+      "statement": "En un Data Lake tradicional, si una escritura fallaba a la mitad, los archivos huérfanos se borraban automáticamente.",
+      "answer": false
+    }
+  ]
+}

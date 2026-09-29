@@ -1,0 +1,28 @@
+{
+  "$schema": "../../../../schemas/unit.schema.json",
+  "id": "modelado-dimensional-sql-dwh",
+  "title": "Modelado Dimensional y Almacenes Analíticos (DWH)",
+  "officialTitle": "Dimensional Modeling & Analytical Data Warehousing",
+  "summary": "Transición de bases operacionales a almacenes analíticos OLAP: diseño dimensional bajo la metodología de Ralph Kimball (Star Schema), gestión histórica con Dimensiones de Cambio Lento (SCD Tipo 2) y dominio de SQL analítico con funciones de ventana.",
+  "icon": "server",
+  "color": "#fbbf24",
+  "objectives": [
+    "Diferenciar las arquitecturas de almacenamiento y procesamiento de sistemas OLTP frente a almacenes OLAP modernos (Snowflake, BigQuery).",
+    "Diseñar modelos dimensionales robustos (Star Schema) definiendo tablas de hechos granulares y dimensiones conformadas.",
+    "Implementar pipelines de Dimensiones de Cambio Lento (SCD Tipo 2) con claves subrogadas y vigencias temporales.",
+    "Escribir consultas analíticas avanzadas utilizando funciones de ventana (ROW_NUMBER, LAG, LEAD, SUM OVER) para análisis de cohortes."
+  ],
+  "lessons": [
+    "oltp-vs-olap-arquitectura-dwh",
+    "metodologia-kimball-star-schema",
+    "dimensiones-cambio-lento-scd",
+    "sql-analitico-avanzado-funciones-ventana"
+  ],
+  "labs": [
+    "lab-star-schema-design-implementation",
+    "lab-scd-type-2-historical-pipeline",
+    "lab-sql-window-cohort-retention"
+  ],
+  "quizPassRatio": 0.75,
+  "quizQuestionCount": 10
+}

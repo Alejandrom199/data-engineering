@@ -1,0 +1,24 @@
+{
+  "$schema": "../../../../schemas/lab.schema.json",
+  "id": "lab-airflow-sensor-reschedule",
+  "title": "Laboratorio: Simulación de Sensor en Modo Reschedule vs Poke",
+  "goal": "Comprobar cómo el modo reschedule libera recursos durante el intervalo de espera en comparación con un bloqueo continuo.",
+  "level": "intermediate",
+  "estimatedMinutes": 30,
+  "icon": "clock",
+  "domainId": "orquestacion-calidad-dataops",
+  "lessonId": "sensores-recursos-reschedule-vs-poke",
+  "code": "class MockSensor:\n    def __init__(self, mode='reschedule'):\n        self.mode = mode\n        self.worker_slot_locked = False\n    \n    def poke_condition(self, exists):\n        if exists:\n            self.worker_slot_locked = False\n            return 'SUCCESS'\n        if self.mode == 'poke':\n            self.worker_slot_locked = True\n            return 'SLEEPING_BUT_LOCKED'\n        else:\n            self.worker_slot_locked = False\n            return 'UP_FOR_RESCHEDULE'\n\ns_poke = MockSensor(mode='poke')\ns_resched = MockSensor(mode='reschedule')\n\nprint('Poke con archivo ausente:', s_poke.poke_condition(False), '| Slot bloqueado:', s_poke.worker_slot_locked)\nprint('Reschedule con archivo ausente:', s_resched.poke_condition(False), '| Slot bloqueado:', s_resched.worker_slot_locked)",
+  "codeLanguage": "python",
+  "expectedOutput": "Poke con archivo ausente: SLEEPING_BUT_LOCKED | Slot bloqueado: True\nReschedule con archivo ausente: UP_FOR_RESCHEDULE | Slot bloqueado: False",
+  "successCriteria": [
+    "El modo poke demuestra la retención perjudicial del worker slot.",
+    "El modo reschedule confirma la liberación del recurso permitiendo concurrencia."
+  ],
+  "file": "solution.py",
+  "steps": [
+    "Comprender el objetivo y escribir la solución técnica solicitada.",
+    "Ejecutar la verificación del ejercicio y comparar la salida obtenida."
+  ],
+  "verify": "python solution.py"
+}

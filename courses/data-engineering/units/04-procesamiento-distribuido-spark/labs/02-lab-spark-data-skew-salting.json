@@ -1,0 +1,24 @@
+{
+  "$schema": "../../../../schemas/lab.schema.json",
+  "id": "lab-spark-data-skew-salting",
+  "title": "Laboratorio: Mitigación de Data Skew con Salting en Python",
+  "goal": "Demostrar cómo la adición de una sal pseudo-aleatoria dispersa una clave hiper-concentrada en múltiples sub-agrupaciones balanceadas.",
+  "level": "advanced",
+  "estimatedMinutes": 35,
+  "icon": "sliders",
+  "domainId": "procesamiento-distribuido-spark",
+  "lessonId": "optimizacion-spark-broadcast-skew-oom",
+  "code": "import random\nfrom collections import Counter\n\n# Simulamos 10,000 registros donde el 90% pertenecen a 'CLIENTE_GENERICO'\nraw_keys = ['CLIENTE_GENERICO'] * 9000 + [f'CLIENTE_{i}' for i in range(1000)]\nprint('Distribucion sesgada original (Top 1):', Counter(raw_keys)['CLIENTE_GENERICO'])\n\n# Aplicamos salting con 5 particiones (sal de 0 a 4)\nsalted_keys = [f'{k}_{random.randint(0, 4)}' if k == 'CLIENTE_GENERICO' else k for k in raw_keys]\nsalted_counts = Counter(salted_keys)\n\nprint('Distribucion tras salting para CLIENTE_GENERICO:')\nfor s in range(5):\n    print(f'  CLIENTE_GENERICO_{s}: {salted_counts[f\"CLIENTE_GENERICO_{s}\"]}')",
+  "codeLanguage": "python",
+  "expectedOutput": "Distribucion sesgada original (Top 1): 9000\nDistribucion tras salting para CLIENTE_GENERICO:\n  CLIENTE_GENERICO_0: ~1800\n  CLIENTE_GENERICO_1: ~1800\n  CLIENTE_GENERICO_2: ~1800\n  CLIENTE_GENERICO_3: ~1800\n  CLIENTE_GENERICO_4: ~1800",
+  "successCriteria": [
+    "La clave concentrada se subdivide en sub-particiones equilibradas de aproximadamente 1,800 registros cada una.",
+    "Se demuestra la eliminación de cuellos de botella por acumulación en un solo hilo/nodo."
+  ],
+  "file": "solution.py",
+  "steps": [
+    "Comprender el objetivo y escribir la solución técnica solicitada.",
+    "Ejecutar la verificación del ejercicio y comparar la salida obtenida."
+  ],
+  "verify": "python solution.py"
+}

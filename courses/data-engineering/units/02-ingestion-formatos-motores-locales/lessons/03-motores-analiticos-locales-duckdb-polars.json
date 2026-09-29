@@ -1,0 +1,186 @@
+{
+  "$schema": "../../../../../schemas/lesson.schema.json",
+  "id": "motores-analiticos-locales-duckdb-polars",
+  "title": "Motores Analíticos Locales: DuckDB y Polars sin la Sobrecarga de un Clúster",
+  "estimatedMinutes": 14,
+  "domainIds": [
+    "ingestion-formatos-motores-locales"
+  ],
+  "topics": [
+    "duckdb-olap",
+    "polars-dataframe",
+    "motores-in-process",
+    "vectorized-execution"
+  ],
+  "hook": "Un equipo de datos gasta $3,000 USD mensuales en un clúster de Apache Spark de 10 máquinas para transformar un archivo diario de 30 GB. Un ingeniero junior clona el script, lo reescribe con DuckDB en su laptop de 16 GB de RAM y corre toda la transformación en 40 segundos a costo $0. ¿Por qué muchas veces no necesitas Big Data?",
+  "concept": {
+    "blocks": [
+      {
+        "type": "heading",
+        "text": "1. El Mito de que Todo Requiere Spark o Clústeres"
+      },
+      {
+        "type": "paragraph",
+        "text": "Durante años, la industria asumió que cualquier archivo superior a 5 GB requería un clúster distribuido de Hadoop o Spark. Sin embargo, los clústeres distribuidos introducen una penalización enorme: latencia de red al transferir datos entre máquinas (shuffle), sobrecarga de coordinación y complejidad de mantenimiento. Hoy, laptops y servidores modernos cuentan con 32 GB a 256 GB de RAM y múltiples núcleos de CPU ultrarrápidos."
+      },
+      {
+        "type": "heading",
+        "text": "2. DuckDB: El SQLite de la Analítica (OLAP In-Process)"
+      },
+      {
+        "type": "paragraph",
+        "text": "Así como SQLite es el motor transaccional embebido por excelencia para aplicaciones móviles y web, **DuckDB** es el motor embebido diseñado específicamente para analítica OLAP. Se ejecuta en el mismo proceso de tu aplicación en Python, no requiere servidores adicionales y utiliza un motor de ejecución vectorizado basado en columnas."
+      },
+      {
+        "type": "code",
+        "language": "python",
+        "caption": "Consultas analíticas complejas directas sobre Parquet con DuckDB",
+        "code": "import duckdb\n\n# DuckDB consulta archivos locales o buckets S3 directamente sin importarlos previamente\nquery = '''\n    SELECT \n        date_trunc('month', order_date) AS mes,\n        country,\n        COUNT(DISTINCT customer_id) AS clientes_activos,\n        ROUND(SUM(total_amount), 2) AS facturacion_total\n    FROM 's3://mi-data-lake/orders/*.parquet'\n    WHERE status = 'DELIVERED'\n    GROUP BY 1, 2\n    ORDER BY facturacion_total DESC\n    LIMIT 10;\n'''\n\n# Ejecución vectorizada inmediata aprovechando todos los núcleos de CPU\ndf_top_ventas = duckdb.sql(query).df()\nprint(df_top_ventas)"
+      },
+      {
+        "type": "heading",
+        "text": "3. Polars: La Alternativa de Alto Rendimiento a Pandas"
+      },
+      {
+        "type": "paragraph",
+        "text": "Pandas fue diseñado hace más de una década: usa un solo núcleo de CPU, tiene problemas de gestión de memoria (duplica objetos en RAM al transformar) y carece de optimizador de consultas. **Polars**, escrito en Rust sobre Apache Arrow, implementa procesamiento multinúcleo en paralelo y una API perezosa (`LazyFrame`) que optimiza las operaciones antes de ejecutarlas."
+      },
+      {
+        "type": "code",
+        "language": "python",
+        "caption": "Pipeline perezoso y optimizado con Polars",
+        "code": "import polars as pl\n\n# scan_parquet no carga el archivo a memoria; construye el grafo de cómputo\nlazy_pipeline = (\n    pl.scan_parquet('eventos_web/*.parquet')\n    .filter(pl.col('event_type') == 'purchase')\n    .group_by('device_os')\n    .agg([\n        pl.col('amount').sum().alias('total_ingresos'),\n        pl.col('user_id').n_unique().alias('compradores_unicos')\n    ])\n    .sort('total_ingresos', descending=True)\n)\n\n# .collect() ejecuta el plan optimizado con todos los cores en paralelo\nresultado = lazy_pipeline.collect()\nprint(resultado)"
+      },
+      {
+        "type": "callout",
+        "tone": "tip",
+        "title": "Regla de Arquitectura: Single-Node First",
+        "text": "Si tu dataset de trabajo cabe en la memoria o el disco NVMe de una sola máquina potente (hasta ~500 GB), DuckDB y Polars serán casi siempre 5 a 10 veces más rápidos y 100 veces más baratos que un clúster distribuido."
+      }
+    ]
+  },
+  "keyPoints": [
+    "DuckDB ofrece capacidades OLAP completas dentro del proceso de Python sin necesidad de infraestructura de clúster.",
+    "Polars aprovecha todos los núcleos de la CPU y optimiza planes de ejecución mediante la evaluación perezosa en Rust.",
+    "Elegir herramientas de nodo único para datasets medianos elimina la latencia de red y la complejidad operativa de Spark."
+  ],
+  "terms": [
+    {
+      "term": "In-Process Database",
+      "translation": "Base de datos en proceso",
+      "definition": "Motor de base de datos que corre embebido en la misma memoria y espacio de proceso de la aplicación cliente, sin servicio cliente-servidor."
+    },
+    {
+      "term": "Vectorized Execution",
+      "translation": "Ejecución Vectorizada",
+      "definition": "Paradigma de ejecución donde las operaciones se aplican sobre vectores de miles de valores simultáneamente aprovechando instrucciones SIMD de la CPU."
+    },
+    {
+      "term": "LazyFrame",
+      "translation": "DataFrame Perezoso",
+      "definition": "Abstracción en Polars que posterga la ejecución hasta que se solicita el resultado, permitiendo reordenar y podar operaciones inútiles."
+    }
+  ],
+  "diagram": {
+    "type": "flow",
+    "nodes": [
+      {
+        "id": "vol",
+        "label": "¿Tamaño del Dataset diario?",
+        "sub": "Evaluación de volumen",
+        "detail": "Determina la arquitectura adecuada",
+        "icon": "search",
+        "kind": "decision"
+      },
+      {
+        "id": "single",
+        "label": "< 500 GB (Caben en Disco/RAM)",
+        "sub": "Enfoque Single-Node",
+        "detail": "DuckDB / Polars (Cero latencia de red, costo mínimo)",
+        "icon": "bolt",
+        "kind": "end"
+      },
+      {
+        "id": "dist",
+        "label": "> Varios Terabytes diarios",
+        "sub": "Enfoque Distribuido",
+        "detail": "Apache Spark / Databricks (Cómputo en clúster)",
+        "icon": "server",
+        "kind": "end"
+      }
+    ]
+  },
+  "activity": {
+    "type": "sort",
+    "prompt": "Clasifica cada caso de uso según la herramienta analítica más idónea:",
+    "buckets": [
+      "DuckDB / Polars (Local / Single Node)",
+      "Apache Spark (Clúster Distribuido)"
+    ],
+    "items": [
+      {
+        "text": "Transformar 40 GB diarios de archivos Parquet en un servidor con 64 GB de RAM",
+        "bucket": 0
+      },
+      {
+        "text": "Procesar 80 Terabytes de historial de clics web distribuidos en 50 nodos de cómputo",
+        "bucket": 1
+      },
+      {
+        "text": "Consultar interactivamente archivos Parquet en S3 desde un notebook local sin levantar servicios",
+        "bucket": 0
+      },
+      {
+        "text": "Entrenar modelos o joins masivos sobre petabytes de datos en streaming en tiempo real",
+        "bucket": 1
+      }
+    ]
+  },
+  "checkQuestionId": "q-u2-03",
+  "traps": [
+    {
+      "option": "Desplegar un clúster distribuido de Spark para procesar archivos de 15 GB que pueden resolverse con DuckDB en 20 segundos.",
+      "reason": "Introduce miles de dólares en costos de infraestructura en la nube y un tiempo de arranque de nodos superior al tiempo total de ejecución."
+    },
+    {
+      "option": "Convertir un LazyFrame de Polars a Pandas (`to_pandas()`) a mitad de un pipeline pesado.",
+      "reason": "Fuerza la materialización completa en memoria RAM de una sola hebra, perdiendo todas las optimizaciones vectorizadas multinúcleo."
+    }
+  ],
+  "trapSummary": "Sobredimensionar la arquitectura utilizando clústeres distribuidos masivos para cargas de datos que una sola máquina resuelve eficientemente.",
+  "flashcards": [
+    {
+      "id": "fc-u2-l3-1",
+      "front": "¿Qué significa que DuckDB sea una base de datos analítica 'in-process'?",
+      "back": "Que se ejecuta dentro del mismo proceso del programa (como Python) sin requerir instalar, configurar ni mantener un servidor de base de datos externo."
+    },
+    {
+      "id": "fc-u2-l3-2",
+      "front": "¿Por qué Polars supera ampliamente a Pandas en velocidad de procesamiento?",
+      "back": "Porque está escrito en Rust, procesa datos en paralelo sobre todos los núcleos de CPU y optimiza el plan de ejecución con su motor perezoso (LazyFrame)."
+    },
+    {
+      "id": "fc-u2-l3-3",
+      "front": "¿Cuál es la penalización principal de usar un clúster distribuido (como Spark) para archivos pequeños o medianos?",
+      "back": "La sobrecarga de coordinación, el tiempo de arranque de los nodos y la latencia de transferir datos por la red (shuffle)."
+    }
+  ],
+  "quickFacts": [
+    {
+      "statement": "DuckDB puede ejecutar consultas SQL directamente sobre archivos Parquet sin cargarlos previamente en tablas.",
+      "answer": true
+    },
+    {
+      "statement": "Polars solo puede ejecutarse en un único hilo de CPU al igual que Pandas.",
+      "answer": false
+    },
+    {
+      "statement": "El motor perezoso (Lazy) de Polars optimiza filtros y proyecciones antes de ejecutar la lectura.",
+      "answer": true
+    },
+    {
+      "statement": "Cualquier dataset superior a 10 GB requiere obligatoriamente un clúster de Spark.",
+      "answer": false
+    }
+  ]
+}

@@ -1,0 +1,24 @@
+{
+  "$schema": "../../../../schemas/lab.schema.json",
+  "id": "lab-sql-window-cohort-retention",
+  "title": "Laboratorio: Análisis de Cohortes y Retención con Funciones de Ventana",
+  "goal": "Escribir consultas con ROW_NUMBER() y LAG() para calcular el intervalo de días entre pedidos sucesivos de clientes.",
+  "level": "intermediate",
+  "estimatedMinutes": 30,
+  "icon": "chart",
+  "domainId": "modelado-dimensional-sql-dwh",
+  "lessonId": "sql-analitico-avanzado-funciones-ventana",
+  "code": "WITH pedidos AS (\n    SELECT 1 AS cliente_id, DATE '2026-01-01' AS fecha, 100 AS monto UNION ALL\n    SELECT 1, DATE '2026-01-15', 150 UNION ALL\n    SELECT 1, DATE '2026-02-10', 200 UNION ALL\n    SELECT 2, DATE '2026-01-05', 80\n)\nSELECT \n    cliente_id,\n    fecha,\n    monto,\n    ROW_NUMBER() OVER (PARTITION BY cliente_id ORDER BY fecha) AS orden_num,\n    LAG(fecha) OVER (PARTITION BY cliente_id ORDER BY fecha) AS fecha_anterior,\n    (fecha - LAG(fecha) OVER (PARTITION BY cliente_id ORDER BY fecha)) AS dias_diferencia\nFROM pedidos;",
+  "codeLanguage": "sql",
+  "expectedOutput": "1 | 2026-01-01 | 100 | 1 | NULL | NULL\n1 | 2026-01-15 | 150 | 2 | 2026-01-01 | 14\n1 | 2026-02-10 | 200 | 3 | 2026-01-15 | 26\n2 | 2026-01-05 | 80  | 1 | NULL | NULL",
+  "successCriteria": [
+    "ROW_NUMBER numera secuencialmente las compras por cada cliente de forma aislada.",
+    "LAG recupera la fecha previa calculando con precisión los días transcurridos."
+  ],
+  "file": "solution.sql",
+  "steps": [
+    "Comprender el objetivo y escribir la solución técnica solicitada.",
+    "Ejecutar la verificación del ejercicio y comparar la salida obtenida."
+  ],
+  "verify": "psql -f solution.sql"
+}

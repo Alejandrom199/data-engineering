@@ -1,0 +1,219 @@
+{
+  "$schema": "../../../../../schemas/lesson.schema.json",
+  "id": "formatos-archivos-csv-vs-parquet",
+  "title": "La Guerra de Formatos: Por qué CSV Destruye Presupuestos y Parquet Domina",
+  "estimatedMinutes": 14,
+  "domainIds": [
+    "ingestion-formatos-motores-locales"
+  ],
+  "topics": [
+    "formatos-columnares",
+    "apache-parquet",
+    "compresion-snappy",
+    "row-vs-columnar"
+  ],
+  "hook": "Un analista ejecuta una consulta en Amazon Athena sobre 1 Terabyte de logs de ventas almacenados en CSV para calcular el total de ingresos. La nube cobra $5.00 USD por escanear el Terabyte completo y tarda 45 segundos. El equipo convierte los mismos datos a formato Apache Parquet: la misma consulta cuesta $0.05 USD y tarda 1.2 segundos. ¿Por qué ocurre esta diferencia abismal?",
+  "concept": {
+    "blocks": [
+      {
+        "type": "heading",
+        "text": "1. Almacenamiento por Filas (Row-Oriented) vs por Columnas (Columnar)"
+      },
+      {
+        "type": "paragraph",
+        "text": "Los formatos tradicionales como CSV y JSON almacenan los datos registro por registro: `ID, Nombre, Email, Monto, Fecha`. Si una tabla tiene 80 columnas y tu consulta solo pide `SELECT SUM(monto) FROM ventas`, el disco duro tiene que leer físicamente todos los bytes de los nombres, emails y fechas solo para llegar a los montos. En analítica, esto desperdicia el 95% del ancho de banda de I/O."
+      },
+      {
+        "type": "table",
+        "headers": [
+          "Dimensión",
+          "Formato por Filas (CSV / JSON)",
+          "Formato Columnar (Apache Parquet)"
+        ],
+        "rows": [
+          [
+            "Disposición en Disco",
+            "Fila 1 completa, luego Fila 2 completa...",
+            "Columna 1 completa, luego Columna 2 completa..."
+          ],
+          [
+            "Proyección de Columnas",
+            "Debe escanear el 100% de las columnas en disco.",
+            "Lee únicamente los bloques de las columnas consultadas."
+          ],
+          [
+            "Compresión de Datos",
+            "Pobre (~1.5x) porque mezcla tipos de datos contiguos.",
+            "Altísima (4x a 10x) porque valores del mismo tipo y dominio se comprimen juntos con Snappy o ZSTD."
+          ],
+          [
+            "Soporte de Tipos",
+            "Débil: todo es texto plano que debe parsearse.",
+            "Fuerte: esquema binario estricto con metadatos embebidos."
+          ]
+        ],
+        "caption": "Comparativa técnica entre almacenamiento por filas y columnar"
+      },
+      {
+        "type": "heading",
+        "text": "2. La Anatomía Interna de un Archivo Apache Parquet"
+      },
+      {
+        "type": "paragraph",
+        "text": "Un archivo Parquet no es un simple fichero de texto; es una estructura binaria organizada en **Row Groups** (grupos de 128 MB a 512 MB de filas). Dentro de cada Row Group, los datos se dividen en **Column Chunks** y luego en **Data Pages**. Al final del archivo se ubica el **File Metadata (Footer)**, que contiene estadísticas clave: el valor mínimo y máximo (`min/max`) de cada columna en cada bloque."
+      },
+      {
+        "type": "heading",
+        "text": "3. File Skipping y Predicate Pushdown"
+      },
+      {
+        "type": "paragraph",
+        "text": "Gracias a las estadísticas del footer, cuando ejecutas `WHERE anio = 2026`, el motor de consulta lee primero el pie de página de unos pocos kilobytes. Si el bloque indica `min=2024, max=2025`, el motor **omite por completo la lectura de ese bloque de 500 MB**. Esto se conoce como **Predicate Pushdown** y ahorra terabytes de lectura en almacenamiento en la nube."
+      },
+      {
+        "type": "code",
+        "language": "python",
+        "caption": "Lectura columnar eficiente con PyArrow / DuckDB",
+        "code": "import duckdb\n\n# Solo lee la columna 'monto' y filtra directamente en los metadatos del archivo\ncon = duckdb.connect()\nresultado = con.execute('''\n    SELECT \n        categoria,\n        SUM(monto) AS total_ventas\n    FROM read_parquet('ventas_masivas/*.parquet')\n    WHERE fecha >= '2026-01-01'\n    GROUP BY categoria;\n''').df()\nprint(resultado)"
+      },
+      {
+        "type": "callout",
+        "tone": "info",
+        "title": "Compresión Snappy",
+        "text": "Snappy es el algoritmo de compresión por defecto en Parquet porque ofrece el mejor equilibrio entre ratio de compresión razonable y descompresión ultrarrápida optimizada para CPU."
+      }
+    ]
+  },
+  "keyPoints": [
+    "Los formatos columnares como Parquet leen exclusivamente las columnas solicitadas en la consulta, reduciendo drásticamente el I/O.",
+    "El footer de Parquet almacena estadísticas min/max que permiten omitir bloques enteros de datos (Predicate Pushdown).",
+    "Comprimir datos homogéneos de la misma columna permite reducciones de tamaño de hasta un 80% frente a texto plano CSV."
+  ],
+  "terms": [
+    {
+      "term": "Columnar Storage",
+      "translation": "Almacenamiento Columnar",
+      "definition": "Organización física de datos en disco donde los valores de una misma columna se almacenan de manera continua y contigua."
+    },
+    {
+      "term": "Row Group",
+      "translation": "Grupo de Filas",
+      "definition": "Partición lógica de datos dentro de un archivo Parquet que contiene datos contiguos de todas las columnas organizados por chunks."
+    },
+    {
+      "term": "Predicate Pushdown",
+      "translation": "Empuje de Predicados",
+      "definition": "Optimización donde los filtros de la consulta SQL se evalúan directamente en la capa de almacenamiento para evitar leer datos descartados."
+    }
+  ],
+  "diagram": {
+    "type": "flow",
+    "nodes": [
+      {
+        "id": "query",
+        "label": "SELECT SUM(monto) WHERE anio=2026",
+        "sub": "Consulta Analítica",
+        "detail": "El usuario solo necesita 1 columna y 1 filtro",
+        "icon": "search",
+        "kind": "default"
+      },
+      {
+        "id": "footer",
+        "label": "Leer Footer de Parquet",
+        "sub": "Metadatos (KB)",
+        "detail": "Inspecciona min/max de cada Row Group",
+        "icon": "file",
+        "kind": "decision"
+      },
+      {
+        "id": "skip",
+        "label": "Omitir Bloques Anteriores",
+        "sub": "Predicate Pushdown",
+        "detail": "Descarta Row Groups donde max < 2026 sin leerlos",
+        "icon": "play",
+        "kind": "default"
+      },
+      {
+        "id": "read",
+        "label": "Leer Solo Columna 'monto'",
+        "sub": "Proyección Columnar",
+        "detail": "Lee únicamente los bytes necesarios del disco",
+        "icon": "check",
+        "kind": "end"
+      }
+    ]
+  },
+  "activity": {
+    "type": "sort",
+    "prompt": "Clasifica cada característica en el formato de archivo correspondiente:",
+    "buckets": [
+      "Apache Parquet",
+      "CSV Tradicional"
+    ],
+    "items": [
+      {
+        "text": "Almacenamiento columnar binario con estadísticas min/max en el footer",
+        "bucket": 0
+      },
+      {
+        "text": "Texto plano delimitado por comas donde todo tipo de dato debe ser inferido",
+        "bucket": 1
+      },
+      {
+        "text": "Permite omitir la lectura de columnas no seleccionadas en el SELECT",
+        "bucket": 0
+      },
+      {
+        "text": "Legible directamente en un editor de texto convencional sin herramientas especiales",
+        "bucket": 1
+      }
+    ]
+  },
+  "checkQuestionId": "q-u2-02",
+  "traps": [
+    {
+      "option": "Utilizar Apache Parquet como base de datos operacional para inserciones fila por fila de alta frecuencia.",
+      "reason": "Parquet es un formato inmutable diseñado para escrituras analíticas en bloque (batch); modificar una fila exige reescribir el bloque entero."
+    },
+    {
+      "option": "Almacenar archivos CSV comprimidos con GZIP esperando hacer consultas columnares rápidas.",
+      "reason": "GZIP sobre CSV sigue siendo almacenamiento por filas; el motor debe descomprimir y escanear todo el texto línea por línea."
+    }
+  ],
+  "trapSummary": "Usar formatos de texto plano como CSV para almacenamiento de largo plazo en Data Lakes analíticos.",
+  "flashcards": [
+    {
+      "id": "fc-u2-l2-1",
+      "front": "¿Por qué las consultas analíticas sobre Apache Parquet son mucho más baratas en nubes públicas que sobre CSV?",
+      "back": "Porque al ser columnar, solo se escanean y cobran los bytes de las columnas solicitadas, y el tamaño total es menor gracias a la compresión Snappy/ZSTD."
+    },
+    {
+      "id": "fc-u2-l2-2",
+      "front": "¿Qué información crítica reside en el footer de un archivo Parquet?",
+      "back": "El esquema de datos, las ubicaciones de los Row Groups y las estadísticas min/max de cada columna para permitir File Skipping."
+    },
+    {
+      "id": "fc-u2-l2-3",
+      "front": "¿En qué escenario NO se recomienda utilizar Apache Parquet?",
+      "back": "En sistemas transaccionales (OLTP) que requieren inserciones individuales fila por fila o actualizaciones inmediatas de registros."
+    }
+  ],
+  "quickFacts": [
+    {
+      "statement": "Apache Parquet organiza físicamente los datos por columnas en lugar de por filas.",
+      "answer": true
+    },
+    {
+      "statement": "Para leer una sola columna de un archivo CSV de 100 GB, el motor solo lee el 1% del disco.",
+      "answer": false
+    },
+    {
+      "statement": "El Predicate Pushdown aprovecha estadísticas del footer para omitir la descompresión de bloques irrelevantes.",
+      "answer": true
+    },
+    {
+      "statement": "Parquet almacena los tipos de datos de forma estricta en sus metadatos binarios.",
+      "answer": true
+    }
+  ]
+}

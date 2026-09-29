@@ -7,27 +7,27 @@
       "id": "data-engineering",
       "version": "1.0.0",
       "locale": "es",
-      "title": "Ingeniería de Datos Moderna (OpenLearn Edition)",
+      "title": "Ingeniería de Datos Moderna",
       "shortTitle": "Data Engineering",
       "provider": "OpenLearn Community · Data Engineering Mentor",
-      "description": "Curso práctico e interactivo de Ingeniería de Datos diseñado según los estándares pedagógicos de OpenLearn: micro-lecciones de 10-14m, formatos columnares (Parquet), modelado dimensional (Kimball/SCD2), computación distribuida con Apache Spark, Lakehouses transaccionales (Delta Lake), DataOps con Airflow y streaming en tiempo real con Apache Kafka y CDC.",
+      "description": "Curso integral de Ingeniería de Datos que acompaña al estudiante desde los fundamentos esenciales (ciclo de vida del dato, Linux, Python y bases de datos relacionales) hasta la arquitectura senior avanzada (almacenamiento columnar con Parquet, modelado dimensional Kimball, computación distribuida con Apache Spark, Lakehouses transaccionales con Delta Lake, DataOps con Airflow y streaming en tiempo real con Apache Kafka y CDC).",
       "level": "intermediate",
-      "estimatedHours": 36,
+      "estimatedHours": 48,
       "icon": "server",
       "color": "#0284c7",
       "certificationCode": "DE-01",
       "stats": {
-        "units": 6,
-        "lessons": 25,
-        "labs": 18,
-        "questions": 24,
+        "units": 7,
+        "lessons": 28,
+        "labs": 21,
+        "questions": 28,
         "exams": 3,
         "achievements": 12
       },
       "archive": {
         "path": "archives/data-engineering-1.0.0.zip",
-        "sha256": "f3864c39053be81104aefbb3482cb36fed3624b684f453495a0d9c5d4f79dfbe",
-        "bytes": 134750
+        "sha256": "d06ea1ad9d4d23d7efaeb8d75e910f357137735521e90eb37eaa54ef89fe15ed",
+        "bytes": 153636
       }
     }
   ]

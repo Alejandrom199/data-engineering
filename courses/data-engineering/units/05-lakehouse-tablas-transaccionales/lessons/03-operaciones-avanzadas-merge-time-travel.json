@@ -1,0 +1,194 @@
+{
+  "$schema": "../../../../../schemas/lesson.schema.json",
+  "id": "operaciones-avanzadas-merge-time-travel",
+  "title": "Operaciones Avanzadas: MERGE Incremental y Time Travel",
+  "estimatedMinutes": 16,
+  "domainIds": [
+    "lakehouse-tablas-transaccionales"
+  ],
+  "topics": [
+    "merge-upsert",
+    "time-travel-rollback",
+    "auditoria-versiones",
+    "cdc-lakehouse"
+  ],
+  "hook": "Un desarrollador ejecuta por error un script en producción que actualiza el salario de todos los empleados a $0.00. En una base de datos tradicional, recuperar el estado anterior exigiría restaurar un backup de 2 Terabytes tardando 8 horas. En Delta Lake, con una sola línea de SQL el equipo revierte la tabla al estado exacto de hace 15 minutos en 2 segundos. ¿Cómo funciona Time Travel?",
+  "concept": {
+    "blocks": [
+      {
+        "type": "heading",
+        "text": "1. La Operación MERGE (Upsert Atómico)"
+      },
+      {
+        "type": "paragraph",
+        "text": "En pipelines continuos (como la ingesta de transacciones desde una base de datos con Change Data Capture), necesitas insertar nuevos registros si no existen y actualizar los existentes si ya cambiaron. En un Data Lake tradicional, tenías que sobreescribir la tabla entera. Con Delta Lake, la instrucción **`MERGE INTO`** ejecuta inserciones, actualizaciones y borrados en una sola transacción ACID atómica."
+      },
+      {
+        "type": "code",
+        "language": "sql",
+        "caption": "Sintaxis estándar de MERGE en Delta Lake",
+        "code": "MERGE INTO clientes_delta AS target\nUSING nuevos_cambios AS source\nON target.cliente_id = source.cliente_id\nWHEN MATCHED AND target.updated_at < source.updated_at THEN\n  UPDATE SET \n    target.email = source.email,\n    target.ciudad = source.ciudad,\n    target.updated_at = source.updated_at\nWHEN NOT MATCHED THEN\n  INSERT (cliente_id, nombre, email, ciudad, updated_at)\n  VALUES (source.cliente_id, source.nombre, source.email, source.ciudad, source.updated_at);"
+      },
+      {
+        "type": "heading",
+        "text": "2. Time Travel: Viajar en el Tiempo y Reproducibilidad"
+      },
+      {
+        "type": "paragraph",
+        "text": "Dado que las tablas Lakehouse nunca sobreescriben archivos Parquet existentes en el lugar (inmutabilidad), sino que escriben nuevos archivos y registran las versiones en el Transaction Log, el historial completo permanece disponible. Puedes consultar la tabla tal como existía en una versión específica o en un timestamp pasado."
+      },
+      {
+        "type": "code",
+        "language": "python",
+        "caption": "Consultar y revertir versiones con Time Travel en PySpark",
+        "code": "# 1. Consultar la tabla tal como estaba hace 2 horas\ndf_historico = spark.read.format('delta') \\\n    .option('timestampAsOf', '2026-09-28 18:00:00') \\\n    .load('s3://mi-data-lake/clientes/')\n\n# 2. Consultar por número de versión específico\ndf_v10 = spark.read.format('delta') \\\n    .option('versionAsOf', 10) \\\n    .load('s3://mi-data-lake/clientes/')\n\n# 3. Rollback instantáneo: Restaurar la tabla a la versión 10 en caso de desastre\nfrom delta.tables import DeltaTable\ndeltaTable = DeltaTable.forPath(spark, 's3://mi-data-lake/clientes/')\ndeltaTable.restoreToVersion(10)"
+      },
+      {
+        "type": "heading",
+        "text": "3. Limpieza de Archivos Antiguos con VACUUM"
+      },
+      {
+        "type": "paragraph",
+        "text": "Guardar todas las versiones para siempre consumiría almacenamiento innecesario. El comando **`VACUUM`** elimina físicamente del disco los archivos Parquet que fueron marcados como 'remove' y que son más antiguos que un periodo de retención determinado (por defecto, 7 días)."
+      },
+      {
+        "type": "callout",
+        "tone": "warning",
+        "title": "Peligro con VACUUM",
+        "text": "Una vez ejecutado `VACUUM`, los archivos físicos se eliminan de S3 para siempre; ya no podrás hacer Time Travel hacia versiones anteriores al periodo de retención limpiado."
+      }
+    ]
+  },
+  "keyPoints": [
+    "`MERGE INTO` permite sincronizar cambios incrementales (Upsert) atómicamente en una sola transacción.",
+    "Time Travel permite consultar e incluso restaurar versiones pasadas de la tabla mediante `versionAsOf` o `timestampAsOf`.",
+    "`VACUUM` purga los archivos antiguos del disco liberando almacenamiento, pero elimina la posibilidad de retroceder a esas versiones."
+  ],
+  "terms": [
+    {
+      "term": "MERGE (Upsert)",
+      "translation": "Operación de Fusión / Upsert",
+      "definition": "Instrucción atómica que combina actualización de filas coincidentes e inserción de filas nuevas según una condición de clave."
+    },
+    {
+      "term": "Time Travel",
+      "translation": "Viaje en el Tiempo",
+      "definition": "Capacidad de consultar o restaurar el estado histórico exacto de una tabla en un número de versión o fecha pasada."
+    },
+    {
+      "term": "VACUUM",
+      "translation": "Comando de Purga VACUUM",
+      "definition": "Operación de mantenimiento que elimina físicamente del almacenamiento los archivos no comprometidos más antiguos que el umbral de retención."
+    }
+  ],
+  "diagram": {
+    "type": "flow",
+    "nodes": [
+      {
+        "id": "v1",
+        "label": "Versión 1 (Original)",
+        "sub": "part_1.parquet",
+        "detail": "Estado inicial con 1,000 clientes",
+        "icon": "file",
+        "kind": "default"
+      },
+      {
+        "id": "merge",
+        "label": "MERGE INTO (CDC)",
+        "sub": "Actualización Atómica",
+        "detail": "Inserta 100 nuevos y actualiza 50",
+        "icon": "loop",
+        "kind": "default"
+      },
+      {
+        "id": "v2",
+        "label": "Versión 2 (Nueva)",
+        "sub": "part_2.parquet nuevo",
+        "detail": "part_1 se marca 'remove' en el log, pero sigue en S3",
+        "icon": "file",
+        "kind": "default"
+      },
+      {
+        "id": "tt",
+        "label": "Time Travel (RESTORE 1)",
+        "sub": "Rollback Inmediato",
+        "detail": "Regresa el puntero a v1 sin restaurar backups",
+        "icon": "undo",
+        "kind": "end"
+      }
+    ]
+  },
+  "activity": {
+    "type": "sort",
+    "prompt": "Clasifica cada comando según la funcionalidad avanzada de Delta Lake correspondiente:",
+    "buckets": [
+      "Operación MERGE (Upsert)",
+      "Operación Time Travel / Mantenimiento"
+    ],
+    "items": [
+      {
+        "text": "Sincronizar cambios de un Change Data Capture insertando nuevos y actualizando modificados",
+        "bucket": 0
+      },
+      {
+        "text": "Consultar cómo estaba la tabla el 1 de enero usando `timestampAsOf`",
+        "bucket": 1
+      },
+      {
+        "text": "Revertir un borrado accidental ejecutando `RESTORE TABLE TO VERSION 5`",
+        "bucket": 1
+      },
+      {
+        "text": "Actualizar precios de productos coincidentes e insertar nuevos SKUs en una sola transacción",
+        "bucket": 0
+      }
+    ]
+  },
+  "checkQuestionId": "q-u5-03",
+  "traps": [
+    {
+      "option": "Ejecutar `VACUUM table RETAIN 0 HOURS` con la verificación de seguridad desactivada.",
+      "reason": "Eliminará archivos que pueden estar siendo leídos por consultas concurrentes activas en ese mismo segundo, corrompiéndolas."
+    },
+    {
+      "option": "Hacer un MERGE sin indexar o sin acotar la condición de ON con particiones.",
+      "reason": "Forzará a Spark a escanear la tabla entera para encontrar coincidencias, volviendo el Upsert sumamente lento."
+    }
+  ],
+  "trapSummary": "Ejecutar VACUUM con retención de 0 horas eliminando archivos que consultas concurrentes activas están leyendo.",
+  "flashcards": [
+    {
+      "id": "fc-u5-l3-1",
+      "front": "¿Qué permite la operación `MERGE INTO` en Delta Lake?",
+      "back": "Permite realizar operaciones de Upsert (actualizar registros existentes e insertar nuevos) de forma atómica bajo garantías ACID."
+    },
+    {
+      "id": "fc-u5-l3-2",
+      "front": "¿Cómo funciona Time Travel bajo el capó sin duplicar todos los datos?",
+      "back": "Gracias a que los archivos Parquet son inmutables, el Transaction Log reconstruye la lista exacta de archivos que eran válidos en la versión solicitada."
+    },
+    {
+      "id": "fc-u5-l3-3",
+      "front": "¿Qué hace el comando `VACUUM` y cuál es su riesgo?",
+      "back": "Borra físicamente del disco los archivos marcados como eliminados tras vencer el periodo de retención; el riesgo es que impide hacer Time Travel más atrás de esa fecha."
+    }
+  ],
+  "quickFacts": [
+    {
+      "statement": "Time Travel permite consultar versiones anteriores de una tabla Delta sin restaurar backups externos.",
+      "answer": true
+    },
+    {
+      "statement": "El comando VACUUM recupera archivos borrados accidentalmente por el usuario.",
+      "answer": false
+    },
+    {
+      "statement": "`MERGE INTO` ejecuta actualizaciones e inserciones concurrentes en una única transacción atómica.",
+      "answer": true
+    },
+    {
+      "statement": "Al hacer Time Travel a la versión 1, se destruyen para siempre las versiones posteriores de la tabla.",
+      "answer": false
+    }
+  ]
+}

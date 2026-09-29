@@ -1,0 +1,222 @@
+{
+  "$schema": "../../../../../schemas/lesson.schema.json",
+  "id": "dimensiones-cambio-lento-scd",
+  "title": "Dimensiones de Cambio Lento (SCD): Gestión Histórica con SCD Tipo 2",
+  "estimatedMinutes": 15,
+  "domainIds": [
+    "modelado-dimensional-sql-dwh"
+  ],
+  "topics": [
+    "scd-tipo-1",
+    "scd-tipo-2",
+    "historico-dimensiones",
+    "surrogate-keys"
+  ],
+  "hook": "Un cliente VIP de una tienda online vive en Barcelona durante 3 años e hizo compras por $5,000 euros. En enero de 2026 se muda a Madrid y actualiza su dirección. El sistema sobreescribe el registro: al día siguiente, el reporte histórico de ventas por provincia atribuye mágicamente todas las ventas de los últimos 3 años a Madrid, arruinando los reportes fiscales. ¿Cómo se gestionan cambios en el tiempo?",
+  "concept": {
+    "blocks": [
+      {
+        "type": "heading",
+        "text": "1. El Problema de las Entidades que Cambian en el Tiempo"
+      },
+      {
+        "type": "paragraph",
+        "text": "En el mundo real, los atributos de las dimensiones cambian: un cliente se muda de ciudad, un empleado cambia de departamento o un producto sube de categoría. La forma en que un almacén analítico maneja estos cambios se denomina **Slowly Changing Dimensions (SCD)**."
+      },
+      {
+        "type": "heading",
+        "text": "2. Los Tipos Principales de SCD"
+      },
+      {
+        "type": "table",
+        "headers": [
+          "Estrategia SCD",
+          "Comportamiento",
+          "Histórico",
+          "Uso Recomendado"
+        ],
+        "rows": [
+          [
+            "SCD Tipo 0 (Retain)",
+            "El dato nunca cambia una vez escrito.",
+            "Fijo.",
+            "Fecha de nacimiento, identificador original."
+          ],
+          [
+            "SCD Tipo 1 (Overwrite)",
+            "Sobreescribe el valor anterior en la misma fila.",
+            "Se destruye el histórico previo.",
+            "Corrección de errores tipográficos en nombres o emails."
+          ],
+          [
+            "SCD Tipo 2 (Add Row)",
+            "Inserta una nueva fila con una nueva clave subrogada y actualiza fechas de vigencia.",
+            "Preservación perfecta del historial.",
+            "Cambios de residencia, departamento de empleados, categorización de productos."
+          ],
+          [
+            "SCD Tipo 3 (Add Column)",
+            "Agrega una columna `ciudad_anterior` en la misma fila.",
+            "Histórico limitado al estado inmediatamente anterior.",
+            "Rara vez usado en la actualidad."
+          ]
+        ],
+        "caption": "Estrategias de Dimensiones de Cambio Lento (SCD)"
+      },
+      {
+        "type": "heading",
+        "text": "3. Anatomía de una Dimensión SCD Tipo 2"
+      },
+      {
+        "type": "paragraph",
+        "text": "Para implementar SCD Tipo 2 se requieren cuatro columnas de control de metadatos además del identificador natural del negocio:"
+      },
+      {
+        "type": "list",
+        "style": "bullet",
+        "items": [
+          "`cliente_key`: **Clave Subrogada (Surrogate Key)** autoincremental o hash que identifica de forma única la versión específica del registro.",
+          "`cliente_id`: **Clave Natural / de Negocio** que identifica al cliente en la base operacional.",
+          "`fecha_inicio` y `fecha_fin`: Rango de fechas de vigencia en que este registro fue válido.",
+          "`es_actual` (is_current): Booleano (`TRUE` si es la versión activa actual, `FALSE` si es histórica)."
+        ]
+      },
+      {
+        "type": "code",
+        "language": "sql",
+        "caption": "Estructura y consulta sobre una dimensión SCD Tipo 2",
+        "code": "-- Estructura de la tabla con versionado\nCREATE TABLE dim_cliente (\n    cliente_key SERIAL PRIMARY KEY, -- Clave subrogada\n    cliente_id INT NOT NULL,        -- Clave natural de negocio\n    nombre VARCHAR(100),\n    ciudad VARCHAR(100),\n    fecha_inicio TIMESTAMP NOT NULL,\n    fecha_fin TIMESTAMP DEFAULT '9999-12-31',\n    es_actual BOOLEAN DEFAULT TRUE\n);\n\n-- Consulta puntual para el estado actual\nSELECT * FROM dim_cliente WHERE es_actual = TRUE;\n\n-- Consulta histórica exacta para transacciones del año 2024\nSELECT \n    f.monto,\n    c.ciudad -- Muestra la ciudad que el cliente tenía en ese momento exacto\nFROM fact_ventas f\nJOIN dim_cliente c ON f.cliente_key = c.cliente_key;"
+      },
+      {
+        "type": "callout",
+        "tone": "tip",
+        "title": "El Rol de la Clave Subrogada",
+        "text": "La tabla de hechos NUNCA debe conectarse a la clave natural (`cliente_id`), sino a la clave subrogada (`cliente_key`). Así, la venta queda anclada para siempre a la versión de la dimensión vigente al momento de la compra."
+      }
+    ]
+  },
+  "keyPoints": [
+    "SCD Tipo 1 sobreescribe datos destruyendo el histórico; SCD Tipo 2 inserta nuevas filas versionadas preservando el pasado.",
+    "SCD Tipo 2 utiliza columnas de vigencia (`fecha_inicio`, `fecha_fin`) y un indicador de estado activo (`es_actual`).",
+    "Las tablas de hechos se unen a las dimensiones mediante claves subrogadas (Surrogate Keys) para garantizar precisión histórica."
+  ],
+  "terms": [
+    {
+      "term": "SCD (Slowly Changing Dimensions)",
+      "translation": "Dimensiones de Cambio Lento",
+      "definition": "Conjunto de patrones y técnicas de modelado para gestionar y almacenar cambios en los atributos de dimensiones a lo largo del tiempo."
+    },
+    {
+      "term": "Surrogate Key",
+      "translation": "Clave Subrogada",
+      "definition": "Identificador artificial generado por el Data Warehouse (generalmente un entero secuencial o hash) que no tiene significado intrínseco en el negocio."
+    },
+    {
+      "term": "Natural Key",
+      "translation": "Clave Natural / de Negocio",
+      "definition": "Identificador único asignado a una entidad en el sistema operacional de origen (por ejemplo, el ID de usuario de la app)."
+    }
+  ],
+  "diagram": {
+    "type": "flow",
+    "nodes": [
+      {
+        "id": "v1",
+        "label": "Versión 1: Barcelona",
+        "sub": "key=101 | id=500",
+        "detail": "fecha_inicio: 2023-01-01 | fecha_fin: 2025-12-31 | es_actual: FALSE",
+        "icon": "target",
+        "kind": "default"
+      },
+      {
+        "id": "event",
+        "label": "Evento de Mudanza",
+        "sub": "Enero 2026",
+        "detail": "Cliente actualiza dirección en la aplicación",
+        "icon": "loop",
+        "kind": "default"
+      },
+      {
+        "id": "v2",
+        "label": "Versión 2: Madrid",
+        "sub": "key=205 | id=500",
+        "detail": "fecha_inicio: 2026-01-01 | fecha_fin: 9999-12-31 | es_actual: TRUE",
+        "icon": "check",
+        "kind": "end"
+      }
+    ]
+  },
+  "activity": {
+    "type": "sort",
+    "prompt": "Clasifica el caso en la estrategia SCD más apropiada:",
+    "buckets": [
+      "SCD Tipo 1 (Sobreescribir)",
+      "SCD Tipo 2 (Versionar con Nueva Fila)"
+    ],
+    "items": [
+      {
+        "text": "Corregir un error de dedo en el apellido del usuario: 'Gonsalez' por 'Gonzalez'",
+        "bucket": 0
+      },
+      {
+        "text": "Un empleado es promovido y cambia de 'Vendedor Junior' a 'Gerente Regional'",
+        "bucket": 1
+      },
+      {
+        "text": "Un cliente se muda de país y las compras futuras deben tributar en la nueva jurisdicción",
+        "bucket": 1
+      },
+      {
+        "text": "Actualizar el número de teléfono móvil de contacto del cliente",
+        "bucket": 0
+      }
+    ]
+  },
+  "checkQuestionId": "q-u3-03",
+  "traps": [
+    {
+      "option": "Usar SCD Tipo 1 para actualizar atributos sensibles para reportes históricos como ubicación o categoría impositiva.",
+      "reason": "Reescribe la historia retroactivamente, alterando reportes pasados y generando inconsistencias contables."
+    },
+    {
+      "option": "Unir tablas de hechos con la clave natural `cliente_id` en lugar de la clave subrogada `cliente_key` en SCD Tipo 2.",
+      "reason": "Generará un producto cartesiano (filas duplicadas) al haber múltiples versiones de un mismo cliente en la dimensión."
+    }
+  ],
+  "trapSummary": "Usar la clave natural de negocio en lugar de la clave subrogada al unir hechos con dimensiones SCD Tipo 2.",
+  "flashcards": [
+    {
+      "id": "fc-u3-l3-1",
+      "front": "¿Cuál es la principal ventaja de implementar SCD Tipo 2 frente a SCD Tipo 1?",
+      "back": "Preserva el historial completo de cambios en el tiempo mediante nuevas filas versionadas, permitiendo reproducir reportes pasados con fidelidad."
+    },
+    {
+      "id": "fc-u3-l3-2",
+      "front": "¿Por qué es obligatorio utilizar Claves Subrogadas (Surrogate Keys) en dimensiones SCD Tipo 2?",
+      "back": "Porque una misma clave natural tendrá múltiples filas en la tabla; la clave subrogada identifica unívocamente la versión específica de ese registro en un momento dado."
+    },
+    {
+      "id": "fc-u3-l3-3",
+      "front": "¿Qué valor suele asignarse a la columna `fecha_fin` en la versión activa de un registro SCD Tipo 2?",
+      "back": "Una fecha lejana en el futuro (como '9999-12-31' o NULL) indicando que la vigencia del registro aún no ha concluido."
+    }
+  ],
+  "quickFacts": [
+    {
+      "statement": "SCD Tipo 2 inserta una nueva fila cada vez que cambia un atributo relevante de la dimensión.",
+      "answer": true
+    },
+    {
+      "statement": "En SCD Tipo 1 se conserva todo el historial de cambios anteriores del cliente.",
+      "answer": false
+    },
+    {
+      "statement": "La columna `es_actual` permite filtrar rápidamente los registros vigentes sin comparar fechas.",
+      "answer": true
+    },
+    {
+      "statement": "Las claves subrogadas deben ser idénticas al ID de usuario de la base operacional.",
+      "answer": false
+    }
+  ]
+}

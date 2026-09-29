@@ -1,0 +1,212 @@
+{
+  "$schema": "../../../../../schemas/lesson.schema.json",
+  "id": "shuffle-transformaciones-narrow-wide",
+  "title": "El Coste del Shuffle: Transformaciones Narrow vs Wide",
+  "estimatedMinutes": 15,
+  "domainIds": [
+    "procesamiento-distribuido-spark"
+  ],
+  "topics": [
+    "spark-shuffle",
+    "narrow-transformations",
+    "wide-transformations",
+    "particiones-spark"
+  ],
+  "hook": "Un job de Spark procesa 500 GB en 3 minutos haciendo limpiezas y filtros. En la siguiente línea añades un `groupBy('usuario_id').count()`: de repente, el tiempo se dispara a 45 minutos y el tráfico de red del clúster satura al 100%. ¿Qué acaba de ocurrir bajo el capó? Bienvenido al temido Shuffle.",
+  "concept": {
+    "blocks": [
+      {
+        "type": "heading",
+        "text": "1. Transformaciones Estrechas (Narrow Transformations)"
+      },
+      {
+        "type": "paragraph",
+        "text": "En una transformación **Narrow**, cada partición de entrada contribuye a como máximo una partición de salida. Los datos se procesan completamente de forma local en la memoria de cada Executor sin necesidad de comunicarse con otras máquinas del clúster. Ejemplos clásicos son `filter()`, `select()` y `map()`. Son ultrarrápidas y escalan linealmente."
+      },
+      {
+        "type": "heading",
+        "text": "2. Transformaciones Anchas (Wide Transformations) y el Shuffle"
+      },
+      {
+        "type": "paragraph",
+        "text": "En una transformación **Wide**, múltiples particiones de entrada deben combinarse para producir una partición de salida. Para calcular un `groupBy('pais')`, Spark debe recolectar todos los registros de 'España' dispersos en 50 máquinas distintas y agruparlos en un único nodo. Este movimiento masivo de datos a través de la red se denomina **Shuffle**."
+      },
+      {
+        "type": "table",
+        "headers": [
+          "Tipo de Transformación",
+          "Intercambio de Red (Shuffle)",
+          "Uso de Disco",
+          "Operaciones Representativas"
+        ],
+        "rows": [
+          [
+            "Narrow (Estrecha)",
+            "Cero intercambio por red.",
+            "En memoria RAM local.",
+            "`filter()`, `select()`, `withColumn()`, `drop()`"
+          ],
+          [
+            "Wide (Ancha)",
+            "Masivo intercambio entre todos los nodos.",
+            "Serializa y escribe bloques de shuffle a disco.",
+            "`groupBy()`, `join()`, `distinct()`, `repartition()`"
+          ]
+        ],
+        "caption": "Comparativa de dependencias Narrow vs Wide en Spark"
+      },
+      {
+        "type": "heading",
+        "text": "3. ¿Por qué el Shuffle es el Asesino de Rendimiento?"
+      },
+      {
+        "type": "paragraph",
+        "text": "El shuffle involucra cuatro operaciones costosas en serie: 1) Los nodos emisores serializan los datos en memoria, 2) Escriben archivos temporales de shuffle en sus discos locales, 3) Los nodos receptores transfieren los bytes a través de los cables de red del clúster, y 4) Deserializan y reordenan los datos en su memoria RAM. Si la red o el disco se saturan, el job colapsa."
+      },
+      {
+        "type": "code",
+        "language": "python",
+        "caption": "Control del número de particiones de Shuffle en PySpark",
+        "code": "# Por defecto, Spark usa 200 particiones para shuffle, lo cual es ineficiente para datos chicos o gigantescos\nspark.conf.set('spark.sql.shuffle.partitions', '400')\n\n# Adaptive Query Execution (AQE): ajusta el número de particiones de shuffle dinámicamente\nspark.conf.set('spark.sql.adaptive.enabled', 'true')\nspark.conf.set('spark.sql.adaptive.coalescePartitions.enabled', 'true')"
+      },
+      {
+        "type": "callout",
+        "tone": "tip",
+        "title": "Adaptive Query Execution (AQE)",
+        "text": "Desde Spark 3.0, activa siempre `spark.sql.adaptive.enabled = true`. AQE analiza las estadísticas reales de las etapas de shuffle y compacta automáticamente particiones pequeñas sin intervención manual."
+      }
+    ]
+  },
+  "keyPoints": [
+    "Las transformaciones Narrow no mueven datos entre máquinas y se ejecutan a velocidad de memoria local.",
+    "Las transformaciones Wide provocan Shuffle: transfieren datos por la red y escriben archivos temporales en disco.",
+    "Adaptive Query Execution (AQE) mitiga los costes del Shuffle consolidando particiones en tiempo de ejecución."
+  ],
+  "terms": [
+    {
+      "term": "Shuffle",
+      "translation": "Redistribución Masiva de Datos",
+      "definition": "Mecanismo por el cual Spark redistribuye y agrupa datos a través de la red entre todos los nodos ejecutores del clúster."
+    },
+    {
+      "term": "Narrow Dependency",
+      "translation": "Dependencia Estrecha",
+      "definition": "Relación entre RDDs/DataFrames donde cada partición del padre es utilizada por como máximo una partición del hijo."
+    },
+    {
+      "term": "Wide Dependency",
+      "translation": "Dependencia Ancha",
+      "definition": "Relación donde múltiples particiones hijas dependen de los datos distribuidos en múltiples particiones padre."
+    }
+  ],
+  "diagram": {
+    "type": "flow",
+    "nodes": [
+      {
+        "id": "n1",
+        "label": "Partición 1 (Nodo A)",
+        "sub": "filter(status == 'OK')",
+        "detail": "Procesamiento local en RAM (Narrow)",
+        "icon": "bolt",
+        "kind": "default"
+      },
+      {
+        "id": "n2",
+        "label": "Partición 2 (Nodo B)",
+        "sub": "filter(status == 'OK')",
+        "detail": "Procesamiento local en RAM (Narrow)",
+        "icon": "bolt",
+        "kind": "default"
+      },
+      {
+        "id": "shf",
+        "label": "ETAPA DE SHUFFLE",
+        "sub": "groupBy('pais')",
+        "detail": "Datos cruzan la red y tocan disco para agrupar por clave",
+        "icon": "server",
+        "kind": "decision"
+      },
+      {
+        "id": "out",
+        "label": "Partición Agrupada (Nodo C)",
+        "sub": "Resultado por País",
+        "detail": "Todos los registros del mismo país residen en el mismo nodo",
+        "icon": "check",
+        "kind": "end"
+      }
+    ]
+  },
+  "activity": {
+    "type": "sort",
+    "prompt": "Clasifica cada operación según el tipo de transformación en Apache Spark:",
+    "buckets": [
+      "Transformación Narrow (Sin Shuffle)",
+      "Transformación Wide (Con Shuffle)"
+    ],
+    "items": [
+      {
+        "text": "`.filter(col('precio') > 50)`",
+        "bucket": 0
+      },
+      {
+        "text": "`.groupBy('departamento').sum('salario')`",
+        "bucket": 1
+      },
+      {
+        "text": "`.select('nombre', 'apellido')`",
+        "bucket": 0
+      },
+      {
+        "text": "`.join(otro_df, on='cliente_id')`",
+        "bucket": 1
+      }
+    ]
+  },
+  "checkQuestionId": "q-u4-03",
+  "traps": [
+    {
+      "option": "Usar `repartition()` repetidamente en lugar de `coalesce()` cuando se quiere reducir el número de particiones.",
+      "reason": "`repartition()` fuerza un shuffle completo por red de todos los datos; `coalesce()` fusiona particiones adyacentes sin mover datos por red."
+    },
+    {
+      "option": "Dejar el valor predeterminado de 200 particiones de shuffle para procesar un archivo de 50 Megabytes.",
+      "reason": "Crea 200 micro-tareas con una sobrecarga de coordinación de red que supera el tiempo de procesamiento real."
+    }
+  ],
+  "trapSummary": "Provocar Shuffles innecesarios usando repartition() en lugar de coalesce() al reducir el número de particiones.",
+  "flashcards": [
+    {
+      "id": "fc-u4-l3-1",
+      "front": "¿Por qué las transformaciones Narrow son mucho más eficientes que las transformaciones Wide en Spark?",
+      "back": "Porque no requieren comunicación entre máquinas ni movimiento de datos por la red; se procesan completamente en la memoria local de cada ejecutor."
+    },
+    {
+      "id": "fc-u4-l3-2",
+      "front": "¿Qué cuatro fases costosas ocurren físicamente durante una etapa de Shuffle?",
+      "back": "Serialización en memoria, escritura de archivos de shuffle en disco, transferencia de paquetes por red y deserialización en los nodos receptores."
+    },
+    {
+      "id": "fc-u4-l3-3",
+      "front": "¿Cuál es la diferencia operativa entre `repartition()` y `coalesce()` en Spark?",
+      "back": "`repartition()` redistribuye todos los datos forzando un shuffle por red; `coalesce()` reduce el número de particiones combinando bloques locales sin shuffle."
+    }
+  ],
+  "quickFacts": [
+    {
+      "statement": "Las transformaciones Wide son la causa principal de latencia en pipelines pesados de Spark.",
+      "answer": true
+    },
+    {
+      "statement": "La función `select()` requiere transferir datos entre todos los nodos del clúster.",
+      "answer": false
+    },
+    {
+      "statement": "Adaptive Query Execution permite fusionar dinámicamente particiones de shuffle pequeñas.",
+      "answer": true
+    },
+    {
+      "statement": "El Shuffle de Spark no utiliza disco duro bajo ninguna circunstancia.",
+      "answer": false
+    }
+  ]
+}

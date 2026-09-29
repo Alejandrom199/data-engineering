@@ -4,17 +4,17 @@
   "version": "1.0.0",
   "locale": "es",
   "status": "active",
-  "title": "Ingeniería de Datos Moderna (OpenLearn Edition)",
-  "shortTitle": "Data Engineering",
+  "title": "Ingeniería de Datos Moderna",
+  "shortTitle": "Ingeniería de Datos",
   "provider": "OpenLearn Community · Data Engineering Mentor",
-  "description": "Curso práctico e interactivo de Ingeniería de Datos diseñado según los estándares pedagógicos de OpenLearn: micro-lecciones de 10-14m, formatos columnares (Parquet), modelado dimensional (Kimball/SCD2), computación distribuida con Apache Spark, Lakehouses transaccionales (Delta Lake), DataOps con Airflow y streaming en tiempo real con Apache Kafka y CDC.",
+  "description": "Curso integral de Ingeniería de Datos que acompaña al estudiante desde los fundamentos esenciales (ciclo de vida del dato, Linux, Python y bases de datos relacionales) hasta la arquitectura senior avanzada (almacenamiento columnar con Parquet, modelado dimensional Kimball, computación distribuida con Apache Spark, Lakehouses transaccionales con Delta Lake, DataOps con Airflow y streaming en tiempo real con Apache Kafka y CDC).",
   "level": "intermediate",
-  "estimatedHours": 36,
+  "estimatedHours": 48,
   "icon": "server",
   "color": "#0284c7",
   "certification": {
     "code": "DE-01",
-    "name": "Certified Data Engineer — Foundations (CDE-F)",
+    "name": "Certified Data Engineer Professional (CDEP)",
     "provider": "OpenLearn Community · Data Engineering Mentor",
     "questionCount": 60,
     "durationMinutes": 90,
@@ -25,198 +25,163 @@
   },
   "domains": [
     {
-      "id": "ingestion-storage-formats",
+      "id": "fundamentos-ciclo-vida-datos",
       "code": "D1",
-      "name": "Ingestión, Almacenamiento y Formatos",
-      "officialName": "Data Ingestion, Storage & Formats",
-      "weight": 18,
+      "name": "Fundamentos y Ciclo de Vida del Dato",
+      "officialName": "Data Lifecycle & Core Foundations",
+      "weight": 14,
       "icon": "server",
       "color": "#0284c7",
-      "summary": "Formatos columnares Parquet vs CSV/JSON, particionamiento en Object Storage (S3/GCS), pipelines de memoria constante en Python con generadores e ingestión resiliente con backoff exponencial y jitter.",
+      "summary": "El rol del Data Engineer, ciclo de vida integral del dato, entorno Linux con streams y Docker, y bases de datos relacionales OLTP.",
       "skills": [
         {
-          "name": "Formatos de Archivo y Compresión (Parquet/Snappy)",
-          "weight": 6
+          "name": "Ciclo de Vida y Arquitectura de Pipelines",
+          "weight": 7
         },
         {
-          "name": "Object Storage y Particionamiento (S3/GCS)",
-          "weight": 6
-        },
-        {
-          "name": "Ingestión Resiliente y Optimización en Memoria",
-          "weight": 6
+          "name": "Linux Streams, Docker y PostgreSQL OLTP",
+          "weight": 7
         }
       ]
     },
     {
-      "id": "relational-modeling-sql-dwh",
+      "id": "ingestion-formatos-motores-locales",
       "code": "D2",
-      "name": "Modelado Relacional, SQL Analítico y DWH",
-      "officialName": "Relational Modeling, Analytical SQL & DWH",
-      "weight": 20,
+      "name": "Ingestión, Formatos de Almacenamiento y Motores Locales",
+      "officialName": "Ingestion, Storage Formats & In-Process Engines",
+      "weight": 14,
       "icon": "layers",
-      "color": "#fbbf24",
-      "summary": "Contraste de motores OLTP vs OLAP, modelado dimensional de Kimball con Esquema en Estrella, Dimensiones de Cambio Lento (SCD Tipo 2), SQL analítico con funciones de ventana y optimización con EXPLAIN ANALYZE.",
+      "color": "#0ea5e9",
+      "summary": "Extracción de APIs con backoff y cursores, almacenamiento columnar Parquet vs CSV, DuckDB/Polars y particionamiento en S3.",
       "skills": [
         {
-          "name": "OLTP vs OLAP y Planes de Ejecución",
+          "name": "Ingestión Resiliente y Formatos Columnares",
           "weight": 7
         },
         {
-          "name": "Modelado Dimensional y Dimensiones de Cambio Lento (SCD2)",
+          "name": "Motores In-Process y Diseño de Data Lakes",
           "weight": 7
-        },
-        {
-          "name": "SQL Analítico Avanzado y Funciones de Ventana",
-          "weight": 6
         }
       ]
     },
     {
-      "id": "spark-distributed-computing",
+      "id": "modelado-dimensional-sql-dwh",
       "code": "D3",
+      "name": "Modelado Dimensional y Almacenes Analíticos (DWH)",
+      "officialName": "Dimensional Modeling & Analytical Warehouses",
+      "weight": 15,
+      "icon": "chart",
+      "color": "#fbbf24",
+      "summary": "OLTP vs OLAP, metodología Kimball con Esquema en Estrella, Dimensiones de Cambio Lento (SCD Tipo 2) y SQL con funciones de ventana.",
+      "skills": [
+        {
+          "name": "Metodología Kimball y Star Schema",
+          "weight": 8
+        },
+        {
+          "name": "SCD Tipo 2 y Funciones de Ventana",
+          "weight": 7
+        }
+      ]
+    },
+    {
+      "id": "procesamiento-distribuido-spark",
+      "code": "D4",
       "name": "Computación Distribuida con Apache Spark",
       "officialName": "Distributed Computing with Apache Spark",
-      "weight": 20,
-      "icon": "flame",
+      "weight": 15,
+      "icon": "bolt",
       "color": "#f97316",
-      "summary": "Arquitectura Driver-Executors, transformaciones Narrow vs Wide y coste del Shuffle, optimizador Catalyst, resolución de Data Skew con Salting y Broadcast Joins, y prevención de OOM y Disk Spill.",
+      "summary": "Arquitectura Driver/Executors, PySpark DataFrames, evaluación perezosa con Catalyst, transformaciones Narrow vs Wide y optimización de Data Skew.",
       "skills": [
         {
-          "name": "Arquitectura de Spark y Modelo de Ejecución",
-          "weight": 7
+          "name": "Arquitectura y Motor Catalyst de Spark",
+          "weight": 8
         },
         {
-          "name": "Transformaciones Narrow vs Wide y Optimización de Shuffle",
+          "name": "Shuffle, Broadcast Joins y Data Skew",
           "weight": 7
-        },
-        {
-          "name": "Tratamiento de Data Skew y Gestión de Memoria",
-          "weight": 6
         }
       ]
     },
     {
-      "id": "lakehouse-acid-tables",
-      "code": "D4",
-      "name": "Arquitectura Lakehouse y Tablas ACID",
-      "officialName": "Lakehouse Architecture & ACID Table Formats",
+      "id": "lakehouse-tablas-transaccionales",
+      "code": "D5",
+      "name": "Arquitectura Lakehouse y Tablas Transaccionales",
+      "officialName": "Lakehouse Architecture & Transactional Tables",
       "weight": 14,
       "icon": "shield",
-      "color": "#06b6d4",
-      "summary": "Formatos transaccionales abiertos (Delta Lake / Iceberg), Transaction Log y Snapshot Isolation, Time Travel y rollback de versiones, comandos MERGE para CDC, y optimización de layout con Z-Ordering.",
+      "color": "#10b981",
+      "summary": "Formatos de tabla abiertos Delta Lake y Apache Iceberg, Transaction Log y Snapshot Isolation, operaciones MERGE y Z-Ordering.",
       "skills": [
         {
-          "name": "Arquitectura Lakehouse y Transacciones ACID",
-          "weight": 5
+          "name": "Transacciones ACID y Transaction Log",
+          "weight": 7
         },
         {
-          "name": "Time Travel, Auditoría y Mantenimiento de Tablas",
-          "weight": 5
-        },
-        {
-          "name": "Ingestión Incremental MERGE y Z-Ordering",
-          "weight": 4
+          "name": "MERGE, Time Travel y Z-Ordering",
+          "weight": 7
         }
       ]
     },
     {
-      "id": "orchestration-quality-dataops",
-      "code": "D5",
-      "name": "Orquestación Robusta, Calidad y DataOps",
-      "officialName": "Data Orchestration, Quality & DataOps",
-      "weight": 14,
-      "icon": "route",
-      "color": "#8b5cf6",
-      "summary": "Diseño de DAGs idempotentes en Apache Airflow parametrizados con logical_date, sensores en modo reschedule, Circuit Breakers con Great Expectations y automatización CI/CD con DataOps.",
-      "skills": [
-        {
-          "name": "Orquestación con Apache Airflow e Idempotencia",
-          "weight": 5
-        },
-        {
-          "name": "Sensores en Airflow y Prevención de Inanición de Recursos",
-          "weight": 5
-        },
-        {
-          "name": "Calidad de Datos y Prácticas de DataOps",
-          "weight": 4
-        }
-      ]
-    },
-    {
-      "id": "streaming-realtime-cdc",
+      "id": "orquestacion-calidad-dataops",
       "code": "D6",
-      "name": "Streaming en Tiempo Real y CDC",
-      "officialName": "Real-Time Streaming & Change Data Capture",
+      "name": "Orquestación Robusta, Calidad y DataOps",
+      "officialName": "Robust Orchestration, Quality & DataOps",
       "weight": 14,
-      "icon": "bolt",
-      "color": "#ef4444",
-      "summary": "Apache Kafka y el commit log inmutable distribuido, particiones y grupos de consumidores, semántica de entrega y deduplicación idempotente, Event Time y Watermarks, y Change Data Capture no invasivo con Debezium.",
+      "icon": "git",
+      "color": "#a855f7",
+      "summary": "Orquestación con Apache Airflow, DAGs idempotentes, sensores en modo reschedule, Circuit Breakers de calidad con Great Expectations y CI/CD.",
       "skills": [
         {
-          "name": "Arquitectura de Apache Kafka y Particionamiento",
-          "weight": 5
+          "name": "Orquestación e Idempotencia con Airflow",
+          "weight": 7
         },
         {
-          "name": "Semántica de Entrega y Procesamiento Idempotente",
-          "weight": 5
+          "name": "Circuit Breakers de Calidad y DataOps",
+          "weight": 7
+        }
+      ]
+    },
+    {
+      "id": "streaming-tiempo-real-eventos",
+      "code": "D7",
+      "name": "Streaming en Tiempo Real y Arquitecturas de Eventos",
+      "officialName": "Real-Time Streaming & Event-Driven Systems",
+      "weight": 14,
+      "icon": "loop",
+      "color": "#ec4899",
+      "summary": "Batch vs Streaming, commit log y particiones de Apache Kafka, Change Data Capture (CDC) con Debezium y procesamiento con Watermarks.",
+      "skills": [
+        {
+          "name": "Arquitectura y Mecanismos de Apache Kafka",
+          "weight": 7
         },
         {
-          "name": "Event Time, Watermarks y Change Data Capture (CDC)",
-          "weight": 4
+          "name": "Change Data Capture y Watermarks en Streaming",
+          "weight": 7
         }
       ]
     }
   ],
   "units": [
-    "ingestion-storage-formats",
-    "modeling-sql-dwh",
-    "spark-distributed-computing",
-    "lakehouse-acid-tables",
-    "orchestration-quality-dataops",
-    "streaming-realtime-cdc"
-  ],
-  "exams": [
-    "diagnostic",
-    "midterm-systems-sql",
-    "final-distributed-streaming"
-  ],
-  "glossary": {
-    "langs": [
-      "es"
-    ]
-  },
-  "sources": [
-    {
-      "title": "Designing Data-Intensive Applications (Martin Kleppmann)",
-      "url": "https://dataintensive.net/"
-    },
-    {
-      "title": "The Data Warehouse Toolkit (Ralph Kimball & Margy Ross)",
-      "url": "https://www.kimballgroup.com/data-warehouse-business-intelligence-resources/books/data-warehouse-toolkit/"
-    },
-    {
-      "title": "Fundamentals of Data Engineering (Joe Reis & Matt Housley)",
-      "url": "https://www.oreilly.com/library/view/fundamentals-of-data/9781098108298/"
-    },
-    {
-      "title": "Learning Spark, 2nd Edition (Jules S. Damji et al.)",
-      "url": "https://www.oreilly.com/library/view/learning-spark-2nd/9781492050032/"
-    },
-    {
-      "title": "Kafka: The Definitive Guide, 2nd Edition (Gwen Shapira et al.)",
-      "url": "https://www.confluent.io/resources/kafka-the-definitive-guide-v2/"
-    }
+    "fundamentos-ciclo-vida-datos",
+    "ingestion-formatos-motores-locales",
+    "modelado-dimensional-sql-dwh",
+    "procesamiento-distribuido-spark",
+    "lakehouse-tablas-transaccionales",
+    "orquestacion-calidad-dataops",
+    "streaming-tiempo-real-eventos"
   ],
   "achievements": [
     {
       "id": "first-lesson-de",
-      "name": "Primeros Bits",
-      "description": "Completa tu primera lección teórica del curso de Ingeniería de Datos.",
-      "icon": "book",
-      "color": "#38bdf8",
-      "rewardGems": 15,
+      "name": "Primer Paso en Ingeniería de Datos",
+      "description": "Completaste tu primera lección teórica del curso.",
+      "icon": "server",
+      "color": "#0284c7",
+      "rewardGems": 50,
       "condition": {
         "type": "lessons-completed",
         "count": 1
@@ -224,135 +189,134 @@
     },
     {
       "id": "first-lab-de",
-      "name": "Terminal Conquistada",
-      "description": "Ejecuta y verifica con éxito tu primer laboratorio práctico guiado.",
+      "name": "Primer Laboratorio Ejecutado",
+      "description": "Ejecutaste y superaste tu primer laboratorio práctico.",
       "icon": "terminal",
-      "color": "#34d399",
-      "rewardGems": 20,
+      "color": "#0ea5e9",
+      "rewardGems": 50,
       "condition": {
         "type": "labs-completed",
         "count": 1
       }
     },
     {
-      "id": "unit-1-completed",
-      "name": "Maestro del Almacenamiento",
-      "description": "Completa la Unidad 1 de Ingestión, Almacenamiento y Formatos de Datos.",
+      "id": "unit-1-master",
+      "name": "Cimientos Sólidos de Datos",
+      "description": "Dominaste los fundamentos del ciclo de vida del dato, Linux y bases relacionales.",
       "icon": "check",
       "color": "#0284c7",
-      "rewardGems": 60,
-      "condition": {
-        "type": "unit-completed",
-        "unitId": "ingestion-storage-formats"
-      }
-    },
-    {
-      "id": "unit-2-completed",
-      "name": "Arquitecto Dimensional",
-      "description": "Completa la Unidad 2 de Modelado Relacional, SQL Analítico y Data Warehousing.",
-      "icon": "layers",
-      "color": "#fbbf24",
-      "rewardGems": 70,
-      "condition": {
-        "type": "unit-completed",
-        "unitId": "modeling-sql-dwh"
-      }
-    },
-    {
-      "id": "unit-3-completed",
-      "name": "Ingeniero Distribuido",
-      "description": "Completa la Unidad 3 de Computación Distribuida con Apache Spark.",
-      "icon": "flame",
-      "color": "#f97316",
-      "rewardGems": 80,
-      "condition": {
-        "type": "unit-completed",
-        "unitId": "spark-distributed-computing"
-      }
-    },
-    {
-      "id": "unit-4-completed",
-      "name": "Pionero del Lakehouse",
-      "description": "Completa la Unidad 4 de Arquitectura Lakehouse y Tablas ACID.",
-      "icon": "shield",
-      "color": "#06b6d4",
-      "rewardGems": 90,
-      "condition": {
-        "type": "unit-completed",
-        "unitId": "lakehouse-acid-tables"
-      }
-    },
-    {
-      "id": "unit-5-completed",
-      "name": "Operador Industrial DataOps",
-      "description": "Completa la Unidad 5 de Orquestación con Airflow, Calidad y DataOps.",
-      "icon": "route",
-      "color": "#8b5cf6",
-      "rewardGems": 90,
-      "condition": {
-        "type": "unit-completed",
-        "unitId": "orchestration-quality-dataops"
-      }
-    },
-    {
-      "id": "unit-6-completed",
-      "name": "Maestro del Tiempo Real",
-      "description": "Completa la Unidad 6 de Streaming en Tiempo Real y Change Data Capture.",
-      "icon": "bolt",
-      "color": "#ef4444",
       "rewardGems": 100,
       "condition": {
         "type": "unit-completed",
-        "unitId": "streaming-realtime-cdc"
+        "unitId": "fundamentos-ciclo-vida-datos"
       }
     },
     {
-      "id": "domain-sql-mastery",
-      "name": "Dominio Dimensional y Analítico",
-      "description": "Alcanza al menos el 80% de dominio en Modelado Relacional, SQL y DWH.",
-      "icon": "star",
+      "id": "unit-2-master",
+      "name": "Maestro del Almacenamiento Columnar",
+      "description": "Comprendiste la superioridad de Parquet, DuckDB y la ingestión tolerante a fallos.",
+      "icon": "layers",
+      "color": "#0ea5e9",
+      "rewardGems": 100,
+      "condition": {
+        "type": "unit-completed",
+        "unitId": "ingestion-formatos-motores-locales"
+      }
+    },
+    {
+      "id": "unit-3-master",
+      "name": "Arquitecto Dimensional Kimball",
+      "description": "Modelaste esquemas en estrella, dimensiones SCD Tipo 2 y consultas analíticas de ventana.",
+      "icon": "chart",
       "color": "#fbbf24",
-      "rewardGems": 110,
+      "rewardGems": 100,
       "condition": {
-        "type": "domain-mastery",
-        "domainId": "relational-modeling-sql-dwh",
-        "percent": 80
+        "type": "unit-completed",
+        "unitId": "modelado-dimensional-sql-dwh"
       }
     },
     {
-      "id": "domain-spark-mastery",
-      "name": "Dominio en Apache Spark",
-      "description": "Alcanza al menos el 80% de dominio en Computación Distribuida con Spark.",
-      "icon": "flame",
+      "id": "unit-4-master",
+      "name": "Especialista en Apache Spark",
+      "description": "Dominaste la computación distribuida, el optimizador Catalyst y la mitigación de Data Skew.",
+      "icon": "bolt",
       "color": "#f97316",
-      "rewardGems": 110,
+      "rewardGems": 100,
       "condition": {
-        "type": "domain-mastery",
-        "domainId": "spark-distributed-computing",
-        "percent": 80
+        "type": "unit-completed",
+        "unitId": "procesamiento-distribuido-spark"
       }
     },
     {
-      "id": "midterm-exam-passed",
-      "name": "Certificación Intermedia",
-      "description": "Aprueba el examen de evaluación intermedia (Bloques 1 al 3) con una nota sobresaliente.",
-      "icon": "exam",
-      "color": "#38bdf8",
-      "rewardGems": 150,
+      "id": "unit-5-master",
+      "name": "Ingeniero de Lakehouse Moderno",
+      "description": "Implementaste transacciones ACID, MERGE y Z-Ordering sobre Delta Lake.",
+      "icon": "shield",
+      "color": "#10b981",
+      "rewardGems": 100,
       "condition": {
-        "type": "mock-passed",
-        "examId": "midterm-systems-sql"
+        "type": "unit-completed",
+        "unitId": "lakehouse-tablas-transaccionales"
       }
     },
     {
-      "id": "course-completed-de",
-      "name": "Data Engineer Profesional",
-      "description": "Completa todas las unidades, laboratorios prácticos y proyectos del curso.",
-      "icon": "trophy",
-      "color": "#0284c7",
+      "id": "unit-6-master",
+      "name": "Practicante de DataOps y Orquestación",
+      "description": "Construiste pipelines idempotentes en Airflow con Circuit Breakers de calidad.",
+      "icon": "git",
+      "color": "#a855f7",
+      "rewardGems": 100,
+      "condition": {
+        "type": "unit-completed",
+        "unitId": "orquestacion-calidad-dataops"
+      }
+    },
+    {
+      "id": "unit-7-master",
+      "name": "Ingeniero de Streaming Senior",
+      "description": "Diseñaste arquitecturas de eventos en tiempo real con Apache Kafka y CDC Debezium.",
+      "icon": "loop",
+      "color": "#ec4899",
+      "rewardGems": 100,
+      "condition": {
+        "type": "unit-completed",
+        "unitId": "streaming-tiempo-real-eventos"
+      }
+    },
+    {
+      "id": "all-lessons-completed",
+      "name": "Teoría Completa de Ingeniería de Datos",
+      "description": "Completaste las 28 lecciones teóricas y conceptuales del curso.",
+      "icon": "medal",
+      "color": "#3b82f6",
+      "rewardGems": 250,
+      "condition": {
+        "type": "lessons-completed",
+        "count": 28
+      }
+    },
+    {
+      "id": "all-labs-completed",
+      "name": "Práctica Profesional Total",
+      "description": "Superaste los 21 laboratorios prácticos de código.",
+      "icon": "star",
+      "color": "#eab308",
       "rewardGems": 300,
       "condition": {
-        "type": "course-completed"
+        "type": "labs-completed",
+        "count": 21
+      }
+    },
+    {
+      "id": "certified-data-engineer",
+      "name": "Certificado: Data Engineer Professional",
+      "description": "Aprobaste el examen oficial de certificación DE-01.",
+      "icon": "trophy",
+      "color": "#10b981",
+      "rewardGems": 300,
+      "condition": {
+        "type": "mock-passed",
+        "examId": "final-distributed-streaming"
       }
     }
   ]

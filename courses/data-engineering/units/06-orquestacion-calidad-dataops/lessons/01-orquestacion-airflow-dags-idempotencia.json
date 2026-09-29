@@ -1,0 +1,180 @@
+{
+  "$schema": "../../../../../schemas/lesson.schema.json",
+  "id": "orquestacion-airflow-dags-idempotencia",
+  "title": "Orquestación con Apache Airflow: Principios de DAGs e Idempotencia",
+  "estimatedMinutes": 15,
+  "domainIds": [
+    "orquestacion-calidad-dataops"
+  ],
+  "topics": [
+    "airflow-principios-dags",
+    "idempotencia-pipelines",
+    "backfilling-fechas",
+    "airflow-operadores"
+  ],
+  "hook": "Un desarrollador programa un pipeline con cron de Linux para correr todos los días a medianoche. Una noche el servidor se reinicia por una actualización y el job no corre. Al día siguiente se ejecuta manualmente, pero inserta datos con la fecha de hoy mezclando dos días y duplicando las ventas en el dashboard. ¿Cómo garantiza Apache Airflow la ejecución determinista del tiempo?",
+  "concept": {
+    "blocks": [
+      {
+        "type": "heading",
+        "text": "1. Por qué Cron Falla en Pipelines Complejos"
+      },
+      {
+        "type": "paragraph",
+        "text": "`cron` de Linux es ciego: no sabe si una tarea previa falló, no tiene reintentos inteligentes, carece de interfaz visual de dependencias y, lo más grave, no comprende el concepto de ventana de datos histórica. Si un cron falla el sábado, el domingo no se entera de que el sábado quedó incompleto. Aquí entra en juego un orquestador como **Apache Airflow**."
+      },
+      {
+        "type": "heading",
+        "text": "2. Grafos Acíclicos Dirigidos (DAGs) como Código"
+      },
+      {
+        "type": "paragraph",
+        "text": "En Airflow, un flujo de trabajo se declara completamente en código Python como un **DAG (Directed Acyclic Graph)**. Cada nodo del grafo es una tarea individual ejecutada por un **Operador** (BashOperator, PythonOperator, SparkSubmitOperator) y las flechas (`>>`) declaran las dependencias estrictas de orden entre ellas."
+      },
+      {
+        "type": "code",
+        "language": "python",
+        "caption": "Definición estándar de un DAG en Apache Airflow 2.x",
+        "code": "from airflow import DAG\nfrom airflow.operators.python import PythonOperator\nfrom datetime import datetime, timedelta\n\ndef extract_data(**context):\n    # logical_date representa el día exacto de datos que se está procesando\n    execution_date = context['logical_date'].strftime('%Y-%m-%d')\n    print(f'Procesando lote histórico de la fecha: {execution_date}')\n\ndef transform_and_load(**context):\n    print('Transformando y cargando con sobrescritura atómica...')\n\ndefault_args = {\n    'owner': 'data_team',\n    'retries': 3,\n    'retry_delay': timedelta(minutes=5)\n}\n\nwith DAG(\n    dag_id='ventas_diarias_idempotente',\n    default_args=default_args,\n    start_date=datetime(2026, 1, 1),\n    schedule_interval='@daily',\n    catchup=True, -- Permite backfilling automático\n    max_active_runs=1\n) as dag:\n    \n    t1 = PythonOperator(task_id='extract', python_callable=extract_data)\n    t2 = PythonOperator(task_id='transform_load', python_callable=transform_and_load)\n    \n    t1 >> t2  # t1 debe finalizar con éxito antes de que t2 comience"
+      },
+      {
+        "type": "heading",
+        "text": "3. Fechas Lógicas (logical_date) y Backfilling"
+      },
+      {
+        "type": "paragraph",
+        "text": "El concepto más incomprendido de Airflow es la **fecha lógica (`logical_date`)**. Un DAG no procesa los datos del momento en que su reloj marca la medianoche actual (`datetime.now()`); procesa los datos del intervalo que acaba de cerrarse. Esto permite hacer **Backfilling**: si tu negocio comenzó en 2024, puedes activar el DAG con `start_date=2024-01-01` y Airflow ejecutará secuencialmente cada día del pasado como si estuviera ocurriendo en ese instante exacto."
+      },
+      {
+        "type": "callout",
+        "tone": "warning",
+        "title": "El Pecado de Usar datetime.now()",
+        "text": "Nunca uses `datetime.now()` dentro de las consultas SQL o scripts de un DAG de Airflow. Si reejecutas el DAG dentro de 6 meses para corregir un bug histórico, `datetime.now()` tomará la fecha del futuro destruyendo la reproducibilidad. Usa siempre `{{ ds }}` o `logical_date`."
+      }
+    ]
+  },
+  "keyPoints": [
+    "Airflow define flujos de trabajo como Grafos Acíclicos Dirigidos (DAGs) escritos en Python estándar.",
+    "La fecha lógica (`logical_date`) permite el Backfilling: reprocesar cualquier ventana de tiempo histórica con fidelidad.",
+    "La idempotencia exige que reejecutar una tarea para la misma fecha lógica no genere filas duplicadas."
+  ],
+  "terms": [
+    {
+      "term": "DAG",
+      "translation": "Grafo Acíclico Dirigido",
+      "definition": "Estructura de grafo en la que los nodos representan tareas computacionales y las aristas dirigidas definen el orden de dependencia sin bucles."
+    },
+    {
+      "term": "Logical Date (ds)",
+      "translation": "Fecha Lógica de Ejecución",
+      "definition": "Identificador temporal inmutable que define el inicio del intervalo de datos que la instancia del DAG debe procesar."
+    },
+    {
+      "term": "Backfilling",
+      "translation": "Relleno Histórico / Reprocesamiento",
+      "definition": "Capacidad de un orquestador para ejecutar automáticamente instancias de DAG correspondientes a fechas pasadas no procesadas."
+    }
+  ],
+  "diagram": {
+    "type": "flow",
+    "nodes": [
+      {
+        "id": "cron",
+        "label": "Llegada de Medianoche",
+        "sub": "Scheduler de Airflow",
+        "detail": "Determina que el intervalo de ayer acaba de cerrarse",
+        "icon": "clock",
+        "kind": "default"
+      },
+      {
+        "id": "extract",
+        "label": "Tarea: Extraer (ds='2026-09-27')",
+        "sub": "Extracción acotada",
+        "detail": "Usa la fecha lógica inmutable del intervalo",
+        "icon": "file",
+        "kind": "default"
+      },
+      {
+        "id": "load",
+        "label": "Tarea: Cargar Partición (ds)",
+        "sub": "Escritura Idempotente",
+        "detail": "Sobreescribe atómicamente la partición de esa fecha",
+        "icon": "server",
+        "kind": "end"
+      }
+    ]
+  },
+  "activity": {
+    "type": "sort",
+    "prompt": "Clasifica las prácticas de diseño de DAGs en Airflow como recomendadas o de alto riesgo:",
+    "buckets": [
+      "Práctica Recomendada",
+      "Práctica de Alto Riesgo / Antipatrón"
+    ],
+    "items": [
+      {
+        "text": "Parametrizar las consultas usando las macros de Airflow `{{ ds }}` y `logical_date`",
+        "bucket": 0
+      },
+      {
+        "text": "Usar `datetime.today()` dentro del script para filtrar las ventas a cargar",
+        "bucket": 1
+      },
+      {
+        "text": "Diseñar tareas con escritura idempotente mediante sobreescritura de partición o MERGE",
+        "bucket": 0
+      },
+      {
+        "text": "Hacer inserciones a ciegas con `INSERT INTO` sin control de duplicados en reintentos",
+        "bucket": 1
+      }
+    ]
+  },
+  "checkQuestionId": "q-u6-01",
+  "traps": [
+    {
+      "option": "Utilizar `datetime.now()` o `CURDATE()` en el código de extracción en lugar de la macro `{{ ds }}`.",
+      "reason": "Impide el backfilling y el reprocesamiento histórico confiable; reejecutar el DAG siempre tomará el día de hoy."
+    },
+    {
+      "option": "Diseñar tareas que hagan `INSERT INTO` en la base de datos sin borrar previamente la partición de la fecha en ejecución.",
+      "reason": "Rompe la idempotencia: si la tarea falla a la mitad y se reintenta, duplicará todos los registros insertados antes de la caída."
+    }
+  ],
+  "trapSummary": "Usar funciones de fecha actuales como datetime.now() en lugar de variables de contexto de Airflow rompiendo la reproducibilidad.",
+  "flashcards": [
+    {
+      "id": "fc-u6-l1-1",
+      "front": "¿Por qué es fundamental que las tareas de un DAG en Airflow sean idempotentes?",
+      "back": "Porque si una tarea falla y el orquestador la reintenta automáticamente, la reejecución debe dejar el sistema en el mismo estado correcto sin duplicar filas."
+    },
+    {
+      "id": "fc-u6-l1-2",
+      "front": "¿Qué representa la variable `logical_date` (o macro `{{ ds }}`) en Apache Airflow?",
+      "back": "Representa la fecha y hora de inicio de la ventana de datos que esa ejecución particular del DAG tiene la responsabilidad de procesar."
+    },
+    {
+      "id": "fc-u6-l1-3",
+      "front": "¿Qué función cumple el parámetro `catchup=True` al desplegar un nuevo DAG en producción?",
+      "back": "Permite que Airflow ejecute automáticamente todas las instancias del DAG correspondientes a los días transcurridos entre `start_date` y hoy (Backfilling)."
+    }
+  ],
+  "quickFacts": [
+    {
+      "statement": "En Airflow, un DAG declara las dependencias estrictas entre tareas mediante código Python.",
+      "answer": true
+    },
+    {
+      "statement": "Se recomienda usar `datetime.now()` en los DAGs para que siempre extraigan el último segundo del reloj.",
+      "answer": false
+    },
+    {
+      "statement": "El Backfilling permite procesar meses enteros de historial simplemente ajustando el start_date.",
+      "answer": true
+    },
+    {
+      "statement": "Una tarea idempotente genera registros duplicados cada vez que se reintenta.",
+      "answer": false
+    }
+  ]
+}

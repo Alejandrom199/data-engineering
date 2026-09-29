@@ -1,0 +1,24 @@
+{
+  "$schema": "../../../../schemas/lab.schema.json",
+  "id": "lab-python-pydantic-validation-pipeline",
+  "title": "Laboratorio: Pipeline con Generadores y Validación Pydantic",
+  "goal": "Construir un pipeline en Python que consuma un flujo de datos continuo, valide tipos con Pydantic y enrute anomalías hacia un Dead Letter Queue.",
+  "level": "basic",
+  "estimatedMinutes": 30,
+  "icon": "shield",
+  "domainId": "fundamentos-ciclo-vida-datos",
+  "lessonId": "python-pipelines-buffers-pydantic",
+  "code": "from pydantic import BaseModel, Field, ValidationError\nfrom typing import List, Dict, Any\n\nclass SensorReading(BaseModel):\n    sensor_id: str\n    temperature: float = Field(ge=-50.0, le=150.0)\n    humidity: float = Field(ge=0.0, le=100.0)\n\ndef parse_readings(stream):\n    for raw in stream:\n        try:\n            reading = SensorReading(**raw)\n            yield {'status': 'valid', 'data': reading.model_dump()}\n        except ValidationError as e:\n            yield {'status': 'dlq', 'raw': raw, 'error': str(e)}\n\nraw_stream = [\n    {'sensor_id': 'S1', 'temperature': 24.5, 'humidity': 45.0},\n    {'sensor_id': 'S2', 'temperature': 'CORRUPT', 'humidity': 50.0},\n    {'sensor_id': 'S3', 'temperature': 31.0, 'humidity': 110.0}\n]\n\nresults = list(parse_readings(raw_stream))\nprint('Validos:', sum(1 for r in results if r['status'] == 'valid'))\nprint('DLQ:', sum(1 for r in results if r['status'] == 'dlq'))",
+  "codeLanguage": "python",
+  "expectedOutput": "Validos: 1\nDLQ: 2",
+  "successCriteria": [
+    "Los registros correctos se validan y tipan adecuadamente.",
+    "Las anomalías de tipo y de rango se capturan y dirigen al DLQ sin detener la ejecución."
+  ],
+  "file": "solution.py",
+  "steps": [
+    "Comprender el objetivo y escribir la solución técnica solicitada.",
+    "Ejecutar la verificación del ejercicio y comparar la salida obtenida."
+  ],
+  "verify": "python solution.py"
+}

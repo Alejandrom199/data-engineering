@@ -1,0 +1,137 @@
+{
+  "$schema": "../../../../schemas/questions.schema.json",
+  "questions": [
+    {
+      "id": "q-u1-01",
+      "type": "single",
+      "domainId": "fundamentos-ciclo-vida-datos",
+      "skill": "Fundamentos y Ciclo de Vida del Dato",
+      "topic": "ciclo-vida-datos",
+      "stem": "¿Cuál es la diferencia fundamental en la responsabilidad de un Ingeniero de Datos frente a un Científico de Datos?",
+      "options": [
+        {
+          "key": "A",
+          "text": "El Ingeniero de Datos entrena modelos de Machine Learning y el Científico de Datos gestiona las bases de datos de producción."
+        },
+        {
+          "key": "B",
+          "text": "El Ingeniero de Datos construye y mantiene la infraestructura, confiabilidad y calidad de las tuberías de datos para que los perfiles analíticos consuman datos fidedignos."
+        },
+        {
+          "key": "C",
+          "text": "El Ingeniero de Datos diseña exclusivamente los dashboards ejecutivos en herramientas de Business Intelligence."
+        },
+        {
+          "key": "D",
+          "text": "El Ingeniero de Datos reemplaza la necesidad de tener ingenieros de software en la empresa."
+        }
+      ],
+      "correct": [
+        "B"
+      ],
+      "explanation": "El Ingeniero de Datos se enfoca en la arquitectura, ingestión, escalabilidad, resiliencia y entrega de datos limpios. Los Científicos y Analistas de Datos construyen modelos y reportes sobre esos cimientos confiables.",
+      "sources": [
+        "Fundamentos de Ingeniería de Datos"
+      ]
+    },
+    {
+      "id": "q-u1-02",
+      "type": "single",
+      "domainId": "fundamentos-ciclo-vida-datos",
+      "skill": "Entorno Linux y Procesamiento de Streams",
+      "topic": "linux-streaming",
+      "stem": "¿Por qué encadenar comandos con pipes (`|`) en Linux permite procesar archivos de texto de decenas de gigabytes en máquinas con recursos limitados?",
+      "options": [
+        {
+          "key": "A",
+          "text": "Porque convierte los archivos automáticamente a binario comprimido en memoria RAM."
+        },
+        {
+          "key": "B",
+          "text": "Porque transfiere los datos en streaming continuo a través de búferes de tamaño constante en lugar de cargar el archivo completo en memoria."
+        },
+        {
+          "key": "C",
+          "text": "Porque distribuye el cómputo de manera automática entre todos los servidores de la red local."
+        },
+        {
+          "key": "D",
+          "text": "Porque omite la lectura de las líneas intermedias del archivo para acelerar la velocidad."
+        }
+      ],
+      "correct": [
+        "B"
+      ],
+      "explanation": "Los pipes en sistemas Unix implementan comunicación entre procesos mediante búfers en memoria donde el emisor produce y el receptor consume concurrentemente, logrando un consumo de memoria constante O(1).",
+      "sources": [
+        "The Linux Programming Interface"
+      ]
+    },
+    {
+      "id": "q-u1-03",
+      "type": "single",
+      "domainId": "fundamentos-ciclo-vida-datos",
+      "skill": "Pipelines Defensivos en Python",
+      "topic": "python-generadores",
+      "stem": "¿Qué ventaja operativa ofrece una función generadora que usa `yield` frente a una función que retorna una lista completa en un pipeline de datos?",
+      "options": [
+        {
+          "key": "A",
+          "text": "Ejecuta el código en múltiples núcleos de CPU de forma nativa sin GIL."
+        },
+        {
+          "key": "B",
+          "text": "Permite emitir elementos uno por uno de manera perezosa (lazy), manteniendo un consumo de memoria RAM prácticamente constante e independiente del tamaño del archivo."
+        },
+        {
+          "key": "C",
+          "text": "Garantiza que ningún registro contenga campos nulos o vacíos."
+        },
+        {
+          "key": "D",
+          "text": "Aumenta la velocidad de red al comunicarse con bases de datos remotas."
+        }
+      ],
+      "correct": [
+        "B"
+      ],
+      "explanation": "Los generadores pausan su ejecución tras cada yield y entregan un único registro a demanda, lo que evita desbordar la memoria RAM al procesar datasets masivos.",
+      "sources": [
+        "Fluent Python"
+      ]
+    },
+    {
+      "id": "q-u1-04",
+      "type": "single",
+      "domainId": "fundamentos-ciclo-vida-datos",
+      "skill": "Bases de Datos Relacionales y Rendimiento",
+      "topic": "indices-btree",
+      "stem": "¿Cómo afecta la incorporación de un índice B-Tree sobre una tabla de PostgreSQL a las operaciones de lectura (`SELECT`) y escritura (`INSERT`)?",
+      "options": [
+        {
+          "key": "A",
+          "text": "Acelera las lecturas filtradas por esa columna al usar búsqueda logarítmica O(log N), pero añade sobrecarga a las inserciones al tener que actualizar la estructura del árbol."
+        },
+        {
+          "key": "B",
+          "text": "Acelera las inserciones al ordenar los datos antes de escribirlos en disco, pero ralentiza las lecturas."
+        },
+        {
+          "key": "C",
+          "text": "Acelera tanto las lecturas como las escrituras sin ningún costo computacional asociado."
+        },
+        {
+          "key": "D",
+          "text": "Deshabilita el escaneo secuencial para todas las demás columnas de la tabla."
+        }
+      ],
+      "correct": [
+        "A"
+      ],
+      "explanation": "Un índice B-Tree reduce el costo de lectura de O(N) a O(log N), pero cada INSERT, UPDATE o DELETE debe mantener la integridad del árbol, impactando ligeramente el rendimiento de escritura.",
+      "sources": [
+        "PostgreSQL Documentation - B-Tree Indexes"
+      ]
+    }
+  ]
+}

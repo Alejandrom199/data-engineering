@@ -1,0 +1,206 @@
+{
+  "$schema": "../../../../../schemas/lesson.schema.json",
+  "id": "bases-datos-relacionales-oltp-sql",
+  "title": "Bases de Datos Relacionales (OLTP): Postgres, Normalización e Índices",
+  "estimatedMinutes": 15,
+  "domainIds": [
+    "fundamentos-ciclo-vida-datos"
+  ],
+  "topics": [
+    "bases-datos-oltp",
+    "acid-transacciones",
+    "indices-btree",
+    "sql-relacional"
+  ],
+  "hook": "La base de datos de una tienda online tarda 45 segundos en procesar el pago de un cliente porque la tabla `ordenes` de 10 millones de filas no tiene un índice en la columna `cliente_id`. El motor lee todo el disco de cabo a rabo en cada clic. ¿Cómo funciona un índice B-Tree por dentro?",
+  "concept": {
+    "blocks": [
+      {
+        "type": "heading",
+        "text": "1. ¿Qué es un Sistema OLTP?"
+      },
+      {
+        "type": "paragraph",
+        "text": "OLTP significa Online Transaction Processing. Son las bases de datos transaccionales operacionales que hacen funcionar las aplicaciones en vivo (PostgreSQL, MySQL, SQL Server). Su diseño prioriza escrituras rápidas, actualizaciones concurrentes y lecturas puntuales de pocos registros (por ejemplo, 'buscar la orden #45892 y actualizar su estado a PAGADO')."
+      },
+      {
+        "type": "heading",
+        "text": "2. Las Propiedades ACID: El Núcleo de la Transaccionalidad"
+      },
+      {
+        "type": "paragraph",
+        "text": "Para que una base de datos sea confiable en entornos bancarios o comerciales, debe cumplir las 4 garantías ACID:"
+      },
+      {
+        "type": "list",
+        "style": "bullet",
+        "items": [
+          "**Atomicidad (Atomicity):** Todo o nada. Si una transferencia bancaria resta dinero de una cuenta pero falla al sumar en la otra, toda la transacción se cancela (ROLLBACK).",
+          "**Consistencia (Consistency):** Los datos siempre respetan las restricciones de clave foránea, tipos y unicidad declaradas.",
+          "**Aislamiento (Isolation):** Dos transacciones ejecutándose en paralelo no interfieren entre sí de forma indebida.",
+          "**Durabilidad (Durability):** Una vez confirmada la transacción (COMMIT), los cambios sobreviven incluso a un apagón inmediato del servidor gracias al Write-Ahead Log (WAL)."
+        ]
+      },
+      {
+        "type": "heading",
+        "text": "3. Normalización Relacional (Tercera Forma Normal - 3NF)"
+      },
+      {
+        "type": "paragraph",
+        "text": "En OLTP evitamos la duplicación de datos a toda costa. Si el cliente cambia de dirección, solo se actualiza una fila en la tabla `clientes`, no en cada una de sus 100 compras. Para ello se normalizan las tablas mediante Claves Primarias (`PRIMARY KEY`) y Claves Foráneas (`FOREIGN KEY`)."
+      },
+      {
+        "type": "heading",
+        "text": "4. Cómo Funcionan los Índices B-Tree"
+      },
+      {
+        "type": "paragraph",
+        "text": "Sin un índice, la base de datos debe ejecutar un **Sequential Scan** (recorrer las 10 millones de páginas de disco una por una, complejidad O(N)). Un índice B-Tree (Balanced Tree) organiza los valores en una estructura de árbol balanceado ordenada, permitiendo ubicar cualquier fila en solo 3 o 4 lecturas de página (complejidad O(log N))."
+      },
+      {
+        "type": "code",
+        "language": "sql",
+        "caption": "Creación de índices y análisis de rendimiento en PostgreSQL",
+        "code": "-- 1. Consulta sin índice: Escaneo secuencial lento\nEXPLAIN ANALYZE\nSELECT * FROM transacciones WHERE usuario_id = 952341;\n-- Resultado: Seq Scan on transacciones (cost=0.00..184520.10 rows=4 width=128) (actual time=4250.12 ms)\n\n-- 2. Creación del índice B-Tree para acelerar búsquedas por usuario\nCREATE INDEX idx_transacciones_usuario_id ON transacciones (usuario_id);\n\n-- 3. Misma consulta con índice: Búsqueda inmediata\nEXPLAIN ANALYZE\nSELECT * FROM transacciones WHERE usuario_id = 952341;\n-- Resultado: Index Scan using idx_transacciones_usuario_id (cost=0.43..8.45 rows=4) (actual time=0.08 ms)"
+      },
+      {
+        "type": "callout",
+        "tone": "warning",
+        "title": "El Costo de los Índices",
+        "text": "Los índices aceleran drásticamente las lecturas (`SELECT`), pero ralentizan las escrituras (`INSERT`, `UPDATE`, `DELETE`) porque el motor debe actualizar el árbol del índice con cada cambio. Nunca agregues índices a ciegas sin verificar los patrones de consulta."
+      }
+    ]
+  },
+  "keyPoints": [
+    "Los sistemas OLTP están diseñados para transacciones operacionales concurrentes y rápidas bajo garantías ACID.",
+    "La normalización (3NF) elimina la redundancia de datos pero exige múltiples JOINs para reconstruir la información.",
+    "Los índices B-Tree transforman escaneos secuenciales O(N) en búsquedas logarítmicas O(log N), mejorando el tiempo de respuesta en órdenes de magnitud."
+  ],
+  "terms": [
+    {
+      "term": "OLTP",
+      "translation": "Procesamiento de Transacciones en Línea",
+      "definition": "Arquitectura de bases de datos optimizada para gestionar transacciones atómicas frecuentes y concurrentes de lectura y escritura."
+    },
+    {
+      "term": "B-Tree Index",
+      "translation": "Índice de Árbol Balanceado",
+      "definition": "Estructura de datos jerárquica y ordenada en disco que permite búsquedas, inserciones y accesos secuenciales en tiempo logarítmico."
+    },
+    {
+      "term": "Write-Ahead Logging (WAL)",
+      "translation": "Registro previo a la escritura",
+      "definition": "Técnica donde los cambios se escriben primero en un log append-only antes de modificarse en los archivos principales de la base de datos."
+    }
+  ],
+  "diagram": {
+    "type": "flow",
+    "nodes": [
+      {
+        "id": "query",
+        "label": "Consulta: WHERE usuario_id = 42",
+        "sub": "Petición del cliente",
+        "detail": "Llega consulta SQL al planificador de PostgreSQL",
+        "icon": "search",
+        "kind": "default"
+      },
+      {
+        "id": "decision",
+        "label": "¿Existe índice en usuario_id?",
+        "sub": "Evaluación del optimizador",
+        "detail": "Determina si usa escaneo secuencial o árbol B-Tree",
+        "icon": "search",
+        "kind": "decision"
+      },
+      {
+        "id": "seq",
+        "label": "Sequential Scan",
+        "sub": "O(N) - Lento (segundos)",
+        "detail": "Lee 100% de las páginas del disco una por una",
+        "icon": "alert",
+        "kind": "default"
+      },
+      {
+        "id": "idx",
+        "label": "Index Scan (B-Tree)",
+        "sub": "O(log N) - Rápido (<1 ms)",
+        "detail": "Navega directamente a los punteros exactos de la fila",
+        "icon": "bolt",
+        "kind": "end"
+      }
+    ]
+  },
+  "activity": {
+    "type": "sort",
+    "prompt": "Clasifica cada caso de uso según el comportamiento de búsqueda en bases de datos relacionales:",
+    "buckets": [
+      "Beneficiado por Índice B-Tree",
+      "Requiere Escaneo Secuencial (Seq Scan)"
+    ],
+    "items": [
+      {
+        "text": "Buscar un usuario específico por su correo electrónico único: `WHERE email = 'user@test.com'`",
+        "bucket": 0
+      },
+      {
+        "text": "Calcular la suma total de ventas de toda la historia de la empresa sin filtros: `SELECT SUM(monto) FROM ventas`",
+        "bucket": 1
+      },
+      {
+        "text": "Filtrar pedidos de un cliente específico ordenados por fecha: `WHERE cliente_id = 500 ORDER BY fecha`",
+        "bucket": 0
+      },
+      {
+        "text": "Buscar coincidencias aproximadas con comodín inicial: `WHERE descripcion LIKE '%motor%'`",
+        "bucket": 1
+      }
+    ]
+  },
+  "checkQuestionId": "q-u1-04",
+  "traps": [
+    {
+      "option": "Crear un índice en cada columna de una tabla transaccional de alta frecuencia de inserción.",
+      "reason": "Cada nuevo INSERT deberá actualizar 20 árboles en disco, destruyendo la velocidad de escritura de la aplicación."
+    },
+    {
+      "option": "Utilizar bases de datos OLTP normalizadas para ejecutar consultas analíticas pesadas con agregaciones sobre años de historial.",
+      "reason": "El escaneo por filas y los múltiples JOINs saturarán la CPU del servidor transaccional, degradando la experiencia de los usuarios en vivo."
+    }
+  ],
+  "trapSummary": "Saturar una base de datos OLTP transaccional con consultas analíticas masivas que provocan bloqueos y escaneos secuenciales.",
+  "flashcards": [
+    {
+      "id": "fc-u1-l4-1",
+      "front": "¿Qué significa cada una de las siglas de las propiedades ACID?",
+      "back": "Atomicidad (todo o nada), Consistencia (respeto de reglas), Aislamiento (concurrencia segura) y Durabilidad (persistencia tras caídas)."
+    },
+    {
+      "id": "fc-u1-l4-2",
+      "front": "¿Cómo acelera un índice B-Tree una consulta en PostgreSQL?",
+      "back": "Organiza las claves en un árbol balanceado ordenado, permitiendo localizar el registro en tiempo logarítmico O(log N) sin leer toda la tabla."
+    },
+    {
+      "id": "fc-u1-l4-3",
+      "front": "¿Cuál es la desventaja de añadir demasiados índices a una tabla OLTP?",
+      "back": "Ralentiza las operaciones de escritura (INSERT, UPDATE, DELETE) porque la base de datos debe sincronizar y rebalancear cada índice."
+    }
+  ],
+  "quickFacts": [
+    {
+      "statement": "Las bases de datos OLTP priorizan transacciones atómicas rápidas sobre registros individuales.",
+      "answer": true
+    },
+    {
+      "statement": "Un índice B-Tree acelera tanto las lecturas como las escrituras en una tabla relacional.",
+      "answer": false
+    },
+    {
+      "statement": "El registro previo Write-Ahead Log (WAL) garantiza la propiedad de Durabilidad en PostgreSQL.",
+      "answer": true
+    },
+    {
+      "statement": "La normalización en bases de datos relacionales busca duplicar información para evitar JOINs.",
+      "answer": false
+    }
+  ]
+}

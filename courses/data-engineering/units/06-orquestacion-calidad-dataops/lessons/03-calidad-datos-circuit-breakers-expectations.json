@@ -1,0 +1,190 @@
+{
+  "$schema": "../../../../../schemas/lesson.schema.json",
+  "id": "calidad-datos-circuit-breakers-expectations",
+  "title": "Calidad de Datos: Circuit Breakers con Great Expectations y Contratos",
+  "estimatedMinutes": 15,
+  "domainIds": [
+    "orquestacion-calidad-dataops"
+  ],
+  "topics": [
+    "calidad-datos",
+    "circuit-breakers",
+    "great-expectations",
+    "contratos-datos"
+  ],
+  "hook": "Un proveedor cambia inadvertidamente la moneda de su catálogo de dólares a centavos. Un pipeline sin validación carga los datos a la capa Oro: todos los precios aparecen multiplicados por 100 y el sistema envía emails a 50,000 clientes con precios desorbitados. ¿Cómo se construye un Circuit Breaker que detenga el pipeline antes de que los datos corruptos lleguen a producción?",
+  "concept": {
+    "blocks": [
+      {
+        "type": "heading",
+        "text": "1. El Patrón Circuit Breaker en Ingeniería de Datos"
+      },
+      {
+        "type": "paragraph",
+        "text": "En ingeniería eléctrica, un disyuntor o disyuntor térmico (**Circuit Breaker**) corta la corriente en microsegundos si detecta un pico de tensión, evitando un incendio. En ingeniería de datos, un Circuit Breaker es una compuerta de validación automática que evalúa la calidad de los datos en la capa Plata. Si los datos no cumplen con los contratos de calidad mínimos esperados, el circuito 'salta': el pipeline se detiene de inmediato, se envía una alerta al equipo y **se impide que los datos corruptos contaminen los dashboards de negocio**."
+      },
+      {
+        "type": "heading",
+        "text": "2. Frameworks de Calidad: Great Expectations y Soda"
+      },
+      {
+        "type": "paragraph",
+        "text": "**Great Expectations** es el estándar de código abierto para testing de datos. Permite expresar afirmaciones declarativas sobre las tablas de forma similar a los tests unitarios en software tradicional:"
+      },
+      {
+        "type": "list",
+        "style": "bullet",
+        "items": [
+          "`expect_column_values_to_not_be_null('cliente_id')`: Garantiza que ningún registro carezca de identificador.",
+          "`expect_column_values_to_be_unique('orden_id')`: Verifica la no duplicidad de transacciones.",
+          "`expect_column_values_to_be_between('monto', min_value=0.01, max_value=50000.00)`: Detecta anomalías o números negativos.",
+          "`expect_table_row_count_to_be_between(min_value=1000, max_value=100000)`: Alerta si el lote diario vino sospechosamente vacío o quintuplicado."
+        ]
+      },
+      {
+        "type": "code",
+        "language": "python",
+        "caption": "Validación con Great Expectations en un pipeline",
+        "code": "import great_expectations as gx\n\ncontext = gx.get_context()\ndatasource = context.sources.add_pandas('data_source_ventas')\nasset = datasource.add_dataframe_asset('ventas_hoy')\n\n# Definir el lote y la suite de expectativas\nsuite = context.add_expectation_suite('suite_ventas_produccion')\nvalidator = context.get_validator(dataframe=df_ventas, expectation_suite=suite)\n\nvalidator.expect_column_values_to_not_be_null('cliente_id')\nvalidator.expect_column_values_to_be_between('monto', 0.01, 100000.0)\nvalidator.expect_column_values_to_be_in_set('moneda', ['USD', 'EUR', 'MXN'])\n\n# Ejecutar validación del Circuit Breaker\nresults = validator.validate()\nif not results.success:\n    raise ValueError(f'CIRCUIT BREAKER ACTIVADO: Datos corruptos detectados. Abortando publicacion.')\nprint('Calidad certificada al 100%. Procediendo a capa Oro.')"
+      },
+      {
+        "type": "callout",
+        "tone": "info",
+        "title": "Data Contracts (Contratos de Datos)",
+        "text": "Un Contrato de Datos es un acuerdo formal entre los productores de datos (ingenieros de software backend) y los consumidores (ingenieros de datos). Define esquemas, semántica, SLA y límites de cambio para que ninguna actualización de la aplicación rompa las tuberías analíticas."
+      }
+    ]
+  },
+  "keyPoints": [
+    "Un Circuit Breaker detiene la propagación de datos corruptos antes de que alcancen las capas analíticas de consumo.",
+    "Great Expectations permite escribir tests declarativos sobre nulos, rangos, tipos y volumetría de datos.",
+    "Los Contratos de Datos formalizan las obligaciones de esquema entre productores y consumidores de datos."
+  ],
+  "terms": [
+    {
+      "term": "Circuit Breaker",
+      "translation": "Disyuntor de Datos",
+      "definition": "Mecanismo defensivo automatizado que aborta un pipeline si una suite de validación de calidad detecta anomalías severas."
+    },
+    {
+      "term": "Great Expectations",
+      "translation": "Great Expectations",
+      "definition": "Biblioteca de código abierto para perfilar, testear y documentar automáticamente la calidad e integridad de conjuntos de datos."
+    },
+    {
+      "term": "Data Contract",
+      "translation": "Contrato de Datos",
+      "definition": "Acuerdo formal versionado entre productores y consumidores de datos que estipula el esquema, restricciones de negocio y SLAs requeridos."
+    }
+  ],
+  "diagram": {
+    "type": "flow",
+    "nodes": [
+      {
+        "id": "silver",
+        "label": "Datos en Capa Plata",
+        "sub": "Transformados pero no publicados",
+        "detail": "Dataset listo para evaluación de calidad",
+        "icon": "layers",
+        "kind": "default"
+      },
+      {
+        "id": "gx",
+        "label": "Evaluación de Expectativas",
+        "sub": "Great Expectations / Soda",
+        "detail": "Comprueba nulos, rangos, valores y volumetría",
+        "icon": "shield",
+        "kind": "decision"
+      },
+      {
+        "id": "gold",
+        "label": "Aprobado -> Publicar en Oro",
+        "sub": "Calidad Certificada",
+        "detail": "Disponible para BI y usuarios de negocio",
+        "icon": "check",
+        "kind": "end"
+      },
+      {
+        "id": "break",
+        "label": "CIRCUIT BREAKER -> Abortar",
+        "sub": "Alerta y Dead Letter Queue",
+        "detail": "Detiene el pipeline antes de contaminar reportes",
+        "icon": "alert",
+        "kind": "end"
+      }
+    ]
+  },
+  "activity": {
+    "type": "sort",
+    "prompt": "Clasifica la afirmación según corresponda a una Expectativa de Calidad o a un Contrato de Datos:",
+    "buckets": [
+      "Expectativa de Datos (Great Expectations)",
+      "Contrato de Datos (Data Contract)"
+    ],
+    "items": [
+      {
+        "text": "`expect_column_values_to_be_between('edad', 18, 120)`",
+        "bucket": 0
+      },
+      {
+        "text": "Acuerdo formal entre el equipo del Backend y el equipo de Datos sobre el esquema JSON emitido por el servicio de pagos",
+        "bucket": 1
+      },
+      {
+        "text": "`expect_column_values_to_not_be_null('transaccion_id')`",
+        "bucket": 0
+      },
+      {
+        "text": "Compromiso de SLA de que la tabla estará disponible antes de las 6:00 AM con semántica estricta",
+        "bucket": 1
+      }
+    ]
+  },
+  "checkQuestionId": "q-u6-03",
+  "traps": [
+    {
+      "option": "Configurar las validaciones de calidad solo para registrar advertencias en el log sin detener el pipeline (`raise`).",
+      "reason": "Nadie lee los logs de éxito con advertencias; los datos corruptos llegarán a los reportes del CFO igualmente."
+    },
+    {
+      "option": "Validar la calidad de los datos únicamente en el dashboard final de PowerBI/Tableau.",
+      "reason": "Es demasiado tarde: los datos corruptos ya contaminaron el Data Lake, el DWH y los modelos de Machine Learning."
+    }
+  ],
+  "trapSummary": "Emitir advertencias silenciosas en lugar de detener el pipeline cuando se violan los contratos críticos de calidad.",
+  "flashcards": [
+    {
+      "id": "fc-u6-l3-1",
+      "front": "¿Qué es un Circuit Breaker en la arquitectura de un pipeline de datos?",
+      "back": "Es una compuerta automatizada que evalúa reglas de calidad y aborta el pipeline si detecta anomalías, evitando que los datos corruptos lleguen a producción."
+    },
+    {
+      "id": "fc-u6-l3-2",
+      "front": "¿Para qué se utiliza la librería Great Expectations en ingeniería de datos?",
+      "back": "Para definir afirmaciones declarativas ('expectations') sobre los datos, validar lotes automáticamente y generar documentación de calidad."
+    },
+    {
+      "id": "fc-u6-l3-3",
+      "front": "¿Qué es un Contrato de Datos (Data Contract)?",
+      "back": "Un acuerdo formal y versionado entre productores (desarrolladores de software) y consumidores (ingenieros de datos) que define el esquema y garantías del dato."
+    }
+  ],
+  "quickFacts": [
+    {
+      "statement": "Un Circuit Breaker aborta el pipeline inmediatamente si los datos violan las reglas de calidad.",
+      "answer": true
+    },
+    {
+      "statement": "Es recomendable dejar que los datos corruptos pasen a producción y corregirlos manualmente en PowerBI.",
+      "answer": false
+    },
+    {
+      "statement": "Great Expectations permite validar que una columna contenga solo valores de un conjunto permitido.",
+      "answer": true
+    },
+    {
+      "statement": "Un Contrato de Datos elimina la necesidad de hablar entre equipos de backend y datos.",
+      "answer": false
+    }
+  ]
+}

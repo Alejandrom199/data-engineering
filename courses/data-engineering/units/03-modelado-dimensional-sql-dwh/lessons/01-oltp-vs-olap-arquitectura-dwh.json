@@ -1,0 +1,210 @@
+{
+  "$schema": "../../../../../schemas/lesson.schema.json",
+  "id": "oltp-vs-olap-arquitectura-dwh",
+  "title": "De OLTP a OLAP: Por qué una Base de Datos Operacional no Sirve para Analítica",
+  "estimatedMinutes": 14,
+  "domainIds": [
+    "modelado-dimensional-sql-dwh"
+  ],
+  "topics": [
+    "oltp-vs-olap",
+    "almacenes-analiticos",
+    "arquitectura-dwh",
+    "snowflake-bigquery"
+  ],
+  "hook": "El equipo de Business Intelligence ejecuta un reporte mensual de ventas cruzando 8 tablas en la base de datos de producción (PostgreSQL). La consulta bloquea las tablas por 2 minutos, la app web de compras de los clientes se cuelga y se pierden $20,000 en ventas en vivo. ¿Por qué la analítica nunca debe correr sobre un sistema OLTP?",
+  "concept": {
+    "blocks": [
+      {
+        "type": "heading",
+        "text": "1. Dos Mundos Completamente Opuestos: OLTP vs OLAP"
+      },
+      {
+        "type": "paragraph",
+        "text": "Las bases de datos operacionales (OLTP) y los almacenes analíticos (OLAP) resuelven problemas diametralmente opuestos. Mientras que OLTP atiende a miles de usuarios simultáneos leyendo o escribiendo una sola fila en milisegundos, OLAP atiende a pocos analistas ejecutando consultas masivas que agregan millones de filas a lo largo de años de historial."
+      },
+      {
+        "type": "table",
+        "headers": [
+          "Característica",
+          "OLTP (PostgreSQL, MySQL)",
+          "OLAP (Snowflake, BigQuery, ClickHouse)"
+        ],
+        "rows": [
+          [
+            "Propósito Principal",
+            "Transacciones operacionales en vivo de la aplicación.",
+            "Analítica de negocio, reportes ejecutivos, BI y Machine Learning."
+          ],
+          [
+            "Patrón de Lectura",
+            "Pocos registros por consulta filtrados por clave primaria (`WHERE id = 450`).",
+            "Millones de registros escaneando pocas columnas agregadas (`SUM, AVG, COUNT`)."
+          ],
+          [
+            "Patrón de Escritura",
+            "Inserciones, actualizaciones y borrados continuos fila por fila.",
+            "Cargas masivas en lote (batch) o micro-batches append-only periódicos."
+          ],
+          [
+            "Diseño de Datos",
+            "Altamente normalizado (3NF) para evitar redundancias.",
+            "Desnormalizado o dimensional (Star Schema) para minimizar JOINs."
+          ],
+          [
+            "Disposición Física",
+            "Orientado a filas (Row-oriented).",
+            "Orientado a columnas (Columnar masivamente paralelo - MPP)."
+          ]
+        ],
+        "caption": "Comparativa fundamental entre arquitecturas OLTP y OLAP"
+      },
+      {
+        "type": "heading",
+        "text": "2. Arquitecturas MPP y Separación de Cómputo y Almacenamiento"
+      },
+      {
+        "type": "paragraph",
+        "text": "Los Data Warehouses modernos en la nube (Snowflake, BigQuery, Databricks SQL) revolucionaron la industria al separar completamente el **Almacenamiento** (Object Storage barato como S3) del **Cómputo** (clústeres de servidores que se encienden y apagan bajo demanda). Si necesitas procesar una consulta pesada en 5 segundos, enciendes 64 nodos de cómputo durante 5 segundos y pagas solo por ese tiempo."
+      },
+      {
+        "type": "callout",
+        "tone": "tip",
+        "title": "La Regla de Oro del DWH",
+        "text": "Nunca conectes herramientas de BI (PowerBI, Tableau) directamente a la base de datos operacional de producción. Siempre extrae los datos a un Data Warehouse o Data Lake aislado."
+      }
+    ]
+  },
+  "keyPoints": [
+    "OLTP está optimizado para transacciones fila por fila concurrentes; OLAP está optimizado para agregaciones columnares masivas.",
+    "Correr consultas analíticas pesadas en OLTP provoca bloqueos de tablas y degrada la experiencia de los clientes en vivo.",
+    "Los Data Warehouses modernos separan el cómputo del almacenamiento, permitiendo escalar recursos elásticamente según la demanda."
+  ],
+  "terms": [
+    {
+      "term": "OLAP",
+      "translation": "Procesamiento Analítico en Línea",
+      "definition": "Sistemas de bases de datos diseñados para consultar y agregar de forma eficiente volúmenes masivos de datos multidimensionales."
+    },
+    {
+      "term": "MPP (Massively Parallel Processing)",
+      "translation": "Procesamiento Masivamente Paralelo",
+      "definition": "Arquitectura de cómputo donde múltiples servidores procesan partes independientes de una consulta analítica en paralelo."
+    },
+    {
+      "term": "Separation of Storage and Compute",
+      "translation": "Separación de Cómputo y Almacenamiento",
+      "definition": "Diseño en la nube donde los datos residen en almacenamiento persistente y los recursos de CPU se aprovisionan de forma desacoplada."
+    }
+  ],
+  "diagram": {
+    "type": "flow",
+    "nodes": [
+      {
+        "id": "app",
+        "label": "Usuarios / Web App",
+        "sub": "Transacciones en vivo",
+        "detail": "Miles de lecturas y escrituras por segundo",
+        "icon": "users",
+        "kind": "default"
+      },
+      {
+        "id": "oltp",
+        "label": "Base OLTP (Postgres)",
+        "sub": "Row-oriented (3NF)",
+        "detail": "Garantías ACID para operaciones del negocio",
+        "icon": "server",
+        "kind": "default"
+      },
+      {
+        "id": "etl",
+        "label": "Pipeline ETL / Ingestión",
+        "sub": "Extracción periódica",
+        "detail": "Desacopla producción de analítica",
+        "icon": "server",
+        "kind": "default"
+      },
+      {
+        "id": "olap",
+        "label": "Data Warehouse (OLAP)",
+        "sub": "Columnar / Star Schema",
+        "detail": "Consultas analíticas masivas para BI y ML",
+        "icon": "chart",
+        "kind": "end"
+      }
+    ]
+  },
+  "activity": {
+    "type": "sort",
+    "prompt": "Clasifica cada consulta en la arquitectura de base de datos apropiada:",
+    "buckets": [
+      "Base de Datos OLTP (Postgres)",
+      "Data Warehouse OLAP (Snowflake/BigQuery)"
+    ],
+    "items": [
+      {
+        "text": "Actualizar el estado del pedido #98321 de 'PENDIENTE' a 'ENVIADO'",
+        "bucket": 0
+      },
+      {
+        "text": "Calcular la retención trimestral agregando 100 millones de compras en 5 años",
+        "bucket": 1
+      },
+      {
+        "text": "Validar la contraseña y el saldo del usuario que acaba de iniciar sesión",
+        "bucket": 0
+      },
+      {
+        "text": "Identificar los 10 productos más vendidos por región y categoría este año",
+        "bucket": 1
+      }
+    ]
+  },
+  "checkQuestionId": "q-u3-01",
+  "traps": [
+    {
+      "option": "Diseñar un Data Warehouse replicando las 150 tablas normalizadas en Tercera Forma Normal (3NF) de la base de datos OLTP.",
+      "reason": "Exigirá consultas con 20 JOINs complejos que colapsarán el rendimiento analítico; el DWH debe modelarse de forma dimensional."
+    },
+    {
+      "option": "Usar un Data Warehouse OLAP como backend para el inicio de sesión y compras en tiempo real de una tienda web.",
+      "reason": "Los DWH tienen latencias base de segundos por consulta y no están optimizados para transacciones concurrentes fila por fila."
+    }
+  ],
+  "trapSummary": "Conectar herramientas de BI directamente a bases transaccionales operacionales en lugar de a un DWH desacoplado.",
+  "flashcards": [
+    {
+      "id": "fc-u3-l1-1",
+      "front": "¿Por qué las bases de datos orientadas a filas (OLTP) sufren al ejecutar consultas con `SUM()` o `AVG()` sobre millones de filas?",
+      "back": "Porque deben cargar en memoria todas las columnas de cada fila desde el disco, transfiriendo gigabytes de datos innecesarios."
+    },
+    {
+      "id": "fc-u3-l1-2",
+      "front": "¿Qué ventaja aporta la separación de cómputo y almacenamiento en un Data Warehouse moderno?",
+      "back": "Permite escalar los recursos de procesamiento (CPU/RAM) independientemente del volumen de datos guardados, pagando solo por lo consumido."
+    },
+    {
+      "id": "fc-u3-l1-3",
+      "front": "¿Qué significa la sigla MPP en almacenes de datos?",
+      "back": "Massively Parallel Processing: arquitectura que divide una consulta analítica en subtareas ejecutadas en paralelo a través de múltiples nodos."
+    }
+  ],
+  "quickFacts": [
+    {
+      "statement": "Las bases de datos OLAP almacenan los datos organizados por columnas para acelerar las agregaciones.",
+      "answer": true
+    },
+    {
+      "statement": "Se recomienda ejecutar reportes ejecutivos directamente sobre la base transaccional de producción.",
+      "answer": false
+    },
+    {
+      "statement": "Snowflake y BigQuery permiten pausar los recursos de cómputo cuando no hay consultas activas.",
+      "answer": true
+    },
+    {
+      "statement": "Los sistemas OLTP están diseñados para escanear cientos de gigabytes por consulta.",
+      "answer": false
+    }
+  ]
+}

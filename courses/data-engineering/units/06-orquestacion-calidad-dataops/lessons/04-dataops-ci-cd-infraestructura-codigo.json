@@ -1,0 +1,205 @@
+{
+  "$schema": "../../../../../schemas/lesson.schema.json",
+  "id": "dataops-ci-cd-infraestructura-codigo",
+  "title": "DataOps: CI/CD, Infraestructura como Código y Observabilidad",
+  "estimatedMinutes": 16,
+  "domainIds": [
+    "orquestacion-calidad-dataops"
+  ],
+  "topics": [
+    "dataops-ci-cd",
+    "testing-pipelines",
+    "infraestructura-codigo-terraform",
+    "observabilidad-datos"
+  ],
+  "hook": "Un ingeniero modifica un pipeline de Airflow directamente en el servidor de producción usando un editor de texto. Introduce un error de sintaxis que rompe los 40 DAGs de la compañía a las 2:00 AM. Nadie sabe qué cambió, quién lo cambió ni cómo revertirlo. ¿Cómo aplican los equipos maduros la filosofía DataOps para garantizar calidad continua?",
+  "concept": {
+    "blocks": [
+      {
+        "type": "heading",
+        "text": "1. ¿Qué es DataOps?"
+      },
+      {
+        "type": "paragraph",
+        "text": "Así como DevOps revolucionó el desarrollo web uniendo desarrollo y operaciones, **DataOps** es la aplicación de metodologías ágiles, integración continua (CI), entrega continua (CD) e ingeniería de software rigurosa al ciclo de vida del dato. Su meta: reducir el tiempo entre una idea analítica y su despliegue seguro en producción, minimizando errores y aumentando la confiabilidad."
+      },
+      {
+        "type": "heading",
+        "text": "2. La Pirámide de Testing en Pipelines de Datos"
+      },
+      {
+        "type": "paragraph",
+        "text": "En DataOps, el código se prueba antes de tocar producción mediante tres niveles de pruebas:"
+      },
+      {
+        "type": "list",
+        "style": "bullet",
+        "items": [
+          "**Tests Unitarios (pytest):** Prueban funciones lógicas de transformación puras sin conectarse a bases de datos (usando DataFrames mockeados pequeños).",
+          "**Tests de Integración:** Prueban la interacción del pipeline con bases de datos reales levantadas temporalmente en contenedores Docker.",
+          "**Tests de Integridad de DAGs:** Verifican que ningún DAG de Airflow contenga ciclos, errores de sintaxis o dependencias circulares."
+        ]
+      },
+      {
+        "type": "code",
+        "language": "python",
+        "caption": "Test unitario con pytest para validar DAGs de Airflow",
+        "code": "from airflow.models import DagBag\n\ndef test_dags_no_import_errors():\n    \"\"\"Garantiza que ningún DAG de producción tenga errores de sintaxis.\"\"\"\n    dag_bag = DagBag(dag_folder='dags/', include_examples=False)\n    assert len(dag_bag.import_errors) == 0, f'Errores de importacion: {dag_bag.import_errors}'\n\ndef test_dags_have_retries():\n    \"\"\"Garantiza que todas las tareas tengan reintentos configurados.\"\"\"\n    dag_bag = DagBag(dag_folder='dags/', include_examples=False)\n    for dag_id, dag in dag_bag.dags.items():\n        for task in dag.tasks:\n            assert task.retries >= 1, f'La tarea {task.task_id} en {dag_id} no tiene reintentos'"
+      },
+      {
+        "type": "heading",
+        "text": "3. Infraestructura como Código (IaC) con Terraform"
+      },
+      {
+        "type": "paragraph",
+        "text": "Nunca crees buckets S3, bases de datos o clústeres haciendo clic en la consola web de AWS o Google Cloud. Todo recurso en la nube se declara mediante **Terraform**. Esto permite auditar los cambios en Git, revertir modificaciones con un commit y clonar un entorno completo de staging en 5 minutos."
+      },
+      {
+        "type": "heading",
+        "text": "4. Observabilidad de Datos y Linaje (Data Lineage)"
+      },
+      {
+        "type": "paragraph",
+        "text": "La observabilidad de datos responde a cuatro preguntas: 1) ¿Están frescos los datos (Freshness)?, 2) ¿El volumen es el esperado (Volume)?, 3) ¿El esquema cambió inesperadamente (Schema)?, y 4) ¿Cuál es el origen y destino del dato (Lineage)? Herramientas como OpenLineage y DataHub permiten rastrear el árbol genealógico completo de cualquier métrica."
+      },
+      {
+        "type": "callout",
+        "tone": "tip",
+        "title": "CI/CD Automatizado",
+        "text": "Configura GitHub Actions para que ningún Pull Request a la rama `main` se apruebe si no pasan los tests de pytest, las validaciones de esquemas y el formateo con Ruff o Black."
+      }
+    ]
+  },
+  "keyPoints": [
+    "DataOps traslada las prácticas de DevOps (CI/CD, testing automatizado, IaC) al ciclo de vida de los datos.",
+    "Los tests unitarios de DAGs en CI impiden que errores de sintaxis lleguen a tumbar el scheduler de producción.",
+    "La infraestructura como código (Terraform) asegura entornos reproducibles y auditables bajo control de versiones."
+  ],
+  "terms": [
+    {
+      "term": "DataOps",
+      "translation": "Operaciones de Datos",
+      "definition": "Metodología orientada a automatizar y optimizar la entrega de datos confiables mediante integración continua y control de calidad."
+    },
+    {
+      "term": "Infrastructure as Code (IaC)",
+      "translation": "Infraestructura como Código",
+      "definition": "Gestión y aprovisionamiento de infraestructura de nube mediante archivos de configuración declarativos (ej. Terraform)."
+    },
+    {
+      "term": "Data Lineage",
+      "translation": "Linaje de Datos",
+      "definition": "Mapa de trazabilidad del ciclo de vida del dato que registra su origen, movimientos, transformaciones intermedias y destino final."
+    }
+  ],
+  "diagram": {
+    "type": "flow",
+    "nodes": [
+      {
+        "id": "git",
+        "label": "Pull Request en Git",
+        "sub": "Código de Pipeline / DAG",
+        "detail": "Ingeniero propone cambios en rama feature",
+        "icon": "git",
+        "kind": "default"
+      },
+      {
+        "id": "ci",
+        "label": "GitHub Actions (CI)",
+        "sub": "pytest + linting + IaC check",
+        "detail": "Ejecuta suite de pruebas unitarias y linaje",
+        "icon": "play",
+        "kind": "decision"
+      },
+      {
+        "id": "cd",
+        "label": "Despliegue Continuo (CD)",
+        "sub": "Aprobación y Merge",
+        "detail": "Sincroniza automáticamente a Airflow y Terraform",
+        "icon": "server",
+        "kind": "default"
+      },
+      {
+        "id": "obs",
+        "label": "Observabilidad en Vivo",
+        "sub": "DataHub / OpenLineage",
+        "detail": "Monitoreo continuo de frescura, volumen y SLAs",
+        "icon": "loop",
+        "kind": "end"
+      }
+    ]
+  },
+  "activity": {
+    "type": "sort",
+    "prompt": "Clasifica cada práctica en la categoría correspondiente de la cultura DataOps:",
+    "buckets": [
+      "Integración Continua (CI/CD)",
+      "Infraestructura como Código (IaC)"
+    ],
+    "items": [
+      {
+        "text": "Ejecutar pytest en un runner de GitHub Actions para verificar que los DAGs no tengan errores de importación",
+        "bucket": 0
+      },
+      {
+        "text": "Declarar un clúster de base de datos PostgreSQL y buckets S3 en archivos declarativos `.tf` con Terraform",
+        "bucket": 1
+      },
+      {
+        "text": "Desplegar automáticamente los cambios aprobados en `main` al servidor de Airflow sin intervención manual",
+        "bucket": 0
+      },
+      {
+        "text": "Gestionar los permisos IAM y redes de los almacenes analíticos mediante control de versiones en Git",
+        "bucket": 1
+      }
+    ]
+  },
+  "checkQuestionId": "q-u6-04",
+  "traps": [
+    {
+      "option": "Modificar código de pipelines directamente por SSH en los servidores de producción.",
+      "reason": "Elimina el historial de versiones en Git, evade las pruebas de CI y genera discrepancias imposibles de depurar."
+    },
+    {
+      "option": "Aprovisionar buckets S3 y bases de datos a mano desde la consola web sin código de Terraform.",
+      "reason": "Crea configuraciones ocultas irreproducibles que nadie podrá reconstruir ante una catástrofe de infraestructura."
+    }
+  ],
+  "trapSummary": "Realizar cambios de código e infraestructura directamente en producción sin control de versiones ni pipelines de CI/CD.",
+  "flashcards": [
+    {
+      "id": "fc-u6-l4-1",
+      "front": "¿Qué es DataOps y cuál es su principal objetivo empresarial?",
+      "back": "Es la disciplina que aplica principios de DevOps (CI/CD, testing automatizado, IaC) a los datos para entregar valor de forma rápida, repetible y sin fallos."
+    },
+    {
+      "id": "fc-u6-l4-2",
+      "front": "¿Por qué es crucial implementar tests de importación de DAGs (`dagbag.import_errors == 0`) en un pipeline de CI?",
+      "back": "Para evitar que un error de sintaxis en un DAG nuevo sea desplegado a producción y detenga la carga de todos los demás pipelines de la empresa."
+    },
+    {
+      "id": "fc-u6-l4-3",
+      "front": "¿Qué ventaja ofrece gestionar el almacenamiento en la nube con Terraform en lugar de usar la consola web?",
+      "back": "Permite auditar cada cambio en Git, reproducir entornos completos idénticos y evitar errores humanos de configuración manual."
+    }
+  ],
+  "quickFacts": [
+    {
+      "statement": "DataOps promueve el testeo automatizado de código antes del despliegue en producción.",
+      "answer": true
+    },
+    {
+      "statement": "Es una buena práctica de ingeniería modificar el código de los DAGs directamente por SSH en producción.",
+      "answer": false
+    },
+    {
+      "statement": "Terraform permite declarar recursos en la nube como código versionable en Git.",
+      "answer": true
+    },
+    {
+      "statement": "El linaje de datos registra el origen, transformaciones y destino de cada tabla.",
+      "answer": true
+    }
+  ]
+}

@@ -1,0 +1,210 @@
+{
+  "$schema": "../../../../../schemas/lesson.schema.json",
+  "id": "pyspark-dataframes-catalyst-lazy-eval",
+  "title": "PySpark DataFrames: Evaluación Perezosa y el Optimizador Catalyst",
+  "estimatedMinutes": 15,
+  "domainIds": [
+    "procesamiento-distribuido-spark"
+  ],
+  "topics": [
+    "pyspark-dataframes",
+    "lazy-evaluation",
+    "catalyst-optimizer",
+    "transformaciones-acciones"
+  ],
+  "hook": "Escribes 20 transformaciones complejas en PySpark sobre un dataset de 500 millones de filas. Al presionar Enter, el código retorna en 0.01 segundos. Crees que Spark es mágicamente instantáneo, pero la realidad es que Spark no ha procesado ni un solo byte de datos. ¿Por qué ocurre esto y qué es la evaluación perezosa?",
+  "concept": {
+    "blocks": [
+      {
+        "type": "heading",
+        "text": "1. Evaluación Perezosa (Lazy Evaluation): El Secreto de Spark"
+      },
+      {
+        "type": "paragraph",
+        "text": "En Python tradicional, cada línea de código se ejecuta de inmediato (Eager Execution). En Spark, las operaciones se dividen en dos categorías: **Transformaciones** y **Acciones**. Las transformaciones no procesan datos inmediatamente; simplemente registran una receta de instrucciones en un Grafo Acíclico Dirigido (**DAG**). Los datos solo se leen y procesan físicamente cuando invocas una **Acción**."
+      },
+      {
+        "type": "table",
+        "headers": [
+          "Tipo de Operación",
+          "Comportamiento",
+          "Ejemplos Comunes"
+        ],
+        "rows": [
+          [
+            "Transformación",
+            "Perezosa (Lazy): Define una nueva receta sin mover datos.",
+            "`filter()`, `select()`, `groupBy()`, `join()`, `withColumn()`"
+          ],
+          [
+            "Acción",
+            "Inmediata (Eager): Dispara la ejecución del DAG y entrega resultados.",
+            "`count()`, `show()`, `write.parquet()`, `take()`, `collect()`"
+          ]
+        ],
+        "caption": "Diferencia entre Transformaciones y Acciones en PySpark"
+      },
+      {
+        "type": "heading",
+        "text": "2. El Optimizador Catalyst: Tu Asistente Senior Automático"
+      },
+      {
+        "type": "paragraph",
+        "text": "La razón por la que Spark espera a que definas todo el flujo antes de ejecutarlo es el motor **Catalyst**. Al conocer todas las operaciones de antemano, Catalyst analiza y optimiza el plan de ejecución lógico en cuatro fases:"
+      },
+      {
+        "type": "list",
+        "style": "bullet",
+        "items": [
+          "**Predicate Pushdown:** Mueve los filtros `filter()` al inicio del plan para que la lectura solo descargue filas relevantes del almacenamiento.",
+          "**Column Pruning:** Si solo usas 2 columnas al final del script, descarta las otras 50 columnas desde el momento de la lectura inicial.",
+          "**Reordenamiento de Joins:** Evalúa estadísticas de tablas para unir primero las tablas más pequeñas y reducir el volumen de datos en memoria."
+        ]
+      },
+      {
+        "type": "code",
+        "language": "python",
+        "caption": "Pipeline perezoso con análisis de plan en PySpark",
+        "code": "from pyspark.sql import SparkSession\nfrom pyspark.sql.functions import col, sum as _sum\n\nspark = SparkSession.builder.appName('OptimizacionCatalyst').getOrCreate()\n\n# 1. Transformaciones perezosas (No consumen I/O todavía)\ndf_raw = spark.read.parquet('s3://data-lake/transacciones/')\ndf_filtrado = df_raw.filter(col('pais') == 'ES')\ndf_agregado = df_filtrado.groupBy('categoria').agg(_sum('monto').alias('total'))\n\n# 2. Inspeccionar el plan optimizado por Catalyst antes de ejecutar\ndf_agregado.explain(extended=True)\n\n# 3. Acción: Dispara la computación real y escribe a disco\ndf_agregado.write.mode('overwrite').parquet('s3://data-lake/oro/ventas_espana/')"
+      },
+      {
+        "type": "callout",
+        "tone": "info",
+        "title": "Explain Plan",
+        "text": "El método `.explain()` muestra el plan lógico analizado, el plan optimizado y el plan físico final que ejecutarán los núcleos de CPU. Es la herramienta imprescindible para diagnosticar lentitud en Spark."
+      }
+    ]
+  },
+  "keyPoints": [
+    "Las transformaciones en PySpark son perezosas y solo se materializan cuando se ejecuta una Acción.",
+    "El optimizador Catalyst reordena operaciones, filtra datos en el origen (Predicate Pushdown) y poda columnas no usadas.",
+    "Inspeccionar el plan físico con `.explain()` permite verificar si Spark está aplicando las optimizaciones esperadas."
+  ],
+  "terms": [
+    {
+      "term": "Lazy Evaluation",
+      "translation": "Evaluación Perezosa",
+      "definition": "Estrategia de evaluación que pospone el cálculo de una expresión hasta que su resultado es estrictamente requerido por una acción."
+    },
+    {
+      "term": "Catalyst Optimizer",
+      "translation": "Optimizador Catalyst",
+      "definition": "Motor interno de optimización basado en árboles y reglas que transforma planes de consulta lógicos en planes físicos eficientes."
+    },
+    {
+      "term": "DAG (Directed Acyclic Graph)",
+      "translation": "Grafo Acíclico Dirigido",
+      "definition": "Secuencia ordenada y sin ciclos de etapas y transformaciones que representan el flujo de cómputo de Spark."
+    }
+  ],
+  "diagram": {
+    "type": "flow",
+    "nodes": [
+      {
+        "id": "code",
+        "label": "Código PySpark",
+        "sub": "filter() + groupBy()",
+        "detail": "Usuario define transformaciones perezosas",
+        "icon": "file",
+        "kind": "default"
+      },
+      {
+        "id": "catalyst",
+        "label": "Optimizador Catalyst",
+        "sub": "Plan Lógico a Físico",
+        "detail": "Aplica Column Pruning y Predicate Pushdown",
+        "icon": "tool",
+        "kind": "default"
+      },
+      {
+        "id": "action",
+        "label": "¿Llamada a una Acción?",
+        "sub": "count() o write()",
+        "detail": "Solo cuando se solicita resultado concreto",
+        "icon": "search",
+        "kind": "decision"
+      },
+      {
+        "id": "exec",
+        "label": "Ejecución en Clúster",
+        "sub": "DAG de Tareas",
+        "detail": "Los ejecutores procesan los datos optimizados",
+        "icon": "play",
+        "kind": "end"
+      }
+    ]
+  },
+  "activity": {
+    "type": "sort",
+    "prompt": "Clasifica cada método de PySpark en Transformación (Perezosa) o Acción (Dispara Ejecución):",
+    "buckets": [
+      "Transformación (Lazy)",
+      "Acción (Eager / Disparador)"
+    ],
+    "items": [
+      {
+        "text": "`.filter(col('edad') > 18)`",
+        "bucket": 0
+      },
+      {
+        "text": "`.write.parquet('s3://bucket/salida')`",
+        "bucket": 1
+      },
+      {
+        "text": "`.withColumn('iva', col('monto') * 0.21)`",
+        "bucket": 0
+      },
+      {
+        "text": "`.count()`",
+        "bucket": 1
+      }
+    ]
+  },
+  "checkQuestionId": "q-u4-02",
+  "traps": [
+    {
+      "option": "Intercalar múltiples `df.show()` o `df.count()` en medio de un script largo solo para depurar.",
+      "reason": "Cada acción fuerza a Spark a recomputar el grafo entero desde el inicio, multiplicando por 10 el tiempo total de ejecución."
+    },
+    {
+      "option": "Asumir que escribir un filtro al final del código leerá todo el dataset antes de filtrar.",
+      "reason": "Catalyst reordena el filtro hacia la capa de lectura (Predicate Pushdown) automáticamente."
+    }
+  ],
+  "trapSummary": "Colocar acciones innecesarias como .count() o .show() en código de producción forzando recomputaciones redundantes del DAG.",
+  "flashcards": [
+    {
+      "id": "fc-u4-l2-1",
+      "front": "¿Cuál es la diferencia fundamental entre una Transformación y una Acción en PySpark?",
+      "back": "Las transformaciones son perezosas y crean un nuevo DataFrame en el DAG; las acciones fuerzan el cómputo real y devuelven un resultado o escriben a disco."
+    },
+    {
+      "id": "fc-u4-l2-2",
+      "front": "¿Qué es el optimizador Catalyst en Apache Spark?",
+      "back": "Es el motor interno que analiza el código del usuario y genera un plan físico optimizado mediante técnicas como Predicate Pushdown y Column Pruning."
+    },
+    {
+      "id": "fc-u4-l2-3",
+      "front": "¿Qué método permite inspeccionar el plan físico de ejecución generado por Catalyst?",
+      "back": "`df.explain(extended=True)`"
+    }
+  ],
+  "quickFacts": [
+    {
+      "statement": "En PySpark, las transformaciones no leen datos de almacenamiento hasta que se invoca una acción.",
+      "answer": true
+    },
+    {
+      "statement": "Llamar a `df.show()` es una transformación perezosa que no consume cómputo de los ejecutores.",
+      "answer": false
+    },
+    {
+      "statement": "Catalyst puede empujar filtros (Predicate Pushdown) hacia el almacenamiento para evitar leer registros no deseados.",
+      "answer": true
+    },
+    {
+      "statement": "Cada invocación a una acción como `.count()` reejecuta el plan de Spark a menos que el DataFrame esté cacheado.",
+      "answer": true
+    }
+  ]
+}

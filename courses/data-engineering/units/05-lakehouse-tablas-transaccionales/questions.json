@@ -1,0 +1,137 @@
+{
+  "$schema": "../../../../schemas/questions.schema.json",
+  "questions": [
+    {
+      "id": "q-u5-01",
+      "type": "single",
+      "domainId": "lakehouse-tablas-transaccionales",
+      "skill": "Fundamentos de la Arquitectura Lakehouse",
+      "topic": "lakehouse-vs-data-lake",
+      "stem": "¿Cuál es la principal ventaja arquitectónica de Delta Lake y Apache Iceberg frente a un Data Lake clásico con archivos Parquet sueltos en S3?",
+      "options": [
+        {
+          "key": "A",
+          "text": "Eliminan la necesidad de almacenar datos en la nube y fuerzan el uso de servidores locales."
+        },
+        {
+          "key": "B",
+          "text": "Proporcionan garantías transaccionales ACID completas, soporte de updates/deletes atómicos y gobernanza directamente sobre archivos Parquet abiertos."
+        },
+        {
+          "key": "C",
+          "text": "Convierten los datos en archivos de texto CSV sin compresión para facilitar su lectura en Notepad."
+        },
+        {
+          "key": "D",
+          "text": "Reemplazan el lenguaje SQL por llamadas directas a ensamblador."
+        }
+      ],
+      "correct": [
+        "B"
+      ],
+      "explanation": "Los formatos de tabla abiertos añaden una capa de metadatos transaccionales que evita lecturas corruptas y permite operaciones ACID sobre almacenamiento de objetos económico.",
+      "sources": [
+        "Delta Lake: High-Performance ACID Table Storage over Cloud Object Stores"
+      ]
+    },
+    {
+      "id": "q-u5-02",
+      "type": "single",
+      "domainId": "lakehouse-tablas-transaccionales",
+      "skill": "Concurrencia y Aislamiento en el Lakehouse",
+      "topic": "transaction-log",
+      "stem": "¿Cómo garantiza Snapshot Isolation en Delta Lake que los analistas no lean datos parciales o corruptos durante la ejecución de una ingesta concurrente?",
+      "options": [
+        {
+          "key": "A",
+          "text": "Bloqueando el acceso a Internet de todos los usuarios hasta que termine la escritura."
+        },
+        {
+          "key": "B",
+          "text": "Los analistas consultan una instantánea inmutable correspondiente a la última versión formalmente confirmada en el Transaction Log."
+        },
+        {
+          "key": "C",
+          "text": "Borrando la tabla temporalmente mientras el escritor prepara los nuevos datos."
+        },
+        {
+          "key": "D",
+          "text": "Obligando al escritor a guardar los datos en una memoria USB externa."
+        }
+      ],
+      "correct": [
+        "B"
+      ],
+      "explanation": "Snapshot Isolation asegura que cada consulta observe el estado consistente de la tabla en un momento dado registrado en el Transaction Log, ignorando escrituras en progreso.",
+      "sources": [
+        "Databricks Delta Lake Architecture"
+      ]
+    },
+    {
+      "id": "q-u5-03",
+      "type": "single",
+      "domainId": "lakehouse-tablas-transaccionales",
+      "skill": "Operaciones Avanzadas y Time Travel",
+      "topic": "merge-upsert",
+      "stem": "¿Qué operación permite la instrucción `MERGE INTO` en una tabla Delta Lake en un único paso atómico?",
+      "options": [
+        {
+          "key": "A",
+          "text": "Realizar un Upsert: actualizar registros coincidentes e insertar registros nuevos según una condición de clave sin reescribir toda la tabla."
+        },
+        {
+          "key": "B",
+          "text": "Descargar todos los datos a la computadora del analista en formato PDF."
+        },
+        {
+          "key": "C",
+          "text": "Formatear el bucket S3 borrando todos los backups anteriores."
+        },
+        {
+          "key": "D",
+          "text": "Renombrar todas las columnas de la tabla alfabéticamente."
+        }
+      ],
+      "correct": [
+        "A"
+      ],
+      "explanation": "`MERGE INTO` resuelve la sincronización incremental (Upsert) modificando solo los archivos afectados bajo una transacción ACID unificada.",
+      "sources": [
+        "Delta Lake Documentation - MERGE"
+      ]
+    },
+    {
+      "id": "q-u5-04",
+      "type": "single",
+      "domainId": "lakehouse-tablas-transaccionales",
+      "skill": "Optimización Física de Almacenamiento",
+      "topic": "compaction-optimize",
+      "stem": "¿Qué efecto físico produce la ejecución del comando `OPTIMIZE` junto con `ZORDER BY` sobre una tabla Delta Lake fragmentada?",
+      "options": [
+        {
+          "key": "A",
+          "text": "Multiplica la cantidad de archivos pequeños para acelerar la red."
+        },
+        {
+          "key": "B",
+          "text": "Compacta micro-archivos en bloques óptimos de ~1 GB y reorganiza los datos multidimensionalmente para maximizar la omisión de archivos (File Skipping)."
+        },
+        {
+          "key": "C",
+          "text": "Elimina permanentemente los permisos de lectura de todos los usuarios."
+        },
+        {
+          "key": "D",
+          "text": "Convierte los archivos Parquet en tablas de PostgreSQL."
+        }
+      ],
+      "correct": [
+        "B"
+      ],
+      "explanation": "OPTIMIZE combate el Small File Problem fusionando micro-archivos, mientras que Z-Order agrupa datos por columnas clave reduciendo el volumen de lectura mediante File Skipping.",
+      "sources": [
+        "Delta Lake Performance Tuning Guide"
+      ]
+    }
+  ]
+}

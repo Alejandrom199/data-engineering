@@ -1,0 +1,194 @@
+{
+  "$schema": "../../../../../schemas/lesson.schema.json",
+  "id": "optimizacion-spark-broadcast-skew-oom",
+  "title": "Optimización en Producción: Broadcast Joins, Data Skew y OOM",
+  "estimatedMinutes": 16,
+  "domainIds": [
+    "procesamiento-distribuido-spark"
+  ],
+  "topics": [
+    "broadcast-joins",
+    "data-skew",
+    "salting-tecnica",
+    "spark-oom-spill"
+  ],
+  "hook": "Lanzas un job de Spark con 100 ejecutores para unir 2 billones de registros. 99 tareas finalizan en 2 minutos, pero la tarea #100 se queda congelada al 99% durante 3 horas hasta que finalmente el ejecutor muere con `java.lang.OutOfMemoryError: Java heap space`. ¿Qué ocurrió y cómo lo soluciona la técnica de Salting?",
+  "concept": {
+    "blocks": [
+      {
+        "type": "heading",
+        "text": "1. El Problema del Data Skew (Sesgo de Datos)"
+      },
+      {
+        "type": "paragraph",
+        "text": "En teoría, Spark distribuye los datos equitativamente entre los nodos. En la realidad de negocio, los datos están severamente sesgados (**Data Skew**): por ejemplo, en una tienda global, el 70% de las ventas ocurren con el método de pago 'Tarjeta de Crédito' o pertenecen al cliente 'Usuario Invitado' (ID nulo o genérico). Al hacer un `groupBy` o `join` por esa columna, un solo ejecutor recibe el 70% de todos los datos del planeta, saturando su RAM mientras los otros 99 ejecutores están ociosos."
+      },
+      {
+        "type": "heading",
+        "text": "2. La Técnica de Salting para Eliminar el Sesgo"
+      },
+      {
+        "type": "paragraph",
+        "text": "Para romper una clave sobrecargada, aplicamos **Salting**: añadimos una columna con un número aleatorio (sal) entre 0 y N (por ejemplo, `sal = random(0, 9)`), creando una clave compuesta `usuario_id_sal = 'INVITADO_3'`. Esto dispersa los registros artificialmente en 10 particiones independientes. Tras la agregación, se retira la sal y se suma el total final."
+      },
+      {
+        "type": "code",
+        "language": "python",
+        "caption": "Técnica de Salting en PySpark",
+        "code": "from pyspark.sql.functions import col, concat, lit, rand, floor\n\n# 1. Agregar 'sal' aleatoria (0 a 4) a la clave sesgada del DataFrame grande\ndf_grande_salted = df_grande.withColumn(\n    'salted_key',\n    concat(col('cliente_id'), lit('_'), floor(rand() * 5))\n)\n\n# 2. Replicar el DataFrame pequeño 5 veces con cada sal posible\n# Esto permite unir en paralelo sin que una sola máquina colapse"
+      },
+      {
+        "type": "heading",
+        "text": "3. Broadcast Joins: Eliminar el Shuffle en Uniones"
+      },
+      {
+        "type": "paragraph",
+        "text": "Cuando unes una tabla gigantesca (1 TB) con una tabla de catálogo pequeña (50 MB, como códigos postales o categorías), hacer un Sort-Merge Join tradicional mueve el Terabyte completo por la red. La solución óptima es el **Broadcast Hash Join**: Spark envía una copia completa de la tabla de 50 MB a la memoria de cada ejecutor. Cada nodo une sus datos locales sin mover ni un solo byte de la tabla grande por la red."
+      },
+      {
+        "type": "code",
+        "language": "python",
+        "caption": "Forzar un Broadcast Join con la función broadcast()",
+        "code": "from pyspark.sql.functions import broadcast\n\n# Difunde la tabla pequeña a todos los ejecutores evitando el Shuffle por red\ndf_final = df_ventas_1tb.join(\n    broadcast(dim_paises_50mb),\n    on='pais_id',\n    how='inner'\n)"
+      },
+      {
+        "type": "heading",
+        "text": "4. Prevención de Disk Spill y Out-Of-Memory (OOM)"
+      },
+      {
+        "type": "paragraph",
+        "text": "Cuando una partición excede la memoria RAM asignada al Executor, Spark realiza **Disk Spill**: escribe el exceso de datos en el disco local del nodo. Si bien el Spill previene la caída inmediata, la velocidad de ejecución cae estrepitosamente. Si el disco también se satura, el ejecutor muere arrojando error de OOM."
+      },
+      {
+        "type": "callout",
+        "tone": "warning",
+        "title": "Límite del Broadcast Join",
+        "text": "Por defecto, Spark solo hace broadcast de tablas menores a 10 MB (`spark.sql.autoBroadcastJoinThreshold`). Nunca fuerces un broadcast sobre una tabla de más de 1 GB, o saturarás la memoria de los ejecutores y del Driver."
+      }
+    ]
+  },
+  "keyPoints": [
+    "El Data Skew ocurre cuando una clave concentra la mayor parte del volumen, sobrecargando a un único ejecutor.",
+    "La técnica de Salting dispersa claves altamente concentradas añadiendo sufijos aleatorios para paralelizar el cálculo.",
+    "Los Broadcast Joins copian tablas de referencia pequeñas en cada nodo, eliminando el coste de transferir la tabla grande por red."
+  ],
+  "terms": [
+    {
+      "term": "Data Skew",
+      "translation": "Sesgo de Datos",
+      "definition": "Distribución no uniforme de datos entre las particiones de un clúster que provoca que un nodo trabaje mucho más que los demás."
+    },
+    {
+      "term": "Salting",
+      "translation": "Técnica de Salazón / Salting",
+      "definition": "Estrategia que añade valores pseudo-aleatorios a claves sesgadas para dividirlas artificialmente en múltiples particiones balanceadas."
+    },
+    {
+      "term": "Broadcast Hash Join",
+      "translation": "Unión por Difusión",
+      "definition": "Algoritmo de unión distribuida donde una tabla pequeña se difunde íntegra a todos los ejecutores evitando la redistribución de la tabla grande."
+    }
+  ],
+  "diagram": {
+    "type": "flow",
+    "nodes": [
+      {
+        "id": "big",
+        "label": "Tabla Gigante (1 TB)",
+        "sub": "Ventas Históricas",
+        "detail": "Permanece fija en sus nodos locales sin moverse",
+        "icon": "server",
+        "kind": "default"
+      },
+      {
+        "id": "small",
+        "label": "Tabla Pequeña (20 MB)",
+        "sub": "Catálogo de Países",
+        "detail": "Se envía una copia a cada nodo del clúster",
+        "icon": "file",
+        "kind": "default"
+      },
+      {
+        "id": "bcast",
+        "label": "Broadcast Join",
+        "sub": "Cero Shuffle por Red",
+        "detail": "Cada ejecutor realiza la unión localmente en RAM",
+        "icon": "bolt",
+        "kind": "end"
+      }
+    ]
+  },
+  "activity": {
+    "type": "sort",
+    "prompt": "Identifica la técnica de optimización adecuada para cada escenario en Apache Spark:",
+    "buckets": [
+      "Aplicar Broadcast Join",
+      "Aplicar Salting / Mitigar Data Skew"
+    ],
+    "items": [
+      {
+        "text": "Unir una tabla de transacciones de 800 GB con una tabla de tipos de cambio de 10 MB",
+        "bucket": 0
+      },
+      {
+        "text": "Un job se congela en una sola tarea al 99% porque el cliente 'GENERICO' tiene el 60% de las ventas",
+        "bucket": 1
+      },
+      {
+        "text": "Enriquecer eventos de streaming con una pequeña lista de categorías de productos",
+        "bucket": 0
+      },
+      {
+        "text": "Distribuir equitativamente el cómputo de un groupBy sobre una clave con altísima concentración",
+        "bucket": 1
+      }
+    ]
+  },
+  "checkQuestionId": "q-u4-04",
+  "traps": [
+    {
+      "option": "Aplicar la función `broadcast()` sobre una tabla de 25 GB.",
+      "reason": "El Driver intentará descargar los 25 GB y distribuirlos a todos los nodos, colapsando el clúster entero por falta de memoria."
+    },
+    {
+      "option": "Ignorar la métrica de 'Spill (Memory / Disk)' en la interfaz web de Spark (Spark UI).",
+      "reason": "El Spill a disco multiplica por 10 el tiempo de ejecución; indica que las particiones son demasiado grandes para la memoria asignada."
+    }
+  ],
+  "trapSummary": "Hacer broadcast de tablas excesivamente grandes desbordando la memoria de los ejecutores del clúster.",
+  "flashcards": [
+    {
+      "id": "fc-u4-l4-1",
+      "front": "¿Cómo identifica un ingeniero un problema de Data Skew en la interfaz Spark UI?",
+      "back": "Observando que casi todas las tareas de un Stage terminan rápidamente, pero una o dos tareas tardan horas procesando un volumen de datos desproporcionadamente mayor."
+    },
+    {
+      "id": "fc-u4-l4-2",
+      "front": "¿En qué consiste la técnica de Salting para combatir el Data Skew en Spark?",
+      "back": "Consiste en concatenar un valor aleatorio a la clave sesgada para dividirla en múltiples subclaves que se procesan en nodos independientes."
+    },
+    {
+      "id": "fc-u4-l4-3",
+      "front": "¿Qué es el 'Disk Spill' en Spark y qué impacto tiene en el rendimiento?",
+      "back": "Ocurre cuando una partición no cabe en la memoria RAM del ejecutor y se desborda temporalmente al disco local, ralentizando severamente la ejecución."
+    }
+  ],
+  "quickFacts": [
+    {
+      "statement": "El Broadcast Join evita la fase de Shuffle enviando una tabla pequeña a todos los ejecutores.",
+      "answer": true
+    },
+    {
+      "statement": "El Data Skew ocurre cuando todas las particiones del clúster tienen exactamente el mismo tamaño.",
+      "answer": false
+    },
+    {
+      "statement": "El Disk Spill evita que un ejecutor muera por OOM pero degrada fuertemente la velocidad del job.",
+      "answer": true
+    },
+    {
+      "statement": "Es recomendable hacer broadcast de tablas de cientos de gigabytes para acelerar joins masivos.",
+      "answer": false
+    }
+  ]
+}

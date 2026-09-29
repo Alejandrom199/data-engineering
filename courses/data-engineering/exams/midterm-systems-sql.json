@@ -1,8 +1,8 @@
 {
   "$schema": "../../../schemas/exam.schema.json",
   "id": "midterm-systems-sql",
-  "title": "Evaluación Intermedia: Almacenamiento, SQL y Spark",
-  "subtitle": "Examen de control para los Bloques 1, 2 y 3 (Formatos, Modelado Dimensional y Computación Distribuida)",
+  "title": "Evaluación Intermedia: Fundamentos, Formatos y Modelado DWH",
+  "subtitle": "Examen de control para los Bloques 1, 2 y 3 (Fundamentos, Formatos Columnares y Modelado Dimensional)",
   "badge": "MID",
   "durationMinutes": 60,
   "langs": [
@@ -11,9 +11,9 @@
   "selection": {
     "mode": "pool",
     "domainIds": [
-      "ingestion-storage-formats",
-      "relational-modeling-sql-dwh",
-      "spark-distributed-computing"
+      "fundamentos-ciclo-vida-datos",
+      "ingestion-formatos-motores-locales",
+      "modelado-dimensional-sql-dwh"
     ],
     "count": 12
   }

@@ -1,0 +1,24 @@
+{
+  "$schema": "../../../../schemas/lab.schema.json",
+  "id": "lab-cdc-wal-replication",
+  "title": "Laboratorio: Procesamiento de Eventos CDC con Detección de Deletes",
+  "goal": "Consumir un flujo de eventos CDC replicando inserciones, actualizaciones y borrados hacia una tabla de destino.",
+  "level": "advanced",
+  "estimatedMinutes": 35,
+  "icon": "loop",
+  "domainId": "streaming-tiempo-real-eventos",
+  "lessonId": "change-data-capture-debezium-wal",
+  "code": "target_table = {}\n\ncdc_events = [\n    {'op': 'c', 'after': {'id': 1, 'nombre': 'Alice', 'saldo': 100.0}},\n    {'op': 'u', 'before': {'id': 1, 'saldo': 100.0}, 'after': {'id': 1, 'nombre': 'Alice', 'saldo': 150.0}},\n    {'op': 'c', 'after': {'id': 2, 'nombre': 'Bob', 'saldo': 80.0}},\n    {'op': 'd', 'before': {'id': 2, 'nombre': 'Bob', 'saldo': 80.0}}\n]\n\nfor ev in cdc_events:\n    op = ev['op']\n    if op in {'c', 'u'}:\n        rec = ev['after']\n        target_table[rec['id']] = rec\n    elif op == 'd':\n        rec = ev['before']\n        target_table.pop(rec['id'], None)\n\nprint('Registros activos en destino:', len(target_table))\nprint('Cliente activo 1 saldo:', target_table[1]['saldo'])",
+  "codeLanguage": "python",
+  "expectedOutput": "Registros activos en destino: 1\nCliente activo 1 saldo: 150.0",
+  "successCriteria": [
+    "La inserción y actualización de Alice reflejan el saldo final de $150.0.",
+    "El evento de borrado elimina a Bob del estado activo en destino."
+  ],
+  "file": "solution.py",
+  "steps": [
+    "Comprender el objetivo y escribir la solución técnica solicitada.",
+    "Ejecutar la verificación del ejercicio y comparar la salida obtenida."
+  ],
+  "verify": "python solution.py"
+}

@@ -1,0 +1,29 @@
+{
+  "$schema": "../../../../schemas/unit.schema.json",
+  "id": "fundamentos-ciclo-vida-datos",
+  "title": "Fundamentos y Ciclo de Vida del Dato",
+  "officialTitle": "Data Engineering Foundations & Data Lifecycle",
+  "summary": "El cimiento de la profesión: rol del ingeniero de datos vs perfiles analíticos, el ciclo de vida del dato de extremo a extremo, herramientas del entorno (Linux pipes, streams y Docker) y fundamentos de bases de datos relacionales OLTP.",
+  "icon": "server",
+  "color": "#0284c7",
+  "objectives": [
+    "Comprender el ciclo de vida integral del dato desde su generación operacional hasta su consumo analítico.",
+    "Diferenciar claramente las responsabilidades del Data Engineer frente a Data Analysts y Data Scientists.",
+    "Dominar la manipulación de flujos de datos en Linux mediante pipes, redirecciones y entornos reproducibles con Docker.",
+    "Construir pipelines de datos en Python estructurados con tipado estricto, gestión de memoria y esquemas Pydantic.",
+    "Diseñar modelos relacionales normalizados (OLTP) en PostgreSQL y optimizar consultas mediante índices B-Tree."
+  ],
+  "lessons": [
+    "que-es-ingenieria-datos-ciclo-vida",
+    "entorno-linux-pipes-docker",
+    "python-pipelines-buffers-pydantic",
+    "bases-datos-relacionales-oltp-sql"
+  ],
+  "labs": [
+    "lab-linux-streams-log-processing",
+    "lab-python-pydantic-validation-pipeline",
+    "lab-postgres-relational-indexing"
+  ],
+  "quizPassRatio": 0.75,
+  "quizQuestionCount": 10
+}

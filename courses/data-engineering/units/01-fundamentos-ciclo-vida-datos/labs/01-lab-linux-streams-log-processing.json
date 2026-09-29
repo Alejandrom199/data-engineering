@@ -1,0 +1,25 @@
+{
+  "$schema": "../../../../schemas/lab.schema.json",
+  "id": "lab-linux-streams-log-processing",
+  "title": "Laboratorio: Análisis de Logs en Streaming con Pipes de Linux",
+  "goal": "Filtrar, transformar y agregar métricas de un archivo masivo de logs web utilizando comandos estándar de Linux sin agotar la memoria del sistema.",
+  "level": "basic",
+  "estimatedMinutes": 25,
+  "icon": "terminal",
+  "domainId": "fundamentos-ciclo-vida-datos",
+  "lessonId": "entorno-linux-pipes-docker",
+  "code": "#!/usr/bin/env bash\n# Procesa un flujo masivo de logs y obtiene las 3 IPs con más errores 500\ncat << 'EOF' > access.log\n2026-09-28 10:00:01 192.168.1.10 GET /api/v1/users 200\n2026-09-28 10:00:02 10.0.0.5 POST /api/v1/checkout 500\n2026-09-28 10:00:03 10.0.0.5 POST /api/v1/checkout 500\n2026-09-28 10:00:04 172.16.0.8 GET /health 200\n2026-09-28 10:00:05 192.168.1.99 GET /catalog 500\n2026-09-28 10:00:06 10.0.0.5 GET /api/v1/cart 500\nEOF\n\ngrep ' 500' access.log | awk '{print $3}' | sort | uniq -c | sort -nr | head -n 3",
+  "codeLanguage": "bash",
+  "expectedOutput": "3 10.0.0.5\n1 192.168.1.99",
+  "successCriteria": [
+    "El comando filtra correctamente las líneas que contienen código HTTP 500.",
+    "Se extrae la columna correspondiente a la dirección IP con awk.",
+    "Se cuentan las ocurrencias de forma agregada con uniq -c y se ordena descendentemente."
+  ],
+  "file": "solution.sh",
+  "steps": [
+    "Comprender el objetivo y escribir la solución técnica solicitada.",
+    "Ejecutar la verificación del ejercicio y comparar la salida obtenida."
+  ],
+  "verify": "bash solution.sh"
+}

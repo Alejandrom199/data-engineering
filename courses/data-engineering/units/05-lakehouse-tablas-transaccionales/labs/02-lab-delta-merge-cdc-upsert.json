@@ -1,0 +1,24 @@
+{
+  "$schema": "../../../../schemas/lab.schema.json",
+  "id": "lab-delta-merge-cdc-upsert",
+  "title": "Laboratorio: Sincronización Incremental con MERGE (Upsert)",
+  "goal": "Implementar un patrón MERGE que actualice filas existentes e inserte registros nuevos en una sola transacción.",
+  "level": "advanced",
+  "estimatedMinutes": 35,
+  "icon": "loop",
+  "domainId": "lakehouse-tablas-transaccionales",
+  "lessonId": "operaciones-avanzadas-merge-time-travel",
+  "code": "import duckdb\n\ncon = duckdb.connect()\ncon.execute('''\n    CREATE TABLE inventario (sku VARCHAR PRIMARY KEY, stock INT, precio DECIMAL(10,2));\n    INSERT INTO inventario VALUES ('A100', 10, 25.00), ('B200', 50, 10.00);\n    \n    CREATE TABLE incoming_updates (sku VARCHAR, stock INT, precio DECIMAL(10,2));\n    -- A100 cambia de stock, C300 es un producto nuevo\n    INSERT INTO incoming_updates VALUES ('A100', 15, 25.00), ('C300', 100, 5.00);\n    \n    -- Emulacion de MERGE INTO\n    UPDATE inventario \n    SET stock = u.stock \n    FROM incoming_updates u \n    WHERE inventario.sku = u.sku;\n    \n    INSERT INTO inventario \n    SELECT u.sku, u.stock, u.precio \n    FROM incoming_updates u \n    LEFT JOIN inventario i ON u.sku = i.sku \n    WHERE i.sku IS NULL;\n''')\n\nres = con.execute('SELECT sku, stock, precio FROM inventario ORDER BY sku').fetchall()\nfor r in res:\n    print(f'SKU {r[0]}: Stock={r[1]}, Precio=${r[2]}')",
+  "codeLanguage": "python",
+  "expectedOutput": "SKU A100: Stock=15, Precio=$25.00\nSKU B200: Stock=50, Precio=$10.00\nSKU C300: Stock=100, Precio=$5.00",
+  "successCriteria": [
+    "El SKU A100 actualiza su stock de 10 a 15 de manera precisa.",
+    "El SKU B200 se conserva intacto y el nuevo SKU C300 se inserta satisfactoriamente."
+  ],
+  "file": "solution.py",
+  "steps": [
+    "Comprender el objetivo y escribir la solución técnica solicitada.",
+    "Ejecutar la verificación del ejercicio y comparar la salida obtenida."
+  ],
+  "verify": "python solution.py"
+}

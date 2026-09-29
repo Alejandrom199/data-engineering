@@ -1,0 +1,24 @@
+{
+  "$schema": "../../../../schemas/lab.schema.json",
+  "id": "lab-postgres-relational-indexing",
+  "title": "Laboratorio: Análisis de Planes de Consulta con EXPLAIN en PostgreSQL",
+  "goal": "Demostrar la diferencia de costo y tiempo entre un escaneo secuencial y un escaneo por índice B-Tree en una tabla relacional.",
+  "level": "intermediate",
+  "estimatedMinutes": 30,
+  "icon": "server",
+  "domainId": "fundamentos-ciclo-vida-datos",
+  "lessonId": "bases-datos-relacionales-oltp-sql",
+  "code": "-- Creación de tabla y simulación de datos\nCREATE TABLE transacciones (\n    id SERIAL PRIMARY KEY,\n    usuario_id INT NOT NULL,\n    monto NUMERIC(10, 2) NOT NULL,\n    fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP\n);\n\n-- Consulta antes de crear el índice\nEXPLAIN SELECT * FROM transacciones WHERE usuario_id = 105;\n\n-- Creación del índice B-Tree\nCREATE INDEX idx_transacciones_usuario ON transacciones(usuario_id);\n\n-- Consulta optimizada\nEXPLAIN SELECT * FROM transacciones WHERE usuario_id = 105;",
+  "codeLanguage": "sql",
+  "expectedOutput": "Index Scan using idx_transacciones_usuario on transacciones",
+  "successCriteria": [
+    "El planificador pasa de Sequential Scan a Index Scan tras la creación del índice.",
+    "El costo estimado (cost=...) se reduce significativamente en las métricas de PostgreSQL."
+  ],
+  "file": "solution.sql",
+  "steps": [
+    "Comprender el objetivo y escribir la solución técnica solicitada.",
+    "Ejecutar la verificación del ejercicio y comparar la salida obtenida."
+  ],
+  "verify": "psql -f solution.sql"
+}

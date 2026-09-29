@@ -1,0 +1,137 @@
+{
+  "$schema": "../../../../schemas/questions.schema.json",
+  "questions": [
+    {
+      "id": "q-u4-01",
+      "type": "single",
+      "domainId": "procesamiento-distribuido-spark",
+      "skill": "Arquitectura Distribuida de Spark",
+      "topic": "driver-vs-executors",
+      "stem": "¿Por qué ejecutar `df.collect()` sobre un DataFrame con cientos de millones de registros es un antipatrón crítico en Apache Spark?",
+      "options": [
+        {
+          "key": "A",
+          "text": "Porque formatea automáticamente el almacenamiento en disco de los nodos ejecutores."
+        },
+        {
+          "key": "B",
+          "text": "Porque transmite todos los datos distribuidos hacia la memoria RAM de la máquina Driver, provocando una caída por Out-Of-Memory (OOM)."
+        },
+        {
+          "key": "C",
+          "text": "Porque convierte el DataFrame a un formato de texto CSV incompatible con la nube."
+        },
+        {
+          "key": "D",
+          "text": "Porque detiene el clúster sin permitir que otras aplicaciones se conecten."
+        }
+      ],
+      "correct": [
+        "B"
+      ],
+      "explanation": "El método `.collect()` descarga todo el dataset distribuido en la memoria del nodo Driver. Si el volumen de datos supera la RAM del Driver, la aplicación colapsa.",
+      "sources": [
+        "Learning Spark - Holden Karau"
+      ]
+    },
+    {
+      "id": "q-u4-02",
+      "type": "single",
+      "domainId": "procesamiento-distribuido-spark",
+      "skill": "Evaluación Perezosa y Catalyst",
+      "topic": "lazy-evaluation",
+      "stem": "¿Cuál es el beneficio primordial de la evaluación perezosa (Lazy Evaluation) combinada con el optimizador Catalyst en PySpark?",
+      "options": [
+        {
+          "key": "A",
+          "text": "Permite a Spark analizar todo el plan de transformaciones de antemano para aplicar optimizaciones como poda de columnas y empuje de filtros antes de leer datos."
+        },
+        {
+          "key": "B",
+          "text": "Elimina la necesidad de escribir código en Python."
+        },
+        {
+          "key": "C",
+          "text": "Garantiza que ningún ejecutor falle ante fallos de hardware en el datacenter."
+        },
+        {
+          "key": "D",
+          "text": "Convierte todas las consultas SQL a código C++ compilado manualmente."
+        }
+      ],
+      "correct": [
+        "A"
+      ],
+      "explanation": "Al posponer la ejecución física hasta que se llama una acción, Catalyst optimiza el grafo completo reordenando filtros y descartando columnas innecesarias.",
+      "sources": [
+        "Spark SQL: Relational Data Processing in Spark"
+      ]
+    },
+    {
+      "id": "q-u4-03",
+      "type": "single",
+      "domainId": "procesamiento-distribuido-spark",
+      "skill": "Transformaciones y Shuffle",
+      "topic": "spark-shuffle",
+      "stem": "¿Por qué las transformaciones Wide como `groupBy()` o `join()` son sustancialmente más lentas que transformaciones Narrow como `filter()`?",
+      "options": [
+        {
+          "key": "A",
+          "text": "Porque las transformaciones Narrow se ejecutan en GPU y las Wide en CPU."
+        },
+        {
+          "key": "B",
+          "text": "Porque las transformaciones Wide desencadenan una fase de Shuffle donde los datos deben serializarse, escribirse a disco y transmitirse por la red entre todos los nodos."
+        },
+        {
+          "key": "C",
+          "text": "Porque las transformaciones Wide obligan a reiniciar el clúster de Spark entre etapas."
+        },
+        {
+          "key": "D",
+          "text": "Porque las transformaciones Narrow solo operan sobre tipos de datos numéricos."
+        }
+      ],
+      "correct": [
+        "B"
+      ],
+      "explanation": "El Shuffle redistribuye datos entre máquinas a través de la red y el disco, lo cual introduce latencia de serialización, I/O y transferencia de red.",
+      "sources": [
+        "High Performance Spark"
+      ]
+    },
+    {
+      "id": "q-u4-04",
+      "type": "single",
+      "domainId": "procesamiento-distribuido-spark",
+      "skill": "Técnicas de Optimización y Data Skew",
+      "topic": "broadcast-joins",
+      "stem": "¿Cuándo es altamente recomendable utilizar un Broadcast Join en lugar de un Sort-Merge Join tradicional en Spark?",
+      "options": [
+        {
+          "key": "A",
+          "text": "Cuando se unen dos tablas de varios Terabytes de datos cada una."
+        },
+        {
+          "key": "B",
+          "text": "Cuando se une una tabla grande con una tabla dimensional pequeña que cabe cómodamente en la memoria RAM de cada ejecutor (ej. < 100 MB)."
+        },
+        {
+          "key": "C",
+          "text": "Únicamente cuando los datos provienen de una base de datos MongoDB."
+        },
+        {
+          "key": "D",
+          "text": "Cuando el clúster carece de conexión de red local."
+        }
+      ],
+      "correct": [
+        "B"
+      ],
+      "explanation": "Difundir una tabla pequeña a todos los ejecutores evita redistribuir la tabla gigante por la red, eliminando completamente la fase de Shuffle en la unión.",
+      "sources": [
+        "Databricks Optimization Guide"
+      ]
+    }
+  ]
+}

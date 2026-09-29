@@ -1,0 +1,28 @@
+{
+  "$schema": "../../../../schemas/unit.schema.json",
+  "id": "ingestion-formatos-motores-locales",
+  "title": "Ingestión, Formatos de Almacenamiento y Motores Locales",
+  "officialTitle": "Data Ingestion, Storage Formats & In-Process Engines",
+  "summary": "Técnicas profesionales para extraer datos de APIs operacionales, comparación física entre formatos orientados a filas (CSV) y columnares (Parquet), procesamiento analítico sin clúster con DuckDB/Polars y diseño de Data Lakes en capas.",
+  "icon": "layers",
+  "color": "#0ea5e9",
+  "objectives": [
+    "Construir clientes de extracción HTTP tolerantes a fallos con paginación por cursores y backoff exponencial con jitter.",
+    "Comparar la estructura física de almacenamiento de CSV vs Parquet para justificar el ahorro drástico de I/O y costes en la nube.",
+    "Ejecutar consultas analíticas vectorizadas sobre gigabytes de datos en una sola máquina usando DuckDB y Polars.",
+    "Diseñar esquemas de particionamiento Hive en almacenamiento de objetos (S3/GCS) evitando el infame Small File Problem."
+  ],
+  "lessons": [
+    "ingestion-apis-rest-backoff-paginacion",
+    "formatos-archivos-csv-vs-parquet",
+    "motores-analiticos-locales-duckdb-polars",
+    "diseno-data-lake-capas-particionamiento"
+  ],
+  "labs": [
+    "lab-api-resilient-extractor-backoff",
+    "lab-parquet-vs-csv-cost-benchmark",
+    "lab-duckdb-in-process-analytics"
+  ],
+  "quizPassRatio": 0.75,
+  "quizQuestionCount": 10
+}

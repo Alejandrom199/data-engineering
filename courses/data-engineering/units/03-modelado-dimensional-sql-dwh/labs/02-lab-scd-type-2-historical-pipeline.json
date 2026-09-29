@@ -1,0 +1,24 @@
+{
+  "$schema": "../../../../schemas/lab.schema.json",
+  "id": "lab-scd-type-2-historical-pipeline",
+  "title": "Laboratorio: Pipeline de Dimensiones de Cambio Lento (SCD Tipo 2)",
+  "goal": "Construir un script en Python/SQL que aplique la lógica de versionado SCD Tipo 2 cerrando la vigencia anterior y creando un nuevo registro.",
+  "level": "intermediate",
+  "estimatedMinutes": 35,
+  "icon": "clock",
+  "domainId": "modelado-dimensional-sql-dwh",
+  "lessonId": "dimensiones-cambio-lento-scd",
+  "code": "import duckdb\n\ncon = duckdb.connect()\ncon.execute('''\n    CREATE TABLE dim_usuario (\n        surrogate_key INT,\n        usuario_id INT,\n        ciudad VARCHAR,\n        fecha_inicio DATE,\n        fecha_fin DATE,\n        es_actual BOOLEAN\n    );\n    \n    INSERT INTO dim_usuario VALUES \n        (1, 101, 'Barcelona', DATE '2024-01-01', DATE '9999-12-31', TRUE);\n''')\n\n# Simulamos mudanza del usuario 101 a 'Madrid' en 2026-01-01\ncon.execute('''\n    UPDATE dim_usuario \n    SET fecha_fin = DATE '2025-12-31', es_actual = FALSE\n    WHERE usuario_id = 101 AND es_actual = TRUE;\n    \n    INSERT INTO dim_usuario VALUES \n        (2, 101, 'Madrid', DATE '2026-01-01', DATE '9999-12-31', TRUE);\n''')\n\nres = con.execute('SELECT surrogate_key, ciudad, es_actual FROM dim_usuario ORDER BY surrogate_key').fetchall()\nfor r in res:\n    print(f'Key {r[0]}: {r[1]} (Actual={r[2]})')",
+  "codeLanguage": "python",
+  "expectedOutput": "Key 1: Barcelona (Actual=False)\nKey 2: Madrid (Actual=True)",
+  "successCriteria": [
+    "El registro de Barcelona se desactiva con su fecha de expiración correspondiente.",
+    "El nuevo registro de Madrid se crea con una nueva clave subrogada y estado activo."
+  ],
+  "file": "solution.py",
+  "steps": [
+    "Comprender el objetivo y escribir la solución técnica solicitada.",
+    "Ejecutar la verificación del ejercicio y comparar la salida obtenida."
+  ],
+  "verify": "python solution.py"
+}

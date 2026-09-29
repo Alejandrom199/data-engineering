@@ -1,0 +1,24 @@
+{
+  "$schema": "../../../../schemas/lab.schema.json",
+  "id": "lab-parquet-vs-csv-cost-benchmark",
+  "title": "Laboratorio: Benchmark de Rendimiento y Tamaño CSV vs Parquet",
+  "goal": "Medir y comparar la huella de almacenamiento y velocidad de consulta entre un archivo CSV y su equivalente columnar Parquet comprimido con Snappy.",
+  "level": "intermediate",
+  "estimatedMinutes": 30,
+  "icon": "server",
+  "domainId": "ingestion-formatos-motores-locales",
+  "lessonId": "formatos-archivos-csv-vs-parquet",
+  "code": "import duckdb, os\n\ncon = duckdb.connect()\n# Crear tabla simulada\ncon.execute('''\n    CREATE TABLE ventas AS \n    SELECT \n        range AS id, \n        'cliente_' || (range % 1000) AS cliente, \n        (range * 1.5)::DECIMAL(10,2) AS monto, \n        DATE '2026-01-01' + (range % 365) AS fecha\n    FROM range(100000);\n''')\n\n# Exportar a CSV y Parquet\ncon.execute(\"COPY ventas TO 'ventas.csv' (HEADER, DELIMITER ',');\")\ncon.execute(\"COPY ventas TO 'ventas.parquet' (FORMAT PARQUET, COMPRESSION SNAPPY);\")\n\ncsv_size = os.path.getsize('ventas.csv')\npq_size = os.path.getsize('ventas.parquet')\n\nprint(f'Reduccion tamano: {((csv_size - pq_size) / csv_size * 100):.1f}%')\n# Cleanup\nos.remove('ventas.csv')\nos.remove('ventas.parquet')",
+  "codeLanguage": "python",
+  "expectedOutput": "Reduccion tamano: > 60%",
+  "successCriteria": [
+    "El archivo Parquet ocupa menos del 40% del tamaño del CSV original.",
+    "Se verifican las propiedades de compresión Snappy y tipado binario."
+  ],
+  "file": "solution.py",
+  "steps": [
+    "Comprender el objetivo y escribir la solución técnica solicitada.",
+    "Ejecutar la verificación del ejercicio y comparar la salida obtenida."
+  ],
+  "verify": "python solution.py"
+}

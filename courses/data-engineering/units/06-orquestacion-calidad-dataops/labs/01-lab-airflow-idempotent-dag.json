@@ -1,0 +1,24 @@
+{
+  "$schema": "../../../../schemas/lab.schema.json",
+  "id": "lab-airflow-idempotent-dag",
+  "title": "Laboratorio: Construcción de un Pipeline Idempotente con Parámetros Temporales",
+  "goal": "Escribir una función de procesamiento que tome la fecha lógica del contexto y aplique sobrescritura de partición garantizando idempotencia.",
+  "level": "intermediate",
+  "estimatedMinutes": 30,
+  "icon": "loop",
+  "domainId": "orquestacion-calidad-dataops",
+  "lessonId": "orquestacion-airflow-dags-idempotencia",
+  "code": "def process_daily_partition(execution_date, records, storage):\n    # Limpieza o borrado atómico de la partición antes de insertar\n    storage[execution_date] = []\n    for r in records:\n        storage[execution_date].append(r)\n    return len(storage[execution_date])\n\ns3_storage = {}\nlote = [{'id': 1, 'val': 100}, {'id': 2, 'val': 200}]\n\n# Primera ejecucion para 2026-09-28\ncount1 = process_daily_partition('2026-09-28', lote, s3_storage)\n# Reintento por fallo de red posterior\ncount2 = process_daily_partition('2026-09-28', lote, s3_storage)\n\nprint(f'Total registros en particion 2026-09-28: {len(s3_storage[\"2026-09-28\"])}')",
+  "codeLanguage": "python",
+  "expectedOutput": "Total registros en particion 2026-09-28: 2",
+  "successCriteria": [
+    "Reejecutar la función con los mismos datos no duplica registros.",
+    "La partición contiene exactamente los 2 registros esperados."
+  ],
+  "file": "solution.py",
+  "steps": [
+    "Comprender el objetivo y escribir la solución técnica solicitada.",
+    "Ejecutar la verificación del ejercicio y comparar la salida obtenida."
+  ],
+  "verify": "python solution.py"
+}

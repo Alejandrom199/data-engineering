@@ -1,0 +1,28 @@
+{
+  "$schema": "../../../../schemas/unit.schema.json",
+  "id": "streaming-tiempo-real-eventos",
+  "title": "Streaming en Tiempo Real y Arquitecturas de Eventos",
+  "officialTitle": "Real-Time Streaming & Event-Driven Data Architectures",
+  "summary": "El nivel más avanzado de la ingeniería de datos: arquitecturas orientadas a eventos (Event-Driven), el commit log inmutable de Apache Kafka, Change Data Capture (CDC) con Debezium replicando desde el WAL, y procesamiento de flujos con Watermarks y semántica Exactly-Once.",
+  "icon": "loop",
+  "color": "#ec4899",
+  "objectives": [
+    "Evaluar con rigor técnico el trade-off arquitectónico entre procesamiento Batch y Streaming en tiempo real.",
+    "Comprender la anatomía interna de Apache Kafka: commit log inmutable en disco, particiones, offsets y rebalanceo de Consumer Groups.",
+    "Diseñar pipelines de Change Data Capture (CDC) con Debezium leyendo directamente del Write-Ahead Log (WAL) de bases operacionales.",
+    "Dominar la semántica de tiempo en streaming (Event Time vs Processing Time), gestión de datos tardíos con Watermarks y garantías de entrega Exactly-Once."
+  ],
+  "lessons": [
+    "batch-vs-streaming-arquitectura-eventos",
+    "apache-kafka-logs-particiones-offsets",
+    "change-data-capture-debezium-wal",
+    "procesamiento-streams-watermarks-exactly-once"
+  ],
+  "labs": [
+    "lab-kafka-producer-consumer",
+    "lab-streaming-window-watermark",
+    "lab-cdc-wal-replication"
+  ],
+  "quizPassRatio": 0.75,
+  "quizQuestionCount": 10
+}

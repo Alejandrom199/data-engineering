@@ -1,0 +1,205 @@
+{
+  "$schema": "../../../../../schemas/lesson.schema.json",
+  "id": "batch-vs-streaming-arquitectura-eventos",
+  "title": "Batch vs Streaming: Cuándo se Justifica el Tiempo Real",
+  "estimatedMinutes": 14,
+  "domainIds": [
+    "streaming-tiempo-real-eventos"
+  ],
+  "topics": [
+    "batch-vs-streaming",
+    "arquitectura-eventos",
+    "latencia-throughput",
+    "patron-pub-sub"
+  ],
+  "hook": "Un ejecutivo exige: 'Queremos que todos los datos de la empresa se procesen en tiempo real de milisegundos'. Seis meses después, la empresa gasta $40,000 USD mensuales en infraestructura de streaming para alimentar un dashboard financiero que los directores miran una sola vez al mes los lunes por la mañana. ¿Cómo decide un ingeniero senior cuándo usar Batch y cuándo Streaming?",
+  "concept": {
+    "blocks": [
+      {
+        "type": "heading",
+        "text": "1. El Coste Oculto del Tiempo Real"
+      },
+      {
+        "type": "paragraph",
+        "text": "En ingeniería de software no hay soluciones mágicas, solo compensaciones (*trade-offs*). El procesamiento por lotes (**Batch**) maximiza el **Throughput** (volumen de datos procesados por dólar de cómputo), ejecutando cómputos masivos sobre datos en reposo a costa de una latencia de horas o días. El procesamiento en tiempo real (**Streaming**) minimiza la **Latencia** (procesa eventos a los pocos milisegundos de ocurrir), pero exige servidores encendidos 24/7, infraestructura compleja y tolerancia a datos desordenados."
+      },
+      {
+        "type": "table",
+        "headers": [
+          "Dimensión",
+          "Procesamiento por Lotes (Batch)",
+          "Procesamiento en Flujo (Streaming)"
+        ],
+        "rows": [
+          [
+            "Latencia de Respuesta",
+            "Minutos, horas o días.",
+            "Milisegundos a segundos."
+          ],
+          [
+            "Naturaleza del Dato",
+            "Acotado (Bounded): tiene principio y fin definido.",
+            "No acotado (Unbounded): flujo continuo e infinito de eventos."
+          ],
+          [
+            "Costo Operativo",
+            "Bajo: los servidores se encienden, procesan y se apagan.",
+            "Alto: clústeres y brokers encendidos 24/7/365."
+          ],
+          [
+            "Casos de Uso Típicos",
+            "Reportes mensuales, cierre contable, entrenamiento de ML.",
+            "Detección de fraude bancario, alertas de salud, IoT, recomendaciones en vivo."
+          ]
+        ],
+        "caption": "Comparativa de trade-offs entre arquitecturas Batch y Streaming"
+      },
+      {
+        "type": "heading",
+        "text": "2. Arquitecturas Orientadas a Eventos (Event-Driven)"
+      },
+      {
+        "type": "paragraph",
+        "text": "En una arquitectura tradicional, los servicios se comunican mediante peticiones directas síncronas (REST). Si el servicio receptor se cae o se satura, el emisor falla. En una arquitectura basada en eventos, los productores publican notificaciones inmutables ('PagoRealizado', 'UsuarioRegistrado') en un bus de mensajería asíncrono (**Patrón Pub/Sub**). Múltiples consumidores independientes pueden leer los eventos a su propio ritmo sin acoplamiento."
+      },
+      {
+        "type": "callout",
+        "tone": "tip",
+        "title": "Regla de Decisión Senior",
+        "text": "Si una persona humana es la que toma la decisión basándose en el reporte, el 95% de las veces un pipeline Batch (cada hora o diario) es más que suficiente. Solo adopta Streaming si un sistema automatizado necesita reaccionar en segundos (ej. bloquear una tarjeta de crédito clonada)."
+      }
+    ]
+  },
+  "keyPoints": [
+    "Batch optimiza el throughput de datos a bajo costo; Streaming minimiza la latencia para eventos críticos en segundos.",
+    "Las arquitecturas orientadas a eventos desacoplan sistemas mediante el patrón Publish/Subscribe (Pub/Sub).",
+    "El streaming continuo exige infraestructura permanente 24/7, multiplicando la complejidad operativa y el costo en la nube."
+  ],
+  "terms": [
+    {
+      "term": "Batch Processing",
+      "translation": "Procesamiento por Lotes",
+      "definition": "Ejecución periódica de tareas de cómputo sobre un conjunto finito y delimitado de datos acumulados en reposo."
+    },
+    {
+      "term": "Stream Processing",
+      "translation": "Procesamiento en Flujo / Tiempo Real",
+      "definition": "Ingestión y cómputo continuo e ininterrumpido sobre secuencias infinitas de eventos a medida que se generan."
+    },
+    {
+      "term": "Publish/Subscribe (Pub/Sub)",
+      "translation": "Patrón Publicador / Suscriptor",
+      "definition": "Patrón de mensajería asíncrona donde los emisores de mensajes no los envían directamente a receptores específicos, sino a canales o temas."
+    }
+  ],
+  "diagram": {
+    "type": "flow",
+    "nodes": [
+      {
+        "id": "ev",
+        "label": "Evento en Vivo",
+        "sub": "Compra con Tarjeta",
+        "detail": "Ocurre en la tienda física a las 14:00:01.050",
+        "icon": "bolt",
+        "kind": "default"
+      },
+      {
+        "id": "bus",
+        "label": "Event Bus (Kafka)",
+        "sub": "Tópico 'pagos'",
+        "detail": "Desacopla emisores de múltiples consumidores",
+        "icon": "server",
+        "kind": "default"
+      },
+      {
+        "id": "fraud",
+        "label": "Motor Antifraude (Streaming)",
+        "sub": "Respuesta < 200 ms",
+        "detail": "Bloquea la transacción sospechosa en el acto",
+        "icon": "shield",
+        "kind": "end"
+      },
+      {
+        "id": "dwh",
+        "label": "Ingesta a DWH (Micro-Batch)",
+        "sub": "Cada 15 minutos",
+        "detail": "Acumula para análisis financiero general",
+        "icon": "server",
+        "kind": "end"
+      }
+    ]
+  },
+  "activity": {
+    "type": "sort",
+    "prompt": "Clasifica el caso de uso en la estrategia arquitectónica óptima:",
+    "buckets": [
+      "Procesamiento en Tiempo Real (Streaming)",
+      "Procesamiento por Lotes (Batch)"
+    ],
+    "items": [
+      {
+        "text": "Detección de fraude en transacciones de cajeros automáticos antes de autorizar el retiro",
+        "bucket": 0
+      },
+      {
+        "text": "Cálculo de la nómina salarial mensual y comisiones de ventas de todos los empleados",
+        "bucket": 1
+      },
+      {
+        "text": "Ajuste dinámico de precios de billetes de avión según clics concurrentes en la web",
+        "bucket": 0
+      },
+      {
+        "text": "Entrenamiento de un modelo de Deep Learning sobre 10 años de imágenes satelitales",
+        "bucket": 1
+      }
+    ]
+  },
+  "checkQuestionId": "q-u7-01",
+  "traps": [
+    {
+      "option": "Diseñar una arquitectura de streaming continuo de baja latencia para generar reportes ejecutivos semanales de PDF.",
+      "reason": "Desperdicia decenas de miles de dólares en costos de infraestructura en la nube para un resultado que nadie consumirá en tiempo real."
+    },
+    {
+      "option": "Asumir que los eventos de streaming siempre llegan a los consumidores en el mismo orden cronológico en que ocurrieron.",
+      "reason": "La latencia de red, caídas de antenas móviles y reintentos hacen que los eventos lleguen frecuentemente desordenados o duplicados."
+    }
+  ],
+  "trapSummary": "Implementar infraestructuras complejas de streaming en tiempo real para casos de uso que solo requieren procesamiento batch.",
+  "flashcards": [
+    {
+      "id": "fc-u7-l1-1",
+      "front": "¿Cuál es la diferencia principal entre un dataset 'Bounded' y uno 'Unbounded'?",
+      "back": "Un dataset Bounded es finito con principio y fin definido (típico de Batch); un dataset Unbounded es un flujo infinito y continuo de eventos (típico de Streaming)."
+    },
+    {
+      "id": "fc-u7-l1-2",
+      "front": "¿Qué compensación de costos e infraestructura implica adoptar una arquitectura de Streaming?",
+      "back": "Logra latencias de milisegundos pero exige infraestructura de brokers y motores de procesamiento encendidos 24/7, aumentando la complejidad y la factura."
+    },
+    {
+      "id": "fc-u7-l1-3",
+      "front": "¿Cómo ayuda el patrón Pub/Sub a la escalabilidad de un ecosistema de datos?",
+      "back": "Desacopla a los productores de los consumidores: los productores publican eventos una vez y múltiples consumidores los procesan a su propio ritmo sin interferir entre sí."
+    }
+  ],
+  "quickFacts": [
+    {
+      "statement": "El procesamiento Batch ofrece mayor Throughput por dólar invertido que el procesamiento Streaming.",
+      "answer": true
+    },
+    {
+      "statement": "Todos los problemas analíticos de una empresa deben resolverse obligatoriamente con Streaming.",
+      "answer": false
+    },
+    {
+      "statement": "En una arquitectura basada en eventos, los consumidores leen mensajes de forma asíncrona.",
+      "answer": true
+    },
+    {
+      "statement": "En streaming, los eventos siempre llegan en el orden cronológico exacto en que fueron producidos.",
+      "answer": false
+    }
+  ]
+}

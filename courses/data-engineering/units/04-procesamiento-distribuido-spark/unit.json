@@ -1,0 +1,28 @@
+{
+  "$schema": "../../../../schemas/unit.schema.json",
+  "id": "procesamiento-distribuido-spark",
+  "title": "Computación Distribuida con Apache Spark",
+  "officialTitle": "Distributed Computing with Apache Spark & PySpark",
+  "summary": "Escalabilidad horizontal cuando los datos superan una sola máquina: arquitectura interna de Spark (Driver y Executors), evaluación perezosa y optimizador Catalyst, transformaciones Narrow vs Wide y resolución de cuellos de botella por Shuffle y Data Skew.",
+  "icon": "bolt",
+  "color": "#f97316",
+  "objectives": [
+    "Comprender la arquitectura distribuida Master/Worker de Apache Spark distinguiendo el rol del Driver y los Executors.",
+    "Utilizar la API de PySpark DataFrames aprovechando la evaluación perezosa (Lazy Evaluation) y el planificador Catalyst.",
+    "Analizar el impacto computacional y de red de las transformaciones Narrow frente a Wide y el coste del Shuffle.",
+    "Optimizar uniones masivas mediante Broadcast Joins, mitigar el sesgo de datos (Data Skew con Salting) y prevenir fallos Out-Of-Memory (OOM)."
+  ],
+  "lessons": [
+    "escalado-limites-arquitectura-spark",
+    "pyspark-dataframes-catalyst-lazy-eval",
+    "shuffle-transformaciones-narrow-wide",
+    "optimizacion-spark-broadcast-skew-oom"
+  ],
+  "labs": [
+    "lab-spark-narrow-wide-shuffle",
+    "lab-spark-data-skew-salting",
+    "lab-spark-broadcast-join-tuning"
+  ],
+  "quizPassRatio": 0.75,
+  "quizQuestionCount": 10
+}

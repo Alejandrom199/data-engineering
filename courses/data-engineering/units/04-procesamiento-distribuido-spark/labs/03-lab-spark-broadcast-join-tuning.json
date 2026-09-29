@@ -1,0 +1,24 @@
+{
+  "$schema": "../../../../schemas/lab.schema.json",
+  "id": "lab-spark-broadcast-join-tuning",
+  "title": "Laboratorio: Optimización de Uniones con Broadcast Join",
+  "goal": "Verificar la velocidad de un Broadcast Join frente a una unión estándar cargando una dimensión de catálogo en memoria.",
+  "level": "intermediate",
+  "estimatedMinutes": 30,
+  "icon": "bolt",
+  "domainId": "procesamiento-distribuido-spark",
+  "lessonId": "optimizacion-spark-broadcast-skew-oom",
+  "code": "import duckdb\n\ncon = duckdb.connect()\n# Tabla de transacciones grande\ncon.execute('CREATE TABLE fact_tx AS SELECT range AS id, (range % 10) AS cat_id, (range * 2.5) AS monto FROM range(200000);')\n# Tabla de dimensión pequeña\ncon.execute('CREATE TABLE dim_cat AS SELECT range AS cat_id, \"Categoria_\" || range AS nombre FROM range(10);')\n\n# Consulta unida emulando broadcast join en memoria\nres = con.execute('''\n    SELECT \n        d.nombre,\n        COUNT(f.id) AS total_operaciones,\n        ROUND(SUM(f.monto), 2) AS total_monto\n    FROM fact_tx f\n    JOIN dim_cat d ON f.cat_id = d.cat_id\n    GROUP BY d.nombre\n    ORDER BY d.nombre\n    LIMIT 3;\n''').fetchall()\n\nfor r in res:\n    print(f'{r[0]}: {r[1]} ops, Total={r[2]}')",
+  "codeLanguage": "python",
+  "expectedOutput": "Categoria_0: 20000 ops, Total=49997500.0\nCategoria_1: 20000 ops, Total=49998000.0\nCategoria_2: 20000 ops, Total=49998500.0",
+  "successCriteria": [
+    "La unión procesa los 200,000 registros cruzándolos con la dimensión en milisegundos.",
+    "Los resultados agrupados por categoría son correctos y verificables."
+  ],
+  "file": "solution.py",
+  "steps": [
+    "Comprender el objetivo y escribir la solución técnica solicitada.",
+    "Ejecutar la verificación del ejercicio y comparar la salida obtenida."
+  ],
+  "verify": "python solution.py"
+}

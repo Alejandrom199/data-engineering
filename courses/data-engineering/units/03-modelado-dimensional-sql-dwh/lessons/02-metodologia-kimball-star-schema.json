@@ -1,0 +1,196 @@
+{
+  "$schema": "../../../../../schemas/lesson.schema.json",
+  "id": "metodologia-kimball-star-schema",
+  "title": "Metodología Kimball: El Modelo en Estrella (Star Schema)",
+  "estimatedMinutes": 15,
+  "domainIds": [
+    "modelado-dimensional-sql-dwh"
+  ],
+  "topics": [
+    "modelo-kimball",
+    "tablas-hechos",
+    "tablas-dimensiones",
+    "star-schema"
+  ],
+  "hook": "Un analista de negocio quiere responder una pregunta aparentemente simple: '¿Cuántos clientes nuevos de España compraron calzado deportivo en la campaña de Navidad de 2025?'. En la base normalizada tiene que unir 11 tablas con nombres crípticos y la consulta tarda 40 minutos. Con un modelo en estrella de Kimball, la consulta solo une 3 tablas y responde en 0.8 segundos. ¿Cómo se diseña este modelo?",
+  "concept": {
+    "blocks": [
+      {
+        "type": "heading",
+        "text": "1. La Filosofía de Ralph Kimball"
+      },
+      {
+        "type": "paragraph",
+        "text": "El enfoque de Ralph Kimball (Dimensional Modeling) sostiene que los datos analíticos deben estructurarse de una manera comprensible para el negocio y optimizada para consultas de alto rendimiento. En lugar de docenas de tablas normalizadas, el universo se simplifica en dos conceptos fundamentales: **Hechos (Facts)** y **Dimensiones (Dimensions)**."
+      },
+      {
+        "type": "heading",
+        "text": "2. Tablas de Hechos (Fact Tables): Las Métricas Numéricas"
+      },
+      {
+        "type": "paragraph",
+        "text": "Una tabla de hechos registra eventos medibles ocurridos en un momento específico (una venta, un clic, una transferencia). Contiene métricas cuantitativas (monto, cantidad vendida, costo) y claves foráneas que apuntan a las dimensiones circundantes. Las tablas de hechos se caracterizan por ser muy largas (millones o miles de millones de filas) y estrechas."
+      },
+      {
+        "type": "heading",
+        "text": "3. Tablas de Dimensiones (Dimension Tables): El Contexto de Negocio"
+      },
+      {
+        "type": "paragraph",
+        "text": "Las dimensiones responden a las preguntas de contexto: **¿Quién?** (cliente), **¿Qué?** (producto), **¿Dónde?** (tienda/país) y **¿Cuándo?** (dimensión fecha). Son tablas anchas, llenas de atributos textuales descriptivos (categoría, marca, ciudad, segmento de cliente) y generalmente tienen muchas menos filas que la tabla de hechos."
+      },
+      {
+        "type": "heading",
+        "text": "4. El Esquema en Estrella (Star Schema)"
+      },
+      {
+        "type": "paragraph",
+        "text": "Se llama esquema en estrella porque la tabla de hechos se ubica en el centro rodeada radialmente por sus dimensiones. Cada dimensión se conecta directamente a la tabla de hechos mediante una sola relación (`JOIN`). Esto permite que los optimizadores de bases de datos analíticas ejecuten planes de consulta hiper-eficientes (Star Joins) sin ramas de JOINs en cascada."
+      },
+      {
+        "type": "code",
+        "language": "sql",
+        "caption": "Consulta típica y limpia sobre un Star Schema",
+        "code": "SELECT \n    d_prod.categoria,\n    d_tiempo.mes_nombre,\n    SUM(f_ventas.monto_total) AS total_ingresos,\n    COUNT(f_ventas.orden_id) AS total_pedidos\nFROM fact_ventas f_ventas\nJOIN dim_producto d_prod ON f_ventas.producto_key = d_prod.producto_key\nJOIN dim_tiempo d_tiempo ON f_ventas.fecha_key = d_tiempo.fecha_key\nWHERE d_tiempo.anio = 2026\nGROUP BY d_prod.categoria, d_tiempo.mes_nombre\nORDER BY total_ingresos DESC;"
+      },
+      {
+        "type": "callout",
+        "tone": "info",
+        "title": "Definición del Grano (Granularity)",
+        "text": "El paso más crítico del modelado dimensional es definir el grano: ¿Qué representa exactamente una fila de la tabla de hechos? Por ejemplo: 'Un artículo individual comprado en una transacción de la tienda web'. Definir el grano evita inconsistencias al agregar métricas."
+      }
+    ]
+  },
+  "keyPoints": [
+    "El Star Schema centraliza métricas cuantitativas en tablas de hechos y contexto descriptivo en dimensiones.",
+    "Cada dimensión se conecta directamente al hecho con un único JOIN, maximizando el rendimiento analítico.",
+    "Definir el 'grano' exacto de la tabla de hechos es el paso fundacional para evitar duplicaciones de métricas."
+  ],
+  "terms": [
+    {
+      "term": "Star Schema",
+      "translation": "Esquema en Estrella",
+      "definition": "Estructura de modelado dimensional donde una tabla de hechos central se conecta directamente a tablas de dimensiones denormalizadas."
+    },
+    {
+      "term": "Fact Table",
+      "translation": "Tabla de Hechos",
+      "definition": "Tabla que almacena medidas numéricas de eventos de negocio y claves foráneas hacia las dimensiones asociadas."
+    },
+    {
+      "term": "Grain",
+      "translation": "Grano / Granularidad",
+      "definition": "Nivel exacto de detalle atómico que representa una sola fila dentro de una tabla de hechos."
+    }
+  ],
+  "diagram": {
+    "type": "flow",
+    "nodes": [
+      {
+        "id": "dim_cli",
+        "label": "dim_cliente",
+        "sub": "Quién",
+        "detail": "Nombre, segmento, país, fecha registro",
+        "icon": "user",
+        "kind": "default"
+      },
+      {
+        "id": "dim_prod",
+        "label": "dim_producto",
+        "sub": "Qué",
+        "detail": "SKU, categoría, marca, precio unitario",
+        "icon": "star",
+        "kind": "default"
+      },
+      {
+        "id": "fact",
+        "label": "fact_ventas (Centro)",
+        "sub": "Métricas cuantitativas",
+        "detail": "monto_total, cantidad, descuento, costo",
+        "icon": "star",
+        "kind": "default"
+      },
+      {
+        "id": "dim_time",
+        "label": "dim_tiempo",
+        "sub": "Cuándo",
+        "detail": "Fecha, día, mes, trimestre, año, festivo",
+        "icon": "calendar",
+        "kind": "default"
+      }
+    ]
+  },
+  "activity": {
+    "type": "sort",
+    "prompt": "Clasifica cada elemento en una Tabla de Hechos o en una Tabla de Dimensiones:",
+    "buckets": [
+      "Tabla de Hechos (Fact)",
+      "Tabla de Dimensiones (Dim)"
+    ],
+    "items": [
+      {
+        "text": "Monto neto cobrado en una transacción y cantidad de unidades vendidas",
+        "bucket": 0
+      },
+      {
+        "text": "Categoría del producto, marca comercial y fabricante del artículo",
+        "bucket": 1
+      },
+      {
+        "text": "Tiempo transcurrido en segundos desde que el usuario abrió la app hasta pagar",
+        "bucket": 0
+      },
+      {
+        "text": "Nombre de la tienda, dirección física, ciudad y provincia",
+        "bucket": 1
+      }
+    ]
+  },
+  "checkQuestionId": "q-u3-02",
+  "traps": [
+    {
+      "option": "Crear un esquema en copo de nieve (Snowflake Schema) normalizando innecesariamente las dimensiones en múltiples sub-tablas.",
+      "reason": "Multiplica la cantidad de JOINs necesarios para cualquier reporte simple, ralentizando las consultas de los usuarios finales."
+    },
+    {
+      "option": "Mezclar diferentes granos en la misma tabla de hechos (por ejemplo, guardar filas de ítems individuales junto con filas de totales de factura).",
+      "reason": "Provoca que los cálculos de `SUM()` dupliquen o tripliquen los números reales del negocio."
+    }
+  ],
+  "trapSummary": "Mezclar niveles de granularidad distintos en una misma tabla de hechos generando métricas infladas.",
+  "flashcards": [
+    {
+      "id": "fc-u3-l2-1",
+      "front": "¿Cuál es la diferencia fundamental entre una tabla de hechos y una tabla de dimensiones en la metodología Kimball?",
+      "back": "La tabla de hechos almacena medidas numéricas de eventos (qué ocurrió), mientras que las dimensiones proveen el contexto descriptivo (quién, cuándo, dónde)."
+    },
+    {
+      "id": "fc-u3-l2-2",
+      "front": "¿Por qué el Star Schema es preferido sobre esquemas altamente normalizados en analítica?",
+      "back": "Porque minimiza los JOINs necesarios y permite a los motores analíticos ejecutar planes de consulta optimizados de alta velocidad."
+    },
+    {
+      "id": "fc-u3-l2-3",
+      "front": "¿Qué es el 'grano' de una tabla de hechos y por qué es crucial respetarlo?",
+      "back": "Es el nivel exacto de detalle que representa una fila; respetarlo evita duplicaciones y errores de agregación de métricas de negocio."
+    }
+  ],
+  "quickFacts": [
+    {
+      "statement": "El Esquema en Estrella ubica la tabla de hechos en el centro rodeada por dimensiones.",
+      "answer": true
+    },
+    {
+      "statement": "Las tablas de hechos contienen típicamente atributos descriptivos de texto largo.",
+      "answer": false
+    },
+    {
+      "statement": "Una tabla de dimensión de tiempo permite agrupar ventas por mes, trimestre o día festivo sin usar funciones de fecha complejas.",
+      "answer": true
+    },
+    {
+      "statement": "En un modelo dimensional se busca normalizar las dimensiones al máximo para ahorrar espacio.",
+      "answer": false
+    }
+  ]
+}

@@ -1,0 +1,137 @@
+{
+  "$schema": "../../../../schemas/questions.schema.json",
+  "questions": [
+    {
+      "id": "q-u2-01",
+      "type": "single",
+      "domainId": "ingestion-formatos-motores-locales",
+      "skill": "Ingestión Resiliente de APIs",
+      "topic": "backoff-exponencial",
+      "stem": "Cuando una API externa responde con HTTP 429 (Too Many Requests), ¿cuál es la estrategia de ingeniería recomendada para reintentar la operación?",
+      "options": [
+        {
+          "key": "A",
+          "text": "Reintentar de inmediato 100 veces por segundo para asegurar ser el primer cliente atendido."
+        },
+        {
+          "key": "B",
+          "text": "Esperar un tiempo base que se duplica en cada intento (backoff exponencial) sumando una variación aleatoria (jitter)."
+        },
+        {
+          "key": "C",
+          "text": "Cancelar definitivamente el pipeline y no reintentar nunca más."
+        },
+        {
+          "key": "D",
+          "text": "Cambiar el método HTTP de GET a POST para saltar el rate limit."
+        }
+      ],
+      "correct": [
+        "B"
+      ],
+      "explanation": "El backoff exponencial con jitter descongestiona progresivamente el servidor externo y desincroniza las solicitudes de múltiples clientes para evitar el problema de la estampida.",
+      "sources": [
+        "AWS Architecture Blog - Exponential Backoff and Jitter"
+      ]
+    },
+    {
+      "id": "q-u2-02",
+      "type": "single",
+      "domainId": "ingestion-formatos-motores-locales",
+      "skill": "Formatos Columnares de Almacenamiento",
+      "topic": "formatos-columnares",
+      "stem": "¿Por qué Apache Parquet es drásticamente más eficiente y económico que CSV para consultas de tipo agregación (`SELECT SUM(...)`) en tablas anchas?",
+      "options": [
+        {
+          "key": "A",
+          "text": "Porque lee únicamente los bloques de las columnas involucradas en la consulta, omitiendo la lectura del resto de columnas."
+        },
+        {
+          "key": "B",
+          "text": "Porque almacena todos los datos en texto sin ningún tipo de compresión."
+        },
+        {
+          "key": "C",
+          "text": "Porque indexa cada fila con una clave primaria relacional B-Tree."
+        },
+        {
+          "key": "D",
+          "text": "Porque divide los archivos en fragmentos de 1 Kilobyte para acelerar la red."
+        }
+      ],
+      "correct": [
+        "A"
+      ],
+      "explanation": "La disposición columnar de Parquet permite la proyección de columnas: el motor salta los bytes de las columnas no solicitadas, ahorrando hasta un 95% de I/O en disco y costos de nube.",
+      "sources": [
+        "Apache Parquet Documentation"
+      ]
+    },
+    {
+      "id": "q-u2-03",
+      "type": "single",
+      "domainId": "ingestion-formatos-motores-locales",
+      "skill": "Motores Analíticos In-Process",
+      "topic": "duckdb-olap",
+      "stem": "¿Cuál es la principal ventaja de utilizar DuckDB frente a levantar un clúster de Apache Spark para transformar un dataset de 30 GB?",
+      "options": [
+        {
+          "key": "A",
+          "text": "DuckDB puede distribuir el cómputo en 200 servidores en la nube de forma automática."
+        },
+        {
+          "key": "B",
+          "text": "DuckDB corre dentro del mismo proceso en una sola máquina con latencia cero de red, procesamiento vectorizado y sin costo de clúster."
+        },
+        {
+          "key": "C",
+          "text": "DuckDB no soporta sintaxis SQL estándar, lo que lo hace más rápido."
+        },
+        {
+          "key": "D",
+          "text": "DuckDB convierte automáticamente todos los datos a formato CSV."
+        }
+      ],
+      "correct": [
+        "B"
+      ],
+      "explanation": "Para datasets medianos que caben en una máquina, DuckDB elimina la latencia de red, la serialización de datos y el costo de mantenimiento de clústeres distribuidos.",
+      "sources": [
+        "DuckDB: An Embeddable Analytical Database"
+      ]
+    },
+    {
+      "id": "q-u2-04",
+      "type": "single",
+      "domainId": "ingestion-formatos-motores-locales",
+      "skill": "Diseño de Data Lakes y Particionamiento",
+      "topic": "small-file-problem",
+      "stem": "¿Qué consecuencias negativas genera el 'Small File Problem' en un Data Lake sobre Amazon S3 o Google Cloud Storage?",
+      "options": [
+        {
+          "key": "A",
+          "text": "Los archivos pequeños ocupan demasiado espacio en disco debido a la compresión Snappy."
+        },
+        {
+          "key": "B",
+          "text": "Aumenta la latencia por peticiones excesivas a la API de almacenamiento, encarece la factura por operaciones de listado y satura los motores de consulta."
+        },
+        {
+          "key": "C",
+          "text": "Impide que los usuarios puedan descargar los datos con clientes FTP."
+        },
+        {
+          "key": "D",
+          "text": "Obliga a formatear el disco duro del servidor cada semana."
+        }
+      ],
+      "correct": [
+        "B"
+      ],
+      "explanation": "Millones de archivos pequeños agregan una sobrecarga de llamadas a la API de S3 (GET/LIST), aumentando la factura de la nube y degradando el tiempo de procesamiento.",
+      "sources": [
+        "Designing Data-Intensive Applications"
+      ]
+    }
+  ]
+}

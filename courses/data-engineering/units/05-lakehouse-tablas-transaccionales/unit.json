@@ -1,0 +1,28 @@
+{
+  "$schema": "../../../../schemas/unit.schema.json",
+  "id": "lakehouse-tablas-transaccionales",
+  "title": "Arquitectura Lakehouse y Tablas Transaccionales",
+  "officialTitle": "Lakehouse Architecture & ACID Table Formats",
+  "summary": "La convergencia del almacenamiento moderno: formatos de tabla abiertos (Delta Lake y Apache Iceberg), transacciones ACID sobre Object Storage mediante Transaction Logs, operaciones avanzadas de MERGE y Time Travel, y optimización de layout físico con Z-Ordering.",
+  "icon": "shield",
+  "color": "#10b981",
+  "objectives": [
+    "Analizar las limitaciones históricas de los Data Lakes tradicionales y cómo los formatos de tabla abiertos (Delta Lake, Apache Iceberg) habilitan la arquitectura Lakehouse.",
+    "Comprender el mecanismo del Transaction Log y Snapshot Isolation para garantizar lecturas y escrituras concurrentes sin corrupción de datos.",
+    "Ejecutar operaciones atómicas de MERGE (Upsert) para sincronización continua de datos y Time Travel para auditoría y rollback.",
+    "Optimizar la distribución física de archivos mediante compactación (OPTIMIZE) y agrupamiento multidimensional (Z-Ordering)."
+  ],
+  "lessons": [
+    "evolucion-lakehouse-delta-iceberg",
+    "acid-transaction-log-snapshot-isolation",
+    "operaciones-avanzadas-merge-time-travel",
+    "optimizacion-layout-compaction-zorder"
+  ],
+  "labs": [
+    "lab-delta-lakehouse-crud",
+    "lab-delta-merge-cdc-upsert",
+    "lab-lakehouse-optimize-zorder"
+  ],
+  "quizPassRatio": 0.75,
+  "quizQuestionCount": 10
+}

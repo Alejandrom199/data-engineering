@@ -1,0 +1,24 @@
+{
+  "$schema": "../../../../schemas/lab.schema.json",
+  "id": "lab-lakehouse-optimize-zorder",
+  "title": "Laboratorio: Compactación y File Skipping con Min/Max Metadatos",
+  "goal": "Demostrar cómo la compactación de micro-archivos y el ordenamiento multidimensional reducen los bloques leídos.",
+  "level": "advanced",
+  "estimatedMinutes": 35,
+  "icon": "bolt",
+  "domainId": "lakehouse-tablas-transaccionales",
+  "lessonId": "optimizacion-layout-compaction-zorder",
+  "code": "import duckdb\n\ncon = duckdb.connect()\n# Simulación de metadatos de archivos con rangos min/max para File Skipping\ncon.execute('''\n    CREATE TABLE file_metadata (\n        file_id VARCHAR,\n        min_cliente INT,\n        max_cliente INT,\n        total_rows INT\n    );\n    \n    -- Archivos ordenados con Z-Order (rangos no superpuestos)\n    INSERT INTO file_metadata VALUES \n        ('part-001.parquet', 1, 1000, 50000),\n        ('part-002.parquet', 1001, 2000, 50000),\n        ('part-003.parquet', 2001, 3000, 50000);\n''')\n\n# Consulta: Buscar cliente 1550\nres = con.execute('''\n    SELECT file_id, total_rows \n    FROM file_metadata \n    WHERE 1550 BETWEEN min_cliente AND max_cliente;\n''').fetchall()\n\nprint(f'Archivos escaneados: {len(res)} de 3 (File Skipping = 66.7%)')\nfor r in res:\n    print(f'Leyendo solo: {r[0]}')",
+  "codeLanguage": "python",
+  "expectedOutput": "Archivos escaneados: 1 de 3 (File Skipping = 66.7%)\nLeyendo solo: part-002.parquet",
+  "successCriteria": [
+    "El optimizador descarta el 66.7% de los archivos sin leer sus datos basándose en el rango min/max.",
+    "Se identifica el archivo exacto donde reside el registro objetivo."
+  ],
+  "file": "solution.py",
+  "steps": [
+    "Comprender el objetivo y escribir la solución técnica solicitada.",
+    "Ejecutar la verificación del ejercicio y comparar la salida obtenida."
+  ],
+  "verify": "python solution.py"
+}
