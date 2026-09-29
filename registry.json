@@ -22,12 +22,12 @@
         "labs": 21,
         "questions": 28,
         "exams": 3,
-        "achievements": 12
+        "achievements": 13
       },
       "archive": {
         "path": "archives/data-engineering-1.0.0.zip",
-        "sha256": "d06ea1ad9d4d23d7efaeb8d75e910f357137735521e90eb37eaa54ef89fe15ed",
-        "bytes": 153636
+        "sha256": "38e19d91c6dff8b339a063a3ae8fd66ce61a3ea25802c862434039c5d4d17215",
+        "bytes": 153735
       }
     }
   ]
