@@ -1,6 +1,6 @@
 {
   "$schema": "../../../../schemas/unit.schema.json",
-  "id": "02-modeling-sql-dwh",
+  "id": "modeling-sql-dwh",
   "title": "Modelado Relacional, SQL Analítico y Data Warehousing",
   "officialTitle": "Relational Modeling, SQL & Data Warehousing",
   "summary": "Arquitectura de motores de bases de datos: contraste entre sistemas transaccionales (OLTP) y analíticos (OLAP), diseño dimensional de Ralph Kimball con Esquema en Estrella, gestión de evolución temporal con Dimensiones de Cambio Lento (SCD Tipo 2), SQL analítico avanzado con funciones de ventana y optimización mediante lectura de planes de ejecución con EXPLAIN ANALYZE.",

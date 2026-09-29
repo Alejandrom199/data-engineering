@@ -1,6 +1,6 @@
 {
   "$schema": "../../../../schemas/unit.schema.json",
-  "id": "06-streaming-realtime-cdc",
+  "id": "streaming-realtime-cdc",
   "title": "Streaming de Datos en Tiempo Real y Change Data Capture (CDC)",
   "officialTitle": "Real-Time Streaming & Change Data Capture (CDC)",
   "summary": "Fundamentos de arquitecturas basadas en eventos: registro distribuido inmutable con Apache Kafka, paralelismo mediante particiones y grupos de consumidores, semántica de entrega (At-least-once vs Exactly-once), tiempo de evento vs tiempo de procesamiento, ventanas temporales con Watermarks y replicación transaccional no invasiva con Debezium CDC.",

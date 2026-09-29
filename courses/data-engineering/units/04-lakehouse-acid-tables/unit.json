@@ -1,6 +1,6 @@
 {
   "$schema": "../../../../schemas/unit.schema.json",
-  "id": "04-lakehouse-acid-tables",
+  "id": "lakehouse-acid-tables",
   "title": "Arquitectura Lakehouse y Tablas Transaccionales ACID",
   "officialTitle": "Lakehouse Architecture & ACID Table Formats",
   "summary": "Superación de las limitaciones del Data Lake tradicional mediante formatos abiertos de tabla transaccional (Delta Lake, Apache Iceberg, Apache Hudi). Mecanismos de commit log atómico, aislamiento Snapshot Isolation, Time Travel, compasión y optimización de layout multidimensional con Z-Ordering.",

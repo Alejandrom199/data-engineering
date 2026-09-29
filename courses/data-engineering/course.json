@@ -170,12 +170,12 @@
     }
   ],
   "units": [
-    "01-ingestion-storage-formats",
-    "02-modeling-sql-dwh",
-    "03-spark-distributed-computing",
-    "04-lakehouse-acid-tables",
-    "05-orchestration-quality-dataops",
-    "06-streaming-realtime-cdc"
+    "ingestion-storage-formats",
+    "modeling-sql-dwh",
+    "spark-distributed-computing",
+    "lakehouse-acid-tables",
+    "orchestration-quality-dataops",
+    "streaming-realtime-cdc"
   ],
   "exams": [
     "diagnostic",
@@ -243,7 +243,7 @@
       "rewardGems": 60,
       "condition": {
         "type": "unit-completed",
-        "unitId": "01-ingestion-storage-formats"
+        "unitId": "ingestion-storage-formats"
       }
     },
     {
@@ -255,7 +255,7 @@
       "rewardGems": 70,
       "condition": {
         "type": "unit-completed",
-        "unitId": "02-modeling-sql-dwh"
+        "unitId": "modeling-sql-dwh"
       }
     },
     {
@@ -267,7 +267,7 @@
       "rewardGems": 80,
       "condition": {
         "type": "unit-completed",
-        "unitId": "03-spark-distributed-computing"
+        "unitId": "spark-distributed-computing"
       }
     },
     {
@@ -279,7 +279,7 @@
       "rewardGems": 90,
       "condition": {
         "type": "unit-completed",
-        "unitId": "04-lakehouse-acid-tables"
+        "unitId": "lakehouse-acid-tables"
       }
     },
     {
@@ -291,7 +291,7 @@
       "rewardGems": 90,
       "condition": {
         "type": "unit-completed",
-        "unitId": "05-orchestration-quality-dataops"
+        "unitId": "orchestration-quality-dataops"
       }
     },
     {
@@ -303,7 +303,7 @@
       "rewardGems": 100,
       "condition": {
         "type": "unit-completed",
-        "unitId": "06-streaming-realtime-cdc"
+        "unitId": "streaming-realtime-cdc"
       }
     },
     {

@@ -1,6 +1,6 @@
 {
   "$schema": "../../../../schemas/unit.schema.json",
-  "id": "03-spark-distributed-computing",
+  "id": "spark-distributed-computing",
   "title": "Computación Distribuida con Apache Spark",
   "officialTitle": "Distributed Computing with Apache Spark",
   "summary": "Arquitectura interna de Apache Spark: modelo Driver-Executor, transformaciones Narrow vs Wide y coste del Shuffle, optimizador Catalyst y Tungsten, resolución de cuellos de botella por Data Skew mediante salting, gestión de memoria (Storage vs Execution) y prevención de OOM y Disk Spill.",

@@ -1,6 +1,6 @@
 {
   "$schema": "../../../../schemas/unit.schema.json",
-  "id": "01-ingestion-storage-formats",
+  "id": "ingestion-storage-formats",
   "title": "Ingestión, Almacenamiento y Formatos de Datos",
   "officialTitle": "Data Ingestion, Storage & Formats",
   "summary": "Fundamentos de la adquisición y almacenamiento moderno: formatos columnares (Apache Parquet vs CSV/JSON), particionamiento de datos en almacenamiento de objetos (S3/GCS), técnicas de streaming de memoria con generadores en Python e ingestión de APIs tolerante a fallos.",
