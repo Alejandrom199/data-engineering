@@ -1,0 +1,3 @@
+# Course files must be byte-identical on every OS: archives are rebuilt from them and compared in CI.
+* text=auto eol=lf
+*.zip binary
